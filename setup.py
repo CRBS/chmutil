@@ -10,11 +10,11 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    # TODO: put package requirements here
+    "argparse",
 ]
 
 test_requirements = [
-    # TODO: put package test requirements here
+    "argparse",
 ]
 
 setup(
@@ -46,6 +46,7 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
+    scripts=['chmutil/createchmjob.py'],
     test_suite='tests',
     tests_require=test_requirements
 )
