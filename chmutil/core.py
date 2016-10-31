@@ -19,6 +19,7 @@ class CHMJobCreator(object):
     """
 
     CONFIG_FILE_NAME = 'chm.jobs.list'
+    RUN_DIR = 'chmrun'
     CONFIG_INPUT_IMAGE = 'inputimage'
     CONFIG_ARGS = 'args'
     CONFIG_OUTPUT_IMAGE = 'outputimage'
@@ -30,16 +31,17 @@ class CHMJobCreator(object):
 
     def _create_config(self):
         config = configparser.ConfigParser()
-        config.set('', 'model', self._model)
-        config.set('', 'tilesperjob', self._chmopts.get_number_tiles_per_job())
-        config.set('', 'blocksize', self._chmopts.get_tile_size())
-        config.set('', 'overlapsize', self._chmopts.get_overlap_size())
-        config.set('', 'histeqimages', self._chmopts.get_histogram_eq_val())
-        config.set('', 'jobspernode', self._chmopts.get_number_jobs_per_node())
+        config.set('', 'model', self._chmopts.get_model())
+        config.set('', 'tilesperjob', str(self._chmopts.get_number_tiles_per_job()))
+        config.set('', 'tilesize', str(self._chmopts.get_tile_size()))
+        config.set('', 'overlapsize', str(self._chmopts.get_overlap_size()))
+        config.set('', 'disablehisteqimages', str(self._chmopts.get_disable_histogram_eq_val()))
+        config.set('', 'jobspernode', str(self._chmopts.get_number_jobs_per_node()))
         return config
 
     def _write_config(self, config):
-        cfile = os.path.join(self._outdir, CHMJobCreator.CONFIG_FILE_NAME)
+        cfile = os.path.join(self._chmopts.get_out_dir(),
+                             CHMJobCreator.CONFIG_FILE_NAME)
         f = open(cfile, 'w')
         config.write(f)
         f.flush()
@@ -54,7 +56,15 @@ class CHMJobCreator(object):
         imagestats = statsfac.get_input_image_stats()
         config = self._create_config()
         counter = 1
+        run_dir = os.path.join(self._chmopts.get_out_dir(), CHMJobCreator.RUN_DIR)
+        os.makedirs(run_dir, mode=0775,exist_ok=True)
+
         for iis in imagestats:
+            i_name = os.path.basename(iis.get_file_path())
+            i_dir = os.path.join(run_dir, i_name)
+            if os.path.isdir(i_dir) is False:
+                os.makedirs(i_dir, mode=0775)
+                # TODO create counter to set output image filename
             for a in arg_gen.get_args():
                 counter_as_str = str(counter)
                 config.add_section(counter_as_str)
@@ -62,7 +72,7 @@ class CHMJobCreator(object):
                            iis.get_file_path())
                 config.set(counter_as_str, CHMJobCreator.CONFIG_ARGS, a)
                 config.set(counter_as_str, CHMJobCreator.CONFIG_OUTPUT_IMAGE,
-                           ' some output dir')
+                           ' Set to i_dir + newcounter padded + i_name')
 
         cfile = self._write_config(config)
 
