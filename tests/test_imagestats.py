@@ -16,7 +16,7 @@ from chmutil.core import ImageStats
 
 
 
-class TestChmutil(unittest.TestCase):
+class TestImageStats(unittest.TestCase):
 
     def setUp(self):
         pass

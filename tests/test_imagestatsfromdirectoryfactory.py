@@ -19,7 +19,7 @@ from chmutil.core import ImageStatsFromDirectoryFactory
 
 
 
-class TestChmutil(unittest.TestCase):
+class TestImageStatsFromDirectoryFactory(unittest.TestCase):
 
     def setUp(self):
         pass

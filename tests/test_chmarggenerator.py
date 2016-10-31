@@ -19,7 +19,7 @@ from chmutil.core import OverlapTooLargeForTileSizeError
 
 
 
-class TestChmutil(unittest.TestCase):
+class TestCHMArgGenerator(unittest.TestCase):
 
     def setUp(self):
         pass

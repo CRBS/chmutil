@@ -16,7 +16,7 @@ from chmutil.core import CHMOpts
 
 
 
-class TestChmutil(unittest.TestCase):
+class TestCHMOpts(unittest.TestCase):
 
     def setUp(self):
         pass
