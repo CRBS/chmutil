@@ -3,9 +3,10 @@
 import sys
 import argparse
 import logging
-import chmutil
+import core
 
-from chmutil import CHMJobCreator
+from core import CHMJobCreator
+from core import CHMOpts
 
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
@@ -91,7 +92,7 @@ def _parse_arguments(desc, args):
                              'Comet should be set to 21. (default 11)')
 
     parser.add_argument('--version', action='version',
-                        version=('%(prog)s ' + chmutil.__version__))
+                        version=('%(prog)s ' + core.__version__))
 
     return parser.parse_args(args, namespace=parsed_arguments)
 
@@ -102,13 +103,14 @@ def _create_chm_job(theargs):
     :returns: exit code for program. 0 success otherwise failure
     """
     try:
-        creator = CHMJobCreator(theargs.images, theargs.model,
+        opts = CHMOpts(theargs.images, theargs.model,
                                 theargs.outdir,
                                 tilesize=theargs.tilesize,
                                 overlapsize=theargs.overlapsize,
                                 disablehisteq=theargs.disablechmhisteq,
                                 tilesperjob=theargs.tilesperjob,
                                 jobspernode=theargs.jobspernode)
+        creator = CHMJobCreator(opts)
         job = creator.create_job()
 
         # ssfac = SubmitScriptGeneratorFactory()
@@ -140,11 +142,11 @@ def main(arglist):
 
               createchmjob.py ./images ./model ./mychmjob
 
-              """.format(version=chmutil.__version__)
+              """.format(version=core.__version__)
 
     theargs = _parse_arguments(desc, arglist[1:])
     theargs.program = arglist[0]
-    theargs.version = chmutil.__version__
+    theargs.version = core.__version__
     _setup_logging(theargs)
     try:
         return _create_chm_job(theargs)
