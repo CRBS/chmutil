@@ -15,31 +15,23 @@ class CHMJobCreator(object):
 
     CONFIG_FILE_NAME = 'chm.jobs.list'
 
-    def __init__(self, images, model, outdir, tilesize=None,
-                 overlapsize=None, disablehisteq=False,
-                 tilesperjob=1,
-                 jobspernode=11):
+    def __init__(self, images, model, outdir, chmopts):
         """Constructor
         """
         self._images = images
         self._model = model
         self._outdir = outdir
-        self._tilesize = tilesize
-        self._overlapsize = overlapsize
-        self._disablehisteq = disablehisteq
-        self._tilesperjob = tilesperjob
-        self._jobspernode = jobspernode
+        self._chmopts = chmopts
 
     def _create_config(self):
         config = configparser.ConfigParser()
         config.set('', 'model', self._model)
-        config.set('', 'tilesperjob', self._tilesperjob)
+        config.set('', 'tilesperjob', self._chmopts.get_number_tiles_per_job)
         return config
 
     def _write_config(self, config):
         cfile = os.path.join(self._outdir, CHMJobCreator.CONFIG_FILE_NAME)
-        f = open(cfile,
-                 'w')
+        f = open(cfile, 'w')
         config.write(f)
         f.flush()
         f.close()
@@ -63,6 +55,55 @@ class CHMJobCreator(object):
 
         job = CHMJob(self._outdir, cfile)
         return job
+
+
+class CHMOpts(object):
+    """Contains options for CHM parameters
+    """
+    def __init__(self, tile_width, tile_height,
+                 overlap_width, overlap_height,
+                 number_tiles_per_job=1,
+                 jobs_per_node=1,
+                 disablehisteq=True):
+        """Constructor
+        """
+        self._tile_width = tile_width
+        self._tile_height = tile_height
+        self._overlap_width = overlap_width
+        self._overlap_height = overlap_height
+        self._number_tiles_per_job = number_tiles_per_job
+        self._jobs_per_node = jobs_per_node
+        self._disablehisteq = disablehisteq
+
+    def get_tile_width(self):
+        """gets tile width
+        """
+        return self._tile_width
+
+    def get_tile_height(self):
+        """gets tile width
+        """
+        return self._tile_height
+
+    def get_overlap_width(self):
+        """gets tile width
+        """
+        return self._overlap_width
+
+    def get_overlap_height(self):
+        """gets tile width
+        """
+        return self._overlap_height
+
+    def get_number_tiles_per_job(self):
+        """returns number of tiles per job
+        """
+        return self._number_tiles_per_job
+
+    def get_number_jobs_per_node(self):
+        """gets desired number jobs per node
+        """
+        return self._jobs_per_node
 
 
 class CHMJob(object):
@@ -150,7 +191,7 @@ class InputImageStatsFromDirectoryFactory(object):
                                           im.size[1], im.format)
                     image_stats_list.append(iis)
                 except:
-                    pass
+                    logger.exception('Skipping file unable to open ' + fp)
 
         return image_stats_list
 
