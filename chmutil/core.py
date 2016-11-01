@@ -23,6 +23,12 @@ class CHMJobCreator(object):
     CONFIG_INPUT_IMAGE = 'inputimage'
     CONFIG_ARGS = 'args'
     CONFIG_OUTPUT_IMAGE = 'outputimage'
+    CONFIG_MODEL = 'model'
+    CONFIG_TILES_PER_JOB = 'tilesperjob'
+    CONFIG_TILE_SIZE = 'tilesize'
+    CONFIG_OVERLAP_SIZE = 'overlapsize'
+    CONFIG_DISABLE_HISTEQ_IMAGES = 'disablehisteqimages'
+    CONFIG_JOBS_PER_NODE = 'jobspernode'
 
     def __init__(self, chmopts):
         """Constructor
@@ -30,23 +36,79 @@ class CHMJobCreator(object):
         self._chmopts = chmopts
 
     def _create_config(self):
+        """Creates configparser object and populates it with CHMOpts data
+        :returns: configparser config object filled with CHMOpts data
+        """
         config = configparser.ConfigParser()
-        config.set('', 'model', self._chmopts.get_model())
-        config.set('', 'tilesperjob', str(self._chmopts.get_number_tiles_per_job()))
-        config.set('', 'tilesize', str(self._chmopts.get_tile_size()))
-        config.set('', 'overlapsize', str(self._chmopts.get_overlap_size()))
-        config.set('', 'disablehisteqimages', str(self._chmopts.get_disable_histogram_eq_val()))
-        config.set('', 'jobspernode', str(self._chmopts.get_number_jobs_per_node()))
+        config.set('', CHMJobCreator.CONFIG_MODEL, self._chmopts.get_model())
+        config.set('', CHMJobCreator.CONFIG_TILES_PER_JOB,
+                   str(self._chmopts.get_number_tiles_per_job()))
+        config.set('', CHMJobCreator.CONFIG_TILE_SIZE,
+                   str(self._chmopts.get_tile_size()))
+        config.set('', CHMJobCreator.CONFIG_OVERLAP_SIZE,
+                   str(self._chmopts.get_overlap_size()))
+        config.set('', CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES,
+                   str(self._chmopts.get_disable_histogram_eq_val()))
+        config.set('', CHMJobCreator.CONFIG_JOBS_PER_NODE,
+                   str(self._chmopts.get_number_jobs_per_node()))
         return config
 
     def _write_config(self, config):
+        """Writes `config` to file
+        :param config: configparser config object
+        :returns: Path to written configuration file
+        """
         cfile = os.path.join(self._chmopts.get_out_dir(),
                              CHMJobCreator.CONFIG_FILE_NAME)
+        logger.debug('Writing config to : ' + cfile)
         f = open(cfile, 'w')
         config.write(f)
         f.flush()
         f.close()
         return cfile
+
+    def _create_output_image_dir(self, imagestats, run_dir):
+        """Creates directory where CHM output images will be written
+        :param imagestats: ImageStats for image to create directory for
+        :param rundir: Base run directory for CHM job
+        :returns: tuple (output image directory, filename of image form `imagestats`)
+        """
+        i_name = os.path.basename(imagestats.get_file_path())
+        i_dir = os.path.join(run_dir, i_name)
+        if os.path.isdir(i_dir) is False:
+            logger.debug('Creating image dir ' + i_dir)
+            os.makedirs(i_dir, mode=0775)
+        return i_dir, i_name
+
+    def _create_run_dir(self):
+        """Creates CHM job run directory
+        :returns: Path to run directory
+        """
+        run_dir = os.path.join(self._chmopts.get_out_dir(), CHMJobCreator.RUN_DIR)
+        if os.path.isdir(run_dir) == False:
+            logger.debug('Creating run dir ' + run_dir)
+            os.makedirs(run_dir, mode=0775)
+
+        return run_dir
+
+    def _add_job_for_image_to_config(self, config, counter_as_str,
+                                     imagestats, i_dir, i_name,
+                                     img_cntr, theargs):
+        """Adds job to config object
+        :param config: configparser config object to add job to
+        :param counter_as_str: Counter used in string form
+        :param imagestats: `ImageStats` for job
+        :param i_dir: Output image directory
+        :param i_name: Name of image
+        :param img_cntr: Image counter
+        :param theargs: args for CHM job
+        """
+        config.add_section(counter_as_str)
+        config.set(counter_as_str, CHMJobCreator.CONFIG_INPUT_IMAGE,
+                   imagestats.get_file_path())
+        config.set(counter_as_str, CHMJobCreator.CONFIG_ARGS, ' '.join(theargs))
+        config.set(counter_as_str, CHMJobCreator.CONFIG_OUTPUT_IMAGE,
+                   os.path.join(i_dir, str(img_cntr).zfill(3) + '.' + i_name))
 
     def create_job(self):
         """Creates jobs
@@ -56,27 +118,22 @@ class CHMJobCreator(object):
         imagestats = statsfac.get_input_image_stats()
         config = self._create_config()
         counter = 1
-        run_dir = os.path.join(self._chmopts.get_out_dir(), CHMJobCreator.RUN_DIR)
-        os.makedirs(run_dir, mode=0775,exist_ok=True)
+        run_dir = self._create_run_dir()
 
         for iis in imagestats:
-            i_name = os.path.basename(iis.get_file_path())
-            i_dir = os.path.join(run_dir, i_name)
-            if os.path.isdir(i_dir) is False:
-                os.makedirs(i_dir, mode=0775)
-                # TODO create counter to set output image filename
-            for a in arg_gen.get_args():
+            i_dir, i_name = self._create_output_image_dir(iis, run_dir)
+            img_cntr = 1
+            for a in arg_gen.get_args(iis):
                 counter_as_str = str(counter)
-                config.add_section(counter_as_str)
-                config.set(counter_as_str, CHMJobCreator.CONFIG_INPUT_IMAGE,
-                           iis.get_file_path())
-                config.set(counter_as_str, CHMJobCreator.CONFIG_ARGS, a)
-                config.set(counter_as_str, CHMJobCreator.CONFIG_OUTPUT_IMAGE,
-                           ' Set to i_dir + newcounter padded + i_name')
+                self._add_job_for_image_to_config(config, counter_as_str,
+                                                  iis, i_dir, i_name, img_cntr,
+                                                  a)
+                counter += 1
+                img_cntr += 1
 
         cfile = self._write_config(config)
 
-        job = CHMJob(self._outdir, cfile)
+        job = CHMJob(self._chmopts.get_out_dir(), cfile)
         return job
 
 
