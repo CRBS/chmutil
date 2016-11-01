@@ -3,10 +3,10 @@
 import sys
 import argparse
 import logging
-import core
+import chmutil
 
-from core import CHMJobCreator
-from core import CHMOpts
+from chmutil.core import CHMJobCreator
+from chmutil.core import CHMOpts
 
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
@@ -42,7 +42,7 @@ def _setup_logging(theargs):
     logging.basicConfig(format=theargs.logformat)
 
     logging.getLogger('chmutil.createchmjob').setLevel(theargs.numericloglevel)
-    logging.getLogger('chmutil.chmutil').setLevel(theargs.numericloglevel)
+    logging.getLogger('chmutil.core').setLevel(theargs.numericloglevel)
 
 
 def _parse_arguments(desc, args):
@@ -60,7 +60,8 @@ def _parse_arguments(desc, args):
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level (default WARNING)",
                         default='WARNING')
-
+    parser.add_argument("--chmbin", help='Full path to chm binary',
+                        default='./chm-0.1.0.img')
     parser.add_argument('--tilesize',
                         default='',
                         help='Sets size of tiles to use when running chm in '
@@ -92,7 +93,7 @@ def _parse_arguments(desc, args):
                              'Comet should be set to 21. (default 11)')
 
     parser.add_argument('--version', action='version',
-                        version=('%(prog)s ' + core.__version__))
+                        version=('%(prog)s ' + chmutil.__version__))
 
     return parser.parse_args(args, namespace=parsed_arguments)
 
@@ -109,11 +110,12 @@ def _create_chm_job(theargs):
                                 overlapsize=theargs.overlapsize,
                                 disablehisteq=theargs.disablechmhisteq,
                                 tilesperjob=theargs.tilesperjob,
-                                jobspernode=theargs.jobspernode)
+                                jobspernode=theargs.jobspernode,
+                                chmbin=theargs.chmbin)
         creator = CHMJobCreator(opts)
         job = creator.create_job()
 
-        # ssfac = SubmitScriptGeneratorFactory()
+        # ssfac = SubmitScriptGeneratorFactory(opts)
         # ss = ssfac.get_submit_script_generator_for_cluster()
         # ss.generateSubmitScript()
         # sys.stdout.write(ss.get_run_instructions())
@@ -142,11 +144,11 @@ def main(arglist):
 
               createchmjob.py ./images ./model ./mychmjob
 
-              """.format(version=core.__version__)
+              """.format(version=chmutil.__version__)
 
     theargs = _parse_arguments(desc, arglist[1:])
     theargs.program = arglist[0]
-    theargs.version = core.__version__
+    theargs.version = chmutil.__version__
     _setup_logging(theargs)
     try:
         return _create_chm_job(theargs)
