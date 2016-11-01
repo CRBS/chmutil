@@ -1,8 +1,14 @@
 #! /usr/bin/env python
 
 import sys
+import os
 import argparse
 import logging
+import uuid
+import configparser
+import subprocess
+import shlex
+import shutil
 import chmutil
 
 from chmutil.core import CHMJobCreator
@@ -69,28 +75,58 @@ def _parse_arguments(desc, args):
     return parser.parse_args(args, namespace=parsed_arguments)
 
 
+def _run_external_command(cmd_to_run):
+    """Runs command
+    """
+    # TODO MOVE THIS INTO A SEPARATE RUN CLASS
+    if cmd_to_run is None:
+        return 256, '', 'Command must be set'
+
+    logger.info("Running command " + cmd_to_run)
+
+    p = subprocess.Popen(shlex.split(cmd_to_run),
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+
+    out, err = p.communicate()
+    return p.returncode, out, err
+
+
 def _run_chm_job(theargs):
-    """Creates CHM Job
+    """runs CHM Job
     :param theargs: list of arguments obtained from _parse_arguments()
     :returns: exit code for program. 0 success otherwise failure
     """
+    # TODO REFACTOR THIS INTO FACTORY CLASS TO GET CONFIG
+    # TODO REFACTOR THIS INTO CLASS TO GENERATE CHM JOB COMMAND
     try:
-        opts = CHMOpts(theargs.images, theargs.model,
-                                theargs.outdir,
-                                tilesize=theargs.tilesize,
-                                overlapsize=theargs.overlapsize,
-                                disablehisteq=theargs.disablechmhisteq,
-                                tilesperjob=theargs.tilesperjob,
-                                jobspernode=theargs.jobspernode)
-        creator = CHMJobCreator(opts)
-        job = creator.create_job()
+        out_dir = os.path.join(theargs.scratchdir, uuid.uuid4().hex)
+        config = configparser.ConfigParser()
+        config.read(os.path.join(theargs.jobdir,
+                    CHMJobCreator.CONFIG_FILE_NAME))
+        input_image = config.get(theargs.taskid,
+                                 CHMJobCreator.CONFIG_INPUT_IMAGE)
+        cmd = (config.get('DEFAULT', CHMJobCreator.CONFIG_CHM_BIN) + ' test ' +
+               input_image +
+               ' ' + out_dir + ' -m ' +
+               config.get(theargs.taskid, CHMJobCreator.CONFIG_MODEL) + ' ' +
+               config.get(theargs.taskid, CHMJobCreator.CONFIG_ARGS))
+        exitcode, out, err = _run_external_command(cmd)
 
-        # ssfac = SubmitScriptGeneratorFactory(opts)
-        # ss = ssfac.get_submit_script_generator_for_cluster()
-        # ss.generateSubmitScript()
-        # sys.stdout.write(ss.get_run_instructions())
+        sys.stdout.write(out)
+        sys.stderr.write(err)
 
-        return 0
+        prob_map = os.path.join(out_dir, os.path.basename(input_image))
+        if os.path.isfile(prob_map) is False:
+            logger.error('Result file missing : ' + prob_map)
+            return 2
+
+        shutil.move(prob_map,
+                    config.get(theargs.taskid,
+                    CHMJobCreator.CONFIG_OUTPUT_IMAGE))
+        shutil.rmtree(out_dir)
+
+        return exitcode
     except Exception:
         logger.exception("Error caught exception")
         return 2
