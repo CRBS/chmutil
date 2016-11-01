@@ -20,6 +20,7 @@ class CHMJobCreator(object):
 
     CONFIG_FILE_NAME = 'chm.jobs.list'
     RUN_DIR = 'chmrun'
+    CONFIG_CHM_BIN = 'chmbin'
     CONFIG_INPUT_IMAGE = 'inputimage'
     CONFIG_ARGS = 'args'
     CONFIG_OUTPUT_IMAGE = 'outputimage'
@@ -40,6 +41,8 @@ class CHMJobCreator(object):
         :returns: configparser config object filled with CHMOpts data
         """
         config = configparser.ConfigParser()
+        config.set('', CHMJobCreator.CONFIG_CHM_BIN,
+                   self._chmopts.get_chm_binary())
         config.set('', CHMJobCreator.CONFIG_MODEL, self._chmopts.get_model())
         config.set('', CHMJobCreator.CONFIG_TILES_PER_JOB,
                    str(self._chmopts.get_number_tiles_per_job()))
@@ -145,7 +148,8 @@ class CHMOpts(object):
                  overlap_size,
                  number_tiles_per_job=1,
                  jobs_per_node=1,
-                 disablehisteq=True):
+                 disablehisteq=True,
+                 chmbin='./chm-0.1.0.img'):
         """Constructor
         """
         self._images = images
@@ -158,6 +162,7 @@ class CHMOpts(object):
         self._number_tiles_per_job = number_tiles_per_job
         self._jobs_per_node = jobs_per_node
         self._disablehisteq = disablehisteq
+        self._chmbin = chmbin
 
     def _extract_width_and_height(self, val):
         """parses WxH value into tuple
@@ -246,6 +251,11 @@ class CHMOpts(object):
         """gets desired number jobs per node
         """
         return self._jobs_per_node
+
+    def get_chm_binary(self):
+        """gets path to chm binary
+        """
+        return self._chmbin
 
 
 class CHMJob(object):
