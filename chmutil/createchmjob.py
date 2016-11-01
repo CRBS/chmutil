@@ -106,11 +106,11 @@ def _create_chm_job(theargs):
     try:
         opts = CHMOpts(theargs.images, theargs.model,
                                 theargs.outdir,
-                                tilesize=theargs.tilesize,
-                                overlapsize=theargs.overlapsize,
+                                theargs.tilesize,
+                                theargs.overlapsize,
                                 disablehisteq=theargs.disablechmhisteq,
-                                tilesperjob=theargs.tilesperjob,
-                                jobspernode=theargs.jobspernode,
+                                number_tiles_per_job=int(theargs.tilesperjob),
+                                jobs_per_node=int(theargs.jobspernode),
                                 chmbin=theargs.chmbin)
         creator = CHMJobCreator(opts)
         job = creator.create_job()
