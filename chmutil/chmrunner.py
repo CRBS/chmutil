@@ -12,7 +12,7 @@ import shutil
 import chmutil
 
 from chmutil.core import CHMJobCreator
-from chmutil.core import CHMOpts
+from chmutil.core import CHMConfig
 
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
@@ -59,7 +59,6 @@ def _parse_arguments(desc, args):
     help_formatter = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc,
                                      formatter_class=help_formatter)
-    parser.add_argument("jobid", help='Job id')
     parser.add_argument("taskid", help='Task id')
     parser.add_argument("jobdir", help='Directory containing chm.list.job'
                                        'file')
@@ -106,15 +105,29 @@ def _run_chm_job(theargs):
                     CHMJobCreator.CONFIG_FILE_NAME))
         input_image = config.get(theargs.taskid,
                                  CHMJobCreator.CONFIG_INPUT_IMAGE)
+        logger.debug('Creating directory ' + out_dir)
+        os.makedirs(out_dir, mode=0775)
+        if config.get(theargs.taskid, CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES) == 'True':
+            histeq_flag = ' -h '
+        else:
+            histeq_flag = ' '
+
         cmd = (config.get('DEFAULT', CHMJobCreator.CONFIG_CHM_BIN) + ' test ' +
                input_image +
                ' ' + out_dir + ' -m ' +
-               config.get(theargs.taskid, CHMJobCreator.CONFIG_MODEL) + ' ' +
+               config.get(theargs.taskid, CHMJobCreator.CONFIG_MODEL) +
+               ' -b ' +
+               config.get(theargs.taskid, CHMJobCreator.CONFIG_TILE_SIZE) +
+               ' -o ' +
+               config.get(theargs.taskid, CHMJobCreator.CONFIG_OVERLAP_SIZE) +
+               histeq_flag + ' ' +
                config.get(theargs.taskid, CHMJobCreator.CONFIG_ARGS))
         exitcode, out, err = _run_external_command(cmd)
 
         sys.stdout.write(out)
         sys.stderr.write(err)
+        sys.stdout.flush()
+        sys.stderr.flush()
 
         prob_map = os.path.join(out_dir, os.path.basename(input_image))
         if os.path.isfile(prob_map) is False:
@@ -141,13 +154,13 @@ def main(arglist):
     desc = """
               Version {version}
 
-              Runs CHM for <jobid> and <taskid> specified on command
+              Runs CHM for <taskid> specified on command
               line.
 
 
               Example Usage:
 
-              chmrunner.py 12345 1 /foo/chmjob /scratch
+              chmrunner.py 1 /foo/chmjob --scratchdir /scratch
 
               """.format(version=chmutil.__version__)
 
