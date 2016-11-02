@@ -20,6 +20,8 @@ class CHMJobCreator(object):
 
     CONFIG_FILE_NAME = 'chm.jobs.list'
     RUN_DIR = 'chmrun'
+    STDOUT_DIR = 'stdout'
+    TMP_DIR = 'tmp'
     CONFIG_DEFAULT = 'DEFAULT'
     CONFIG_CHM_BIN = 'chmbin'
     CONFIG_INPUT_IMAGE = 'inputimage'
@@ -95,7 +97,8 @@ class CHMJobCreator(object):
         if os.path.isdir(run_dir) == False:
             logger.debug('Creating run dir ' + run_dir)
             os.makedirs(run_dir, mode=0775)
-            os.makedirs(os.path.join(run_dir, 'stdout'), mode=0775)
+            os.makedirs(os.path.join(run_dir, CHMJobCreator.STDOUT_DIR),
+                        mode=0775)
 
         return run_dir
 
@@ -127,7 +130,11 @@ class CHMJobCreator(object):
         config = self._create_config()
         counter = 1
         run_dir = self._create_run_dir()
-        os.makedirs(os.path.join(self._chmopts.get_out_dir(), 'tmp'), mode=0775)
+
+        # create shared tmp dir
+        os.makedirs(os.path.join(self._chmopts.get_out_dir(),
+                                 CHMJobCreator.TMP_DIR),
+                    mode=0775)
 
         for iis in imagestats:
             i_dir, i_name = self._create_output_image_dir(iis, run_dir)
@@ -242,6 +249,21 @@ class CHMConfig(object):
         """gets outdir
         """
         return self._outdir
+
+    def get_run_dir(self):
+        """gets run dir
+        """
+        return os.path.join(self._outdir, CHMJobCreator.RUN_DIR)
+
+    def get_stdout_dir(self):
+        """gets stdout dir
+        """
+        return os.path.join(self.get_run_dir(), CHMJobCreator.STDOUT_DIR)
+
+    def get_shared_tmp_dir(self):
+        """gets shared tmp dir
+        """
+        return os.path.join(self.get_run_dir(), CHMJobCreator.TMP_DIR)
 
     def get_tile_width(self):
         """gets tile width
