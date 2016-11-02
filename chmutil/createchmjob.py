@@ -8,6 +8,7 @@ import chmutil
 
 from chmutil.core import CHMJobCreator
 from chmutil.core import CHMConfig
+from chmutil.cluster import RocceSubmitScriptGenerator
 
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
@@ -92,7 +93,9 @@ def _parse_arguments(desc, args):
                              'compute node. For 500x500 tiles, Gordon '
                              'should be set to 11, '
                              'Comet should be set to 21. (default 11)')
-
+    parser.add_argument('--cluster', default='rocce',
+                        help='Sets which cluster to generate job script for'
+                             ' (default rocce)')
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + chmutil.__version__))
 
@@ -116,6 +119,13 @@ def _create_chm_job(theargs):
         opts = creator.create_job()
 
         # TODO create separate classes to generate submit script
+        gen = None
+        if theargs.cluster == 'rocce':
+            gen = RocceSubmitScriptGenerator(opts)
+
+        if gen is not None:
+            script, info = gen.generate_submit_script()
+
 
         return 0
     except Exception:
