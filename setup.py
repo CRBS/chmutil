@@ -11,11 +11,13 @@ with open('HISTORY.rst') as history_file:
 
 requirements = [
     "argparse",
+    "configparser",
     "Pillow"
 ]
 
 test_requirements = [
     "argparse",
+    "configparser",
     "Pillow"
 ]
 
