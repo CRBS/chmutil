@@ -20,7 +20,7 @@ import configparser
 from PIL import Image
 
 from chmutil.core import CHMJobCreator
-from chmutil.core import CHMOpts
+from chmutil.core import CHMConfig
 from chmutil.core import ImageStats
 
 
@@ -40,9 +40,9 @@ class TestCHMJobCreator(unittest.TestCase):
     def test_create_config_and_write_config(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            opts = CHMOpts('/foo', 'model', temp_dir, '200x100',
+            opts = CHMConfig('/foo', 'model', temp_dir, '200x100',
                            '20x20',
-                           jobs_per_node=20)
+                             jobs_per_node=20)
             creator = CHMJobCreator(opts)
             con = creator._create_config()
 
@@ -61,8 +61,8 @@ class TestCHMJobCreator(unittest.TestCase):
     def test_create_run_dir(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            opts = CHMOpts(os.path.join(temp_dir, 'images'), 'model',
-                           temp_dir, '200x100', '20x20')
+            opts = CHMConfig(os.path.join(temp_dir, 'images'), 'model',
+                             temp_dir, '200x100', '20x20')
             creator = CHMJobCreator(opts)
             run_dir = creator._create_run_dir()
             self.assertTrue(os.path.isdir(run_dir))
@@ -72,8 +72,8 @@ class TestCHMJobCreator(unittest.TestCase):
     def test_create_output_image_dir(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            opts = CHMOpts(os.path.join(temp_dir, 'images'), 'model',
-                           temp_dir, '200x100', '20x20')
+            opts = CHMConfig(os.path.join(temp_dir, 'images'), 'model',
+                             temp_dir, '200x100', '20x20')
             creator = CHMJobCreator(opts)
             run_dir = creator._create_run_dir()
             self.assertTrue(os.path.isdir(run_dir))
@@ -91,8 +91,8 @@ class TestCHMJobCreator(unittest.TestCase):
     def test_add_job_for_image_to_config(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            opts = CHMOpts(os.path.join(temp_dir, 'images'), 'model',
-                           temp_dir, '200x100', '20x20')
+            opts = CHMConfig(os.path.join(temp_dir, 'images'), 'model',
+                             temp_dir, '200x100', '20x20')
             creator = CHMJobCreator(opts)
             config = creator._create_config()
             run_dir = creator._create_run_dir()
@@ -127,17 +127,17 @@ class TestCHMJobCreator(unittest.TestCase):
             fooimg = os.path.join(image_dir, 'foo1.png')
             self._create_png_image(fooimg, (400, 300))
 
-            opts = CHMOpts(image_dir, 'model',
-                           temp_dir, '200x100', '0x0')
+            opts = CHMConfig(image_dir, 'model',
+                             temp_dir, '200x100', '0x0')
             creator = CHMJobCreator(opts)
-            chmjob = creator.create_job()
-            self.assertEqual(chmjob.get_dir(), temp_dir)
-            self.assertEqual(chmjob.get_job_config(),
+            opts = creator.create_job()
+            self.assertEqual(opts.get_out_dir(), temp_dir)
+            self.assertEqual(opts.get_job_config(),
                              os.path.join(temp_dir,
                                           CHMJobCreator.CONFIG_FILE_NAME))
 
             config = configparser.ConfigParser()
-            config.read(chmjob.get_job_config())
+            config.read(opts.get_job_config())
             self.assertEqual(config.sections(),
                              ['1', '2', '3', '4', '5', '6'])
             self.assertEqual(config.get('1',
@@ -170,19 +170,19 @@ class TestCHMJobCreator(unittest.TestCase):
             fooimg = os.path.join(image_dir, 'foo1.png')
             self._create_png_image(fooimg, (400, 300))
 
-            opts = CHMOpts(image_dir, 'model',
-                           temp_dir, '200x100', '0x0',
-                           number_tiles_per_job=5)
+            opts = CHMConfig(image_dir, 'model',
+                             temp_dir, '200x100', '0x0',
+                             number_tiles_per_job=5)
             creator = CHMJobCreator(opts)
-            chmjob = creator.create_job()
-            self.assertEqual(chmjob.get_dir(), temp_dir)
-            self.assertEqual(chmjob.get_job_config(),
+            opts = creator.create_job()
+            self.assertEqual(opts.get_out_dir(), temp_dir)
+            self.assertEqual(opts.get_job_config(),
                              os.path.join(temp_dir,
                                           CHMJobCreator.CONFIG_FILE_NAME))
-            self.assertTrue(os.path.isdir(os.path.join(chmjob.get_dir(),
+            self.assertTrue(os.path.isdir(os.path.join(opts.get_out_dir(),
                                                        CHMJobCreator.RUN_DIR)))
             config = configparser.ConfigParser()
-            config.read(chmjob.get_job_config())
+            config.read(opts.get_job_config())
 
             self.assertEqual(config.sections(),
                              ['1', '2'])
@@ -236,18 +236,18 @@ class TestCHMJobCreator(unittest.TestCase):
             foo3img = os.path.join(image_dir, 'foo3.png')
             self._create_png_image(foo3img, (800, 400))
 
-            opts = CHMOpts(image_dir, 'model',
-                           temp_dir, '200x100', '0x0',
-                           number_tiles_per_job=5)
+            opts = CHMConfig(image_dir, 'model',
+                             temp_dir, '200x100', '0x0',
+                             number_tiles_per_job=5)
             creator = CHMJobCreator(opts)
-            chmjob = creator.create_job()
-            self.assertEqual(chmjob.get_dir(), temp_dir)
-            self.assertEqual(chmjob.get_job_config(),
+            opts = creator.create_job()
+            self.assertEqual(opts.get_out_dir(), temp_dir)
+            self.assertEqual(opts.get_job_config(),
                              os.path.join(temp_dir,
                                           CHMJobCreator.CONFIG_FILE_NAME))
 
             config = configparser.ConfigParser()
-            config.read(chmjob.get_job_config())
+            config.read(opts.get_job_config())
             self.assertEqual(len(config.sections()),
                              7)
 
