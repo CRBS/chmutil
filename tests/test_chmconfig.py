@@ -12,11 +12,11 @@ Tests for `CHMOpts` class
 import sys
 import unittest
 
-from chmutil.core import CHMOpts
+from chmutil.core import CHMConfig
 
 
 
-class TestCHMOpts(unittest.TestCase):
+class TestCHMConfig(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -25,7 +25,7 @@ class TestCHMOpts(unittest.TestCase):
         pass
 
     def test_constructor(self):
-        opts = CHMOpts(None, None, None, None, None)
+        opts = CHMConfig(None, None, None, None, None)
         self.assertEqual(opts.get_images(), None)
         self.assertEqual(opts.get_model(), None)
         self.assertEqual(opts.get_out_dir(), None)
@@ -38,11 +38,13 @@ class TestCHMOpts(unittest.TestCase):
         self.assertEqual(opts.get_number_jobs_per_node(), 1)
         self.assertEqual(opts.get_number_tiles_per_job(), 1)
         self.assertEqual(opts.get_disable_histogram_eq_val(), True)
+        self.assertEqual(opts.get_config(), None)
 
-        opts = CHMOpts('images', 'model', 'out', '500x600', '20x30',
-                       number_tiles_per_job=122,
-                       jobs_per_node=12,
-                       disablehisteq=False)
+        opts = CHMConfig('images', 'model', 'out', '500x600', '20x30',
+                         number_tiles_per_job=122,
+                         jobs_per_node=12,
+                         disablehisteq=False,
+                         config='hi')
         self.assertEqual(opts.get_images(), 'images')
         self.assertEqual(opts.get_model(), 'model')
         self.assertEqual(opts.get_out_dir(), 'out')
@@ -55,11 +57,13 @@ class TestCHMOpts(unittest.TestCase):
         self.assertEqual(opts.get_number_jobs_per_node(), 12)
         self.assertEqual(opts.get_number_tiles_per_job(), 122)
         self.assertEqual(opts.get_disable_histogram_eq_val(), False)
+        self.assertEqual(opts.get_config(), 'hi')
 
-
+        opts.set_config('bye')
+        self.assertEqual(opts.get_config(), 'bye')
 
     def test_extract_width_and_height(self):
-        opts = CHMOpts(None, None, None, None, None)
+        opts = CHMConfig(None, None, None, None, None)
 
         w, h = opts._extract_width_and_height(None)
         self.assertEqual(w, '')
