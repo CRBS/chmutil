@@ -20,10 +20,12 @@ class CHMJobCreator(object):
 
     CONFIG_FILE_NAME = 'chm.jobs.list'
     RUN_DIR = 'chmrun'
+    CONFIG_DEFAULT = 'DEFAULT'
     CONFIG_CHM_BIN = 'chmbin'
     CONFIG_INPUT_IMAGE = 'inputimage'
     CONFIG_ARGS = 'args'
     CONFIG_OUTPUT_IMAGE = 'outputimage'
+    CONFIG_IMAGES = 'images'
     CONFIG_MODEL = 'model'
     CONFIG_TILES_PER_JOB = 'tilesperjob'
     CONFIG_TILE_SIZE = 'tilesize'
@@ -41,6 +43,8 @@ class CHMJobCreator(object):
         :returns: configparser config object filled with CHMOpts data
         """
         config = configparser.ConfigParser()
+        config.set('', CHMJobCreator.CONFIG_IMAGES,
+                   self._chmopts.get_images())
         config.set('', CHMJobCreator.CONFIG_CHM_BIN,
                    self._chmopts.get_chm_binary())
         config.set('', CHMJobCreator.CONFIG_MODEL, self._chmopts.get_model())
@@ -91,6 +95,7 @@ class CHMJobCreator(object):
         if os.path.isdir(run_dir) == False:
             logger.debug('Creating run dir ' + run_dir)
             os.makedirs(run_dir, mode=0775)
+            os.makedirs(os.path.join(run_dir, 'stdout'), mode=0775)
 
         return run_dir
 
@@ -122,6 +127,7 @@ class CHMJobCreator(object):
         config = self._create_config()
         counter = 1
         run_dir = self._create_run_dir()
+        os.makedirs(os.path.join(self._chmopts.get_out_dir(), 'tmp'), mode=0775)
 
         for iis in imagestats:
             i_dir, i_name = self._create_output_image_dir(iis, run_dir)
@@ -134,13 +140,11 @@ class CHMJobCreator(object):
                 counter += 1
                 img_cntr += 1
 
-        cfile = self._write_config(config)
-
-        job = CHMJob(self._chmopts.get_out_dir(), cfile)
-        return job
+        self._write_config(config)
+        return self._chmopts
 
 
-class CHMOpts(object):
+class CHMConfig(object):
     """Contains options for CHM parameters
     """
     def __init__(self, images, model, outdir,
@@ -149,7 +153,8 @@ class CHMOpts(object):
                  number_tiles_per_job=1,
                  jobs_per_node=1,
                  disablehisteq=True,
-                 chmbin='./chm-0.1.0.img'):
+                 chmbin='./chm-0.1.0.img',
+                 config=None):
         """Constructor
         """
         self._images = images
@@ -163,6 +168,7 @@ class CHMOpts(object):
         self._jobs_per_node = jobs_per_node
         self._disablehisteq = disablehisteq
         self._chmbin = chmbin
+        self._config = config
 
     def _extract_width_and_height(self, val):
         """parses WxH value into tuple
@@ -190,6 +196,21 @@ class CHMOpts(object):
         self._overlap_width = w
         self._overlap_height = h
         return
+
+    def set_config(self, config):
+        """Sets config
+        """
+        self._config = config
+
+    def get_config(self):
+        """Gets configparser config if set in constructor
+        """
+        return self._config
+
+    def get_job_config(self):
+        """Gets path to job config file
+        """
+        return os.path.join(self.get_out_dir(), CHMJobCreator.CONFIG_FILE_NAME)
 
     def get_disable_histogram_eq_val(self):
         """gets boolean to indicate whether chm should
@@ -258,25 +279,40 @@ class CHMOpts(object):
         return self._chmbin
 
 
-class CHMJob(object):
-    """Represents a CHM Cluster Job
+class CHMConfigFromConfigFactory(object):
+    """Creates CHMOpts object from configuration file
     """
-
-    def __init__(self, path, configfile):
+    def __init__(self, job_dir):
         """Constructor
+        :param job_dir: Directory containing job config file
         """
-        self._path = path
-        self._config = configfile
+        self._job_dir = job_dir
 
-    def get_dir(self):
-        """Gets job directory
+    def get_chmconfig(self):
+        """Gets CHMOpts
         """
-        return self._path
+        config = configparser.ConfigParser()
+        config.read(os.path.join(self._job_dir,
+                                 CHMJobCreator.CONFIG_FILE_NAME))
 
-    def get_job_config(self):
-        """Gets job configuration file
-        """
-        return self._config
+        default = CHMJobCreator.CONFIG_DEFAULT
+
+        disablehisteq = False
+        if config.get(default, CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES) is 'True':
+            disablehisteq
+
+        opts = CHMConfig(config.get(default, CHMJobCreator.CONFIG_IMAGES),
+                       config.get(default, CHMJobCreator.CONFIG_MODEL),
+                       self._job_dir,
+                       config.get(default, CHMJobCreator.CONFIG_TILE_SIZE),
+                       config.get(default, CHMJobCreator.CONFIG_OVERLAP_SIZE),
+                       number_tiles_per_job=config.get(default,
+                                                       CHMJobCreator.CONFIG_TILES_PER_JOB),
+                       jobs_per_node=config.get(default, CHMJobCreator.CONFIG_JOBS_PER_NODE),
+                       disablehisteq=disablehisteq,
+                       chmbin=config.get(default, CHMJobCreator.CONFIG_CHM_BIN),
+                       config=config)
+        return opts
 
 
 class ImageStats(object):
