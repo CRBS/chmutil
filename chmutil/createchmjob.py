@@ -3,10 +3,11 @@
 import sys
 import argparse
 import logging
+import os
 import chmutil
 
 from chmutil.core import CHMJobCreator
-from chmutil.core import CHMOpts
+from chmutil.core import CHMConfig
 
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
@@ -97,14 +98,13 @@ def _parse_arguments(desc, args):
 
     return parser.parse_args(args, namespace=parsed_arguments)
 
-
 def _create_chm_job(theargs):
     """Creates CHM Job
     :param theargs: list of arguments obtained from _parse_arguments()
     :returns: exit code for program. 0 success otherwise failure
     """
     try:
-        opts = CHMOpts(theargs.images, theargs.model,
+        opts = CHMConfig(theargs.images, theargs.model,
                                 theargs.outdir,
                                 theargs.tilesize,
                                 theargs.overlapsize,
@@ -113,12 +113,9 @@ def _create_chm_job(theargs):
                                 jobs_per_node=int(theargs.jobspernode),
                                 chmbin=theargs.chmbin)
         creator = CHMJobCreator(opts)
-        job = creator.create_job()
+        opts = creator.create_job()
 
-        # ssfac = SubmitScriptGeneratorFactory(opts)
-        # ss = ssfac.get_submit_script_generator_for_cluster()
-        # ss.generateSubmitScript()
-        # sys.stdout.write(ss.get_run_instructions())
+        # TODO create separate classes to generate submit script
 
         return 0
     except Exception:
