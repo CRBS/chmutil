@@ -87,6 +87,9 @@ def _run_chm_job(theargs):
         sys.stdout.write('No jobs need to be run')
         return 0
 
+    if num_jobs > 1:
+        num_jobs -= 1
+
     if theargs.cluster == 'rocce':
         sys.stdout.write('Run this:\n\n  cd ' + chmconfig.get_out_dir() + ';' +
                          'qsub -t 1-' + str(num_jobs) + ' ' +
