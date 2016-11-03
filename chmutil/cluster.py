@@ -65,7 +65,7 @@ class BatchedJobsListGenerator(object):
             logger.debug('All jobs complete')
             return 0
 
-        jobspernode = self._chmconfig.get_number_jobs_per_node()
+        jobspernode = int(self._chmconfig.get_number_jobs_per_node())
 
         bconfig = configparser.ConfigParser()
 
@@ -98,39 +98,9 @@ class RocceSubmitScriptGenerator(object):
         return os.path.join(self._chmconfig.get_out_dir(),
                      RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME)
 
-    def _get_job_range(self):
-        """Gets number of jobs in config by examining sections
-        """
-        config_file = self._chmconfig.get_batchedjob_config()
-        config = configparser.ConfigParser()
-        config.read(config_file)
-        minval = -1
-        maxval = 0
-        for s in config.sections():
-            try:
-                s_as_int = int(s)
-                if s_as_int > maxval:
-                    maxval = s_as_int
-                if minval == -1:
-                    minval = s_as_int
-                    continue
-                if s_as_int < minval:
-                    minval = s_as_int
-            except ValueError:
-                pass
-        return minval, maxval
-
-    def _get_instructions(self):
-        """get instructions
-        """
-        minval, maxval = self._get_job_range()
-        return ('Run: cd ' + self._chmconfig.get_out_dir() +
-                '; qsub -t ' + str(minval) + '-' + str(maxval) + ' ' +
-                RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME)
-
     def generate_submit_script(self):
         """Creates submit script and instructions for invocation
-        :returns: tuple (path to submit script, instructions for submit)
+        :returns: path to submit script
         """
         script = self._get_submit_script_path()
         out_dir = self._chmconfig.get_out_dir()
@@ -145,12 +115,12 @@ class RocceSubmitScriptGenerator(object):
         f.write('#$ -q all.q\n#$ -m n\n\n')
         f.write('echo "HOST: $HOSTNAME"\n')
         f.write('echo "DATE: `date`"\n\n')
-        f.write('/usr/bin/time -p ' + self._chmconfig.get_chm_binary() +
+        f.write('/usr/bin/time -p chmrunner.py ' +
                 ' $SGE_TASK_ID ' + out_dir + ' --scratchdir ' +
                 self._chmconfig.get_shared_tmp_dir() + ' --log DEBUG\n')
         f.flush()
         f.close()
         os.chmod(script, stat.S_IRWXU)
-        return script, self._get_instructions()
+        return script
 
 

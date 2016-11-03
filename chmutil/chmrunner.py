@@ -17,7 +17,7 @@ from chmutil.core import CHMConfig
 from chmutil.core import CHMConfigFromConfigFactory
 
 
-LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
+LOG_FORMAT = "%(asctime)-15s %(levelname)s (%(process)d) %(name)s %(message)s"
 
 # create logger
 logger = logging.getLogger('chmutil.chmrunner')
@@ -51,6 +51,7 @@ def _setup_logging(theargs):
 
     logging.getLogger('chmutil.chmrunner').setLevel(theargs.numericloglevel)
     logging.getLogger('chmutil.core').setLevel(theargs.numericloglevel)
+    logging.getLogger('chmutil.cluster').setLevel(theargs.numericloglevel)
 
 
 def _parse_arguments(desc, args):
@@ -131,14 +132,14 @@ def _run_jobs(chmconfig, theargs, taskid):
     """
     bconfig = configparser.ConfigParser()
     bconfig.read(chmconfig.get_batchedjob_config())
-    tasks = bconfig.get(taskid, CHMJobCreator.BCONFIG_TASK_ID)
+    tasks = bconfig.get(taskid, CHMJobCreator.BCONFIG_TASK_ID).split(',')
     process_list = []
     logger.debug('Running ' + str(len(tasks)) + 'child processes')
     for t in tasks:
         pid = os.fork()
         if pid is 0:
-            logger.debug('In child submitting job')
-            _run_single_chm_job(theargs, t)
+            logger.debug('In child submitting job to run task ' + t)
+            return _run_single_chm_job(theargs, t)
         else:
             logger.debug('Appending child process to list: ' + str(pid))
             process_list.append(pid)
@@ -152,11 +153,11 @@ def _run_jobs(chmconfig, theargs, taskid):
             ecode = os.waitpid(process_list[0], 0)[1]
             if ecode > 255:
                 ecode = ecode >> 8
+            logger.info('Process ' + str(process_list[0]) + ' exited with code: ' + str(ecode))
+            exit_code += ecode
         except OSError:
             logger.exception('Caught exception, but it might not be a big deal')
-
-        logger.info('Process ' + str(process_list[0]) + ' exited with code: ' + str(ecode))
-        exit_code += ecode
+        time.sleep(1)
         del process_list[0]
         running_procs = len(process_list)
     return exit_code
@@ -203,6 +204,9 @@ def _run_single_chm_job(theargs, taskid):
         prob_map = os.path.join(out_dir, os.path.basename(input_image))
         if os.path.isfile(prob_map) is False:
             logger.error('Result file missing : ' + prob_map)
+            # TODO need to handle this case where singularity pukes:
+            # ABORT: Could not create temporary directory
+            # /tmp/.singularity-1000.64770.13026447427: File exists
             return 2
 
         shutil.move(prob_map,

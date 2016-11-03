@@ -46,6 +46,7 @@ def _setup_logging(theargs):
 
     logging.getLogger('chmutil.createchmjob').setLevel(theargs.numericloglevel)
     logging.getLogger('chmutil.core').setLevel(theargs.numericloglevel)
+    logging.getLogger('chmutil.cluster').setLevel(theargs.numericloglevel)
 
 
 def _parse_arguments(desc, args):
@@ -122,16 +123,16 @@ def _create_chm_job(theargs):
         opts = creator.create_job()
 
         # TODO create separate classes to generate submit script
-        bgen = BatchedJobsListGenerator(opts)
-        bgen.generate_batched_jobs_list()
-
         gen = None
         if theargs.cluster == 'rocce':
             gen = RocceSubmitScriptGenerator(opts)
 
         if gen is not None:
-            script, info = gen.generate_submit_script()
-            sys.stdout.write('\n' + info + '\n')
+            gen.generate_submit_script()
+            sys.stdout.write('Run this to submit job\n' +
+                             '  runchmjob.py ' + opts.get_out_dir() +
+                             ' --cluster ' +
+                             theargs.cluster + '\n')
 
 
         return 0
