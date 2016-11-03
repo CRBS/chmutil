@@ -134,7 +134,7 @@ class CHMJobCreator(object):
         run_dir = self._create_run_dir()
 
         # create shared tmp dir
-        tmpdir = os.path.join(self._chmopts.get_out_dir(),
+        tmpdir = os.path.join(run_dir,
                               CHMJobCreator.TMP_DIR)
         if not os.path.isdir(tmpdir):
             os.makedirs(tmpdir, mode=0775)
