@@ -50,7 +50,8 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    scripts=['chmutil/createchmjob.py', 'chmutil/chmrunner.py'],
+    scripts=['chmutil/createchmjob.py', 'chmutil/chmrunner.py',
+             'chmutil/runchmjob.py'],
     test_suite='tests',
     tests_require=test_requirements
 )
