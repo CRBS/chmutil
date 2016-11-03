@@ -18,7 +18,8 @@ class CHMJobCreator(object):
     """Creates CHM Job to run on cluster
     """
 
-    CONFIG_FILE_NAME = 'chm.jobs.list'
+    CONFIG_FILE_NAME = 'base.chm.jobs.list'
+    CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.chm.jobs.list'
     RUN_DIR = 'chmrun'
     STDOUT_DIR = 'stdout'
     TMP_DIR = 'tmp'
@@ -29,6 +30,7 @@ class CHMJobCreator(object):
     CONFIG_OUTPUT_IMAGE = 'outputimage'
     CONFIG_IMAGES = 'images'
     CONFIG_MODEL = 'model'
+    BCONFIG_TASK_ID = 'taskids'
     CONFIG_TILES_PER_JOB = 'tilesperjob'
     CONFIG_TILE_SIZE = 'tilesize'
     CONFIG_OVERLAP_SIZE = 'overlapsize'
@@ -132,9 +134,10 @@ class CHMJobCreator(object):
         run_dir = self._create_run_dir()
 
         # create shared tmp dir
-        os.makedirs(os.path.join(self._chmopts.get_out_dir(),
-                                 CHMJobCreator.TMP_DIR),
-                    mode=0775)
+        tmpdir = os.path.join(self._chmopts.get_out_dir(),
+                              CHMJobCreator.TMP_DIR)
+        if not os.path.isdir(tmpdir):
+            os.makedirs(tmpdir, mode=0775)
 
         for iis in imagestats:
             i_dir, i_name = self._create_output_image_dir(iis, run_dir)
@@ -148,6 +151,8 @@ class CHMJobCreator(object):
                 img_cntr += 1
 
         self._write_config(config)
+        self._chmopts.set_config(config)
+
         return self._chmopts
 
 
@@ -218,6 +223,12 @@ class CHMConfig(object):
         """Gets path to job config file
         """
         return os.path.join(self.get_out_dir(), CHMJobCreator.CONFIG_FILE_NAME)
+
+    def get_batchedjob_config(self):
+        """Gets path to batched job config
+        """
+        return os.path.join(self.get_out_dir(),
+                            CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME)
 
     def get_disable_histogram_eq_val(self):
         """gets boolean to indicate whether chm should

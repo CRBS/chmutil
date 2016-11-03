@@ -9,6 +9,7 @@ import chmutil
 from chmutil.core import CHMJobCreator
 from chmutil.core import CHMConfig
 from chmutil.cluster import RocceSubmitScriptGenerator
+from chmutil.cluster import BatchedJobsListGenerator
 
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
@@ -107,24 +108,30 @@ def _create_chm_job(theargs):
     :returns: exit code for program. 0 success otherwise failure
     """
     try:
-        opts = CHMConfig(theargs.images, theargs.model,
-                                theargs.outdir,
-                                theargs.tilesize,
-                                theargs.overlapsize,
-                                disablehisteq=theargs.disablechmhisteq,
-                                number_tiles_per_job=int(theargs.tilesperjob),
-                                jobs_per_node=int(theargs.jobspernode),
-                                chmbin=theargs.chmbin)
+        opts = CHMConfig(os.path.abspath(theargs.images),
+                         os.path.abspath(theargs.model),
+                         os.path.abspath(theargs.outdir),
+                         theargs.tilesize,
+                         theargs.overlapsize,
+                         disablehisteq=theargs.disablechmhisteq,
+                         number_tiles_per_job=int(theargs.tilesperjob),
+                         jobs_per_node=int(theargs.jobspernode),
+                         chmbin=os.path.abspath(theargs.chmbin))
+
         creator = CHMJobCreator(opts)
         opts = creator.create_job()
 
         # TODO create separate classes to generate submit script
+        bgen = BatchedJobsListGenerator(opts)
+        bgen.generate_batched_jobs_list()
+
         gen = None
         if theargs.cluster == 'rocce':
             gen = RocceSubmitScriptGenerator(opts)
 
         if gen is not None:
             script, info = gen.generate_submit_script()
+            sys.stdout.write('\n' + info + '\n')
 
 
         return 0
