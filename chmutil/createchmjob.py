@@ -9,14 +9,11 @@ import chmutil
 from chmutil.core import CHMJobCreator
 from chmutil.core import CHMConfig
 from chmutil.cluster import RocceSubmitScriptGenerator
-from chmutil.cluster import BatchedJobsListGenerator
-
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
 
 # create logger
 logger = logging.getLogger('chmutil.createchmjob')
-
 
 
 class Parameters(object):
@@ -75,11 +72,11 @@ def _parse_arguments(desc, args):
                              '(default empty string meaning no tiling)')
     parser.add_argument('--overlapsize',
                         default='0x0',
-                        help='Sets overlap of tiles to use when running chm in '
-                             'tile mode. If set value should be in WxH format'
-                             ' aka 200x100 would mean overlap 200 pixels in '
-                             ' X or width direction and 100 pixels in Y or'
-                             ' height direction (default 0x0)')
+                        help='Sets overlap of tiles to use when running chm '
+                             'in tile mode. If set value should be in WxH '
+                             'format aka 200x100 would mean overlap 200 '
+                             'pixels in  X or width direction and 100 '
+                             'pixels in Y or height direction (default 0x0)')
 
     parser.add_argument('--disablechmhisteq', action='store_true',
                         help='If set tells CHM NOT to do internal histogram '
@@ -94,14 +91,23 @@ def _parse_arguments(desc, args):
                         help='Number of jobs to run concurrently on a single'
                              'compute node. For 500x500 tiles, Gordon '
                              'should be set to 11, '
-                             'Comet should be set to 21. (default 11)')
+                             'Comet should be set to 21,'
+                             ' rocce should be set to 1. (default 11)')
     parser.add_argument('--cluster', default='rocce',
                         help='Sets which cluster to generate job script for'
                              ' (default rocce)')
+    parser.add_argument('--jobname', default='chmjob',
+                        help='Name for job given to scheduler, must not '
+                             'contain any non alphanumeric characters and '
+                             'must start with letter a-z')
+    parser.add_argument('--walltime', default='12:00:00',
+                        help='Sets walltime for job in HH:MM:SS format '
+                             'default(12:00:00) ')
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + chmutil.__version__))
 
     return parser.parse_args(args, namespace=parsed_arguments)
+
 
 def _create_chm_job(theargs):
     """Creates CHM Job
@@ -117,7 +123,9 @@ def _create_chm_job(theargs):
                          disablehisteq=theargs.disablechmhisteq,
                          number_tiles_per_job=int(theargs.tilesperjob),
                          jobs_per_node=int(theargs.jobspernode),
-                         chmbin=os.path.abspath(theargs.chmbin))
+                         chmbin=os.path.abspath(theargs.chmbin),
+                         scriptbin=os.path.dirname(theargs.program),
+                         walltime=theargs.walltime)
 
         creator = CHMJobCreator(opts)
         opts = creator.create_job()
@@ -127,13 +135,13 @@ def _create_chm_job(theargs):
         if theargs.cluster == 'rocce':
             gen = RocceSubmitScriptGenerator(opts)
 
+        runchm = os.path.join(opts.get_script_bin(), 'runchmjob.py')
         if gen is not None:
             gen.generate_submit_script()
             sys.stdout.write('Run this to submit job\n' +
-                             '  runchmjob.py ' + opts.get_out_dir() +
+                             '  ' + runchm + ' ' + opts.get_out_dir() +
                              ' --cluster ' +
                              theargs.cluster + '\n')
-
 
         return 0
     except Exception:

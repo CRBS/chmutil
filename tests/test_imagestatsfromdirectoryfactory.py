@@ -10,13 +10,11 @@ Tests for `chmutil` module.
 
 import tempfile
 import shutil
-import sys
 import os
 import unittest
 
 from PIL import Image
 from chmutil.core import ImageStatsFromDirectoryFactory
-
 
 
 class TestImageStatsFromDirectoryFactory(unittest.TestCase):
@@ -79,7 +77,7 @@ class TestImageStatsFromDirectoryFactory(unittest.TestCase):
     def test_hundred_images(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            for x in range(1,101):
+            for x in range(1, 101):
                 pngfile = os.path.join(temp_dir, str(x) + '.foo.png')
                 size = 128, 256
                 myimg = Image.new('L', size)

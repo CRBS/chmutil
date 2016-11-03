@@ -8,15 +8,12 @@ test_chmutil
 Tests for `chmutil` module.
 """
 
-
-import sys
 import unittest
 
 from chmutil.core import CHMArgGenerator
 from chmutil.core import CHMConfig
 from chmutil.core import ImageStats
 from chmutil.core import OverlapTooLargeForTileSizeError
-
 
 
 class TestCHMArgGenerator(unittest.TestCase):
@@ -110,7 +107,6 @@ class TestCHMArgGenerator(unittest.TestCase):
         w, h = gen._get_number_of_tiles_tuple(im_stats)
         self.assertEqual(w, 534)
         self.assertEqual(h, 150)
-
 
     def test_get_args_one_tile(self):
         opts = CHMConfig('/foo', 'model', 'outdir', '100x200', '0x0')

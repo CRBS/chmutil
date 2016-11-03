@@ -13,15 +13,12 @@ import chmutil
 import time
 
 from chmutil.core import CHMJobCreator
-from chmutil.core import CHMConfig
 from chmutil.core import CHMConfigFromConfigFactory
-
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s (%(process)d) %(name)s %(message)s"
 
 # create logger
 logger = logging.getLogger('chmutil.chmrunner')
-
 
 
 class Parameters(object):
@@ -65,7 +62,8 @@ def _parse_arguments(desc, args):
     parser.add_argument("taskid", help='Task id')
     parser.add_argument("jobdir", help='Directory containing chm.list.job'
                                        'file')
-    parser.add_argument("--scratchdir", help='Scratch Directory (default /tmp)',
+    parser.add_argument("--scratchdir", help='Scratch Directory '
+                                             '(default /tmp)',
                         default='/tmp')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -153,10 +151,12 @@ def _run_jobs(chmconfig, theargs, taskid):
             ecode = os.waitpid(process_list[0], 0)[1]
             if ecode > 255:
                 ecode = ecode >> 8
-            logger.info('Process ' + str(process_list[0]) + ' exited with code: ' + str(ecode))
+            logger.info('Process ' + str(process_list[0]) +
+                        ' exited with code: ' + str(ecode))
             exit_code += ecode
         except OSError:
-            logger.exception('Caught exception, but it might not be a big deal')
+            logger.exception('Caught exception, but it might not '
+                             'be a big deal')
         time.sleep(1)
         del process_list[0]
         running_procs = len(process_list)
@@ -179,7 +179,8 @@ def _run_single_chm_job(theargs, taskid):
                                  CHMJobCreator.CONFIG_INPUT_IMAGE)
         logger.debug('Creating directory ' + out_dir)
         os.makedirs(out_dir, mode=0775)
-        if config.get(taskid, CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES) == 'True':
+        if config.get(taskid, CHMJobCreator.
+                      CONFIG_DISABLE_HISTEQ_IMAGES) == 'True':
             histeq_flag = ' -h '
         else:
             histeq_flag = ' '

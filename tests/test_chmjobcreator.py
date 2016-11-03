@@ -8,8 +8,6 @@ test_chmutil
 Tests for `chmutil` module.
 """
 
-
-import sys
 import unittest
 import tempfile
 import shutil
@@ -22,7 +20,6 @@ from PIL import Image
 from chmutil.core import CHMJobCreator
 from chmutil.core import CHMConfig
 from chmutil.core import ImageStats
-
 
 
 class TestCHMJobCreator(unittest.TestCase):
@@ -41,8 +38,7 @@ class TestCHMJobCreator(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             opts = CHMConfig('/foo', 'model', temp_dir, '200x100',
-                           '20x20',
-                             jobs_per_node=20)
+                             '20x20', jobs_per_node=20)
             creator = CHMJobCreator(opts)
             con = creator._create_config()
 
@@ -66,6 +62,8 @@ class TestCHMJobCreator(unittest.TestCase):
             creator = CHMJobCreator(opts)
             run_dir = creator._create_run_dir()
             self.assertTrue(os.path.isdir(run_dir))
+            stdout_dir = os.path.join(run_dir, CHMJobCreator.STDOUT_DIR)
+            self.assertTrue(os.path.isdir(stdout_dir))
         finally:
             shutil.rmtree(temp_dir)
 
@@ -105,7 +103,8 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertEqual(i_dir, expected_i_dir)
             self.assertEqual(i_name, 'foo123.png')
 
-            creator._add_job_for_image_to_config(config, '12', iis, i_dir, i_name,
+            creator._add_job_for_image_to_config(config, '12', iis,
+                                                 i_dir, i_name,
                                                  2, ['-t 1,1'])
             self.assertEqual(config.get('12',
                                         CHMJobCreator.CONFIG_INPUT_IMAGE),
@@ -135,7 +134,8 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertEqual(opts.get_job_config(),
                              os.path.join(temp_dir,
                                           CHMJobCreator.CONFIG_FILE_NAME))
-
+            tmpdir = os.path.join(opts.get_run_dir(), CHMJobCreator.STDOUT_DIR)
+            self.assertTrue(os.path.isdir(tmpdir))
             config = configparser.ConfigParser()
             config.read(opts.get_job_config())
             self.assertEqual(config.sections(),
@@ -153,7 +153,8 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertEqual(config.get('1', CHMJobCreator.CONFIG_MODEL),
                              'model')
             self.assertEqual(config.get('1',
-                                        CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES),
+                                        CHMJobCreator.
+                                        CONFIG_DISABLE_HISTEQ_IMAGES),
                              'True')
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_JOBS_PER_NODE),
@@ -200,7 +201,6 @@ class TestCHMJobCreator(unittest.TestCase):
                                                        CHMJobCreator.RUN_DIR,
                                                        'foo1.png')))
 
-
             self.assertEqual(config.get('2',
                                         CHMJobCreator.CONFIG_INPUT_IMAGE),
                              fooimg)
@@ -214,7 +214,8 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertEqual(config.get('2', CHMJobCreator.CONFIG_MODEL),
                              'model')
             self.assertEqual(config.get('2',
-                                        CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES),
+                                        CHMJobCreator.
+                                        CONFIG_DISABLE_HISTEQ_IMAGES),
                              'True')
             self.assertEqual(config.get('2',
                                         CHMJobCreator.CONFIG_JOBS_PER_NODE),
@@ -275,5 +276,3 @@ class TestCHMJobCreator(unittest.TestCase):
                                                        'foo3.png')))
         finally:
             shutil.rmtree(temp_dir)
-
-

@@ -8,12 +8,11 @@ test_chmopts
 Tests for `CHMOpts` class
 """
 
-
-import sys
+import os
 import unittest
 
 from chmutil.core import CHMConfig
-
+from chmutil.core import CHMJobCreator
 
 
 class TestCHMConfig(unittest.TestCase):
@@ -39,12 +38,23 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_number_tiles_per_job(), 1)
         self.assertEqual(opts.get_disable_histogram_eq_val(), True)
         self.assertEqual(opts.get_config(), None)
+        self.assertEqual(opts.get_job_config(), CHMJobCreator.CONFIG_FILE_NAME)
+        self.assertEqual(opts.get_batchedjob_config(),
+                         CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME)
+        self.assertEqual(opts.get_run_dir(),
+                         CHMJobCreator.RUN_DIR)
+        self.assertEqual(opts.get_script_bin(), '')
+        self.assertEqual(opts.get_job_name(), 'chmjob')
+        self.assertEqual(opts.get_walltime(), '12:00:00')
 
         opts = CHMConfig('images', 'model', 'out', '500x600', '20x30',
                          number_tiles_per_job=122,
                          jobs_per_node=12,
                          disablehisteq=False,
-                         config='hi')
+                         config='hi',
+                         scriptbin='/foo',
+                         jobname='yo',
+                         walltime='1:2:3')
         self.assertEqual(opts.get_images(), 'images')
         self.assertEqual(opts.get_model(), 'model')
         self.assertEqual(opts.get_out_dir(), 'out')
@@ -58,6 +68,18 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_number_tiles_per_job(), 122)
         self.assertEqual(opts.get_disable_histogram_eq_val(), False)
         self.assertEqual(opts.get_config(), 'hi')
+        self.assertEqual(opts.get_job_config(),
+                         os.path.join('out', CHMJobCreator.CONFIG_FILE_NAME))
+        self.assertEqual(opts.get_batchedjob_config(),
+                         os.path.join('out',
+                                      CHMJobCreator.
+                                      CONFIG_BATCHED_JOBS_FILE_NAME))
+        self.assertEqual(opts.get_run_dir(),
+                         os.path.join(opts.get_out_dir(),
+                                      CHMJobCreator.RUN_DIR))
+        self.assertEqual(opts.get_script_bin(), '/foo')
+        self.assertEqual(opts.get_job_name(), 'yo')
+        self.assertEqual(opts.get_walltime(), '1:2:3')
 
         opts.set_config('bye')
         self.assertEqual(opts.get_config(), 'bye')
@@ -93,7 +115,3 @@ class TestCHMConfig(unittest.TestCase):
             self.fail('Expected ValueError')
         except ValueError:
             pass
-
-
-
-

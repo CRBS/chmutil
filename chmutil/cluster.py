@@ -15,13 +15,12 @@ logger = logging.getLogger(__name__)
 class BatchedJobsListGenerator(object):
     """Creates Batched Jobs List file used by chmrunner.py
     """
-
     OLD_SUFFIX = '.old'
+
     def __init__(self, chmconfig):
         """Constructor
         """
         self._chmconfig = chmconfig
-
 
     def _get_incomplete_jobs_list(self):
         """Gets list of incomplete jobs
@@ -85,6 +84,7 @@ class RocceSubmitScriptGenerator(object):
     """Generates submit script for CHM job on Rocce cluster
     """
     SUBMIT_SCRIPT_NAME = 'runjobs.rocce'
+    CHMRUNNER = 'chmrunner.py'
 
     def __init__(self, chmconfig):
         """Constructor
@@ -95,8 +95,21 @@ class RocceSubmitScriptGenerator(object):
     def _get_submit_script_path(self):
         """Gets path to submit script
         """
+        if self._chmconfig is None:
+            return RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME
+
         return os.path.join(self._chmconfig.get_out_dir(),
-                     RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME)
+                            RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME)
+
+    def _get_chm_runner_path(self):
+        """gets path to chmrunner.py
+
+        :return: path to chmrunner.py
+        """
+        if self._chmconfig is None:
+            return RocceSubmitScriptGenerator.CHMRUNNER
+        return os.path.join(self._chmconfig.get_script_bin(),
+                            RocceSubmitScriptGenerator.CHMRUNNER)
 
     def generate_submit_script(self):
         """Creates submit script and instructions for invocation
@@ -110,17 +123,16 @@ class RocceSubmitScriptGenerator(object):
         f.write('#$ -wd ' + out_dir + '\n')
         f.write('#$ -o ' + os.path.join(self._chmconfig.get_stdout_dir(),
                                         '$JOB_ID.$TASK_ID.out') + '\n')
-        f.write('#$ -j y\n#$ -N chmjob\n')
-        f.write('#$ -l h_rt=12:00:00,h_vmem=5G,h=\'!compute-0-20\'\n')
+        f.write('#$ -j y\n#$ -N ' + self._chmconfig.get_job_name() + '\n')
+        f.write('#$ -l h_rt=' + self._chmconfig.get_walltime()
+                + ',h_vmem=5G,h=\'!compute-0-20\'\n')
         f.write('#$ -q all.q\n#$ -m n\n\n')
         f.write('echo "HOST: $HOSTNAME"\n')
         f.write('echo "DATE: `date`"\n\n')
-        f.write('/usr/bin/time -p chmrunner.py ' +
+        f.write('/usr/bin/time -p ' + self._get_chm_runner_path() +
                 ' $SGE_TASK_ID ' + out_dir + ' --scratchdir ' +
                 self._chmconfig.get_shared_tmp_dir() + ' --log DEBUG\n')
         f.flush()
         f.close()
         os.chmod(script, stat.S_IRWXU)
         return script
-
-

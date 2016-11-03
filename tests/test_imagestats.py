@@ -8,12 +8,9 @@ test_chmutil
 Tests for `chmutil` module.
 """
 
-
-import sys
 import unittest
 
 from chmutil.core import ImageStats
-
 
 
 class TestImageStats(unittest.TestCase):
@@ -36,6 +33,3 @@ class TestImageStats(unittest.TestCase):
         self.assertEqual(im_stats.get_height(), 'foo')
         self.assertEqual(im_stats.get_file_path(), 'fee')
         self.assertEqual(im_stats.get_format(), 'fum')
-
-
-

@@ -4,13 +4,7 @@ import sys
 import os
 import argparse
 import logging
-import uuid
-import configparser
-import subprocess
-import shlex
-import shutil
 import chmutil
-import time
 
 from chmutil.core import CHMConfigFromConfigFactory
 from chmutil.cluster import RocceSubmitScriptGenerator
@@ -20,7 +14,6 @@ LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
 
 # create logger
 logger = logging.getLogger('chmutil.runchmjob')
-
 
 
 class Parameters(object):
@@ -63,7 +56,8 @@ def _parse_arguments(desc, args):
                                      formatter_class=help_formatter)
     parser.add_argument("jobdir", help='Directory containing chm.list.job'
                                        'file')
-    parser.add_argument("--cluster", help='Cluster job is to run on(default rocce)',
+    parser.add_argument("--cluster", help='Cluster job is to run on '
+                                          '(default rocce)',
                         default='rocce')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -84,7 +78,7 @@ def _run_chm_job(theargs):
     gen = BatchedJobsListGenerator(chmconfig)
     num_jobs = gen.generate_batched_jobs_list()
     if num_jobs is 0:
-        sys.stdout.write('No jobs need to be run')
+        sys.stdout.write('\nNo jobs need to be run\n\n')
         return 0
 
     if num_jobs > 1:

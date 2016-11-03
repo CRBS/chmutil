@@ -14,6 +14,7 @@ class OverlapTooLargeForTileSizeError(Exception):
     """
     pass
 
+
 class CHMJobCreator(object):
     """Creates CHM Job to run on cluster
     """
@@ -82,7 +83,8 @@ class CHMJobCreator(object):
         """Creates directory where CHM output images will be written
         :param imagestats: ImageStats for image to create directory for
         :param rundir: Base run directory for CHM job
-        :returns: tuple (output image directory, filename of image form `imagestats`)
+        :returns: tuple (output image directory, filename of image
+        form `imagestats`)
         """
         i_name = os.path.basename(imagestats.get_file_path())
         i_dir = os.path.join(run_dir, i_name)
@@ -95,8 +97,9 @@ class CHMJobCreator(object):
         """Creates CHM job run directory
         :returns: Path to run directory
         """
-        run_dir = os.path.join(self._chmopts.get_out_dir(), CHMJobCreator.RUN_DIR)
-        if os.path.isdir(run_dir) == False:
+        run_dir = os.path.join(self._chmopts.get_out_dir(),
+                               CHMJobCreator.RUN_DIR)
+        if os.path.isdir(run_dir) is False:
             logger.debug('Creating run dir ' + run_dir)
             os.makedirs(run_dir, mode=0775)
             os.makedirs(os.path.join(run_dir, CHMJobCreator.STDOUT_DIR),
@@ -119,7 +122,8 @@ class CHMJobCreator(object):
         config.add_section(counter_as_str)
         config.set(counter_as_str, CHMJobCreator.CONFIG_INPUT_IMAGE,
                    imagestats.get_file_path())
-        config.set(counter_as_str, CHMJobCreator.CONFIG_ARGS, ' '.join(theargs))
+        config.set(counter_as_str, CHMJobCreator.CONFIG_ARGS,
+                   ' '.join(theargs))
         config.set(counter_as_str, CHMJobCreator.CONFIG_OUTPUT_IMAGE,
                    os.path.join(i_dir, str(img_cntr).zfill(3) + '.' + i_name))
 
@@ -166,6 +170,9 @@ class CHMConfig(object):
                  jobs_per_node=1,
                  disablehisteq=True,
                  chmbin='./chm-0.1.0.img',
+                 scriptbin='',
+                 jobname='chmjob',
+                 walltime='12:00:00',
                  config=None):
         """Constructor
         """
@@ -180,6 +187,9 @@ class CHMConfig(object):
         self._jobs_per_node = jobs_per_node
         self._disablehisteq = disablehisteq
         self._chmbin = chmbin
+        self._scriptbin = scriptbin
+        self._jobname = jobname
+        self._walltime = walltime
         self._config = config
 
     def _extract_width_and_height(self, val):
@@ -209,6 +219,22 @@ class CHMConfig(object):
         self._overlap_height = h
         return
 
+    def get_walltime(self):
+        """gets job walltime
+        """
+        return self._walltime
+
+    def get_job_name(self):
+        """gets name of job
+        """
+        return self._jobname
+
+    def get_script_bin(self):
+        """Gets bin directory where chmutil scripts
+           reside
+        """
+        return self._scriptbin
+
     def set_config(self, config):
         """Sets config
         """
@@ -222,11 +248,15 @@ class CHMConfig(object):
     def get_job_config(self):
         """Gets path to job config file
         """
+        if self.get_out_dir() is None:
+            return CHMJobCreator.CONFIG_FILE_NAME
         return os.path.join(self.get_out_dir(), CHMJobCreator.CONFIG_FILE_NAME)
 
     def get_batchedjob_config(self):
         """Gets path to batched job config
         """
+        if self.get_out_dir() is None:
+            return CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME
         return os.path.join(self.get_out_dir(),
                             CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME)
 
@@ -264,7 +294,11 @@ class CHMConfig(object):
     def get_run_dir(self):
         """gets run dir
         """
-        return os.path.join(self._outdir, CHMJobCreator.RUN_DIR)
+        if self.get_out_dir() is None:
+            return CHMJobCreator.RUN_DIR
+
+        return os.path.join(self.get_out_dir(),
+                            CHMJobCreator.RUN_DIR)
 
     def get_stdout_dir(self):
         """gets stdout dir
@@ -331,20 +365,25 @@ class CHMConfigFromConfigFactory(object):
         default = CHMJobCreator.CONFIG_DEFAULT
 
         disablehisteq = False
-        if config.get(default, CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES) is 'True':
-            disablehisteq
+        if config.get(default, CHMJobCreator.
+                      CONFIG_DISABLE_HISTEQ_IMAGES) is 'True':
+            disablehisteq = True
 
         opts = CHMConfig(config.get(default, CHMJobCreator.CONFIG_IMAGES),
-                       config.get(default, CHMJobCreator.CONFIG_MODEL),
-                       self._job_dir,
-                       config.get(default, CHMJobCreator.CONFIG_TILE_SIZE),
-                       config.get(default, CHMJobCreator.CONFIG_OVERLAP_SIZE),
-                       number_tiles_per_job=config.get(default,
-                                                       CHMJobCreator.CONFIG_TILES_PER_JOB),
-                       jobs_per_node=config.get(default, CHMJobCreator.CONFIG_JOBS_PER_NODE),
-                       disablehisteq=disablehisteq,
-                       chmbin=config.get(default, CHMJobCreator.CONFIG_CHM_BIN),
-                       config=config)
+                         config.get(default, CHMJobCreator.CONFIG_MODEL),
+                         self._job_dir,
+                         config.get(default, CHMJobCreator.CONFIG_TILE_SIZE),
+                         config.get(default, CHMJobCreator.
+                                    CONFIG_OVERLAP_SIZE),
+                         number_tiles_per_job=config.get(default,
+                                                         CHMJobCreator.
+                                                         CONFIG_TILES_PER_JOB),
+                         jobs_per_node=config.get(default, CHMJobCreator.
+                                                  CONFIG_JOBS_PER_NODE),
+                         disablehisteq=disablehisteq,
+                         chmbin=config.get(default, CHMJobCreator.
+                                           CONFIG_CHM_BIN),
+                         config=config)
         return opts
 
 
@@ -403,9 +442,9 @@ class ImageStatsFromDirectoryFactory(object):
                 try:
                     im = Image.open(fp)
                     iis = ImageStats(fp, im.size[0],
-                                          im.size[1], im.format)
+                                     im.size[1], im.format)
                     image_stats_list.append(iis)
-                except Exception as e:
+                except Exception:
                     logger.exception('Skipping file unable to open ' + fp)
 
         return image_stats_list
@@ -418,15 +457,15 @@ class CHMArgGenerator(object):
         """Constructor
         """
         self._chmopts = chmopts
-        self._t_width_w_over = self._chmopts.get_tile_width() -\
-                         (2 * self._chmopts.get_overlap_width())
+        self._t_width_w_over = (self._chmopts.get_tile_width() -
+                                (2 * self._chmopts.get_overlap_width()))
 
         if self._t_width_w_over <= 0:
             raise OverlapTooLargeForTileSizeError('Overlap width too large '
                                                   'for tile')
 
-        self._t_height_w_over = self._chmopts.get_tile_height() -\
-                          (2 * self._chmopts.get_overlap_height())
+        self._t_height_w_over = (self._chmopts.get_tile_height() -
+                                 (2 * self._chmopts.get_overlap_height()))
 
         if self._t_height_w_over <= 0:
             raise OverlapTooLargeForTileSizeError('Overlap height too large '
@@ -451,12 +490,10 @@ class CHMArgGenerator(object):
         """Gets number of tiles needed in horizontal and vertical
            directions to analyze an image
         """
-
-
         tiles_width = (image_stats.get_width() +
-                       self._t_width_w_over -1) / self._t_width_w_over
+                       self._t_width_w_over - 1) / self._t_width_w_over
 
         tiles_height = (image_stats.get_height() +
-                        self._t_height_w_over -1) / self._t_height_w_over
+                        self._t_height_w_over - 1) / self._t_height_w_over
 
         return tiles_width, tiles_height
