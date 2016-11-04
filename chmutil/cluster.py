@@ -77,7 +77,7 @@ class BatchedJobsListGenerator(object):
             job_counter += 1
 
         self._write_batched_job_config(bconfig)
-        return job_counter
+        return job_counter-1
 
 
 class RocceSubmitScriptGenerator(object):

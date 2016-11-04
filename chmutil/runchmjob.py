@@ -9,41 +9,13 @@ import chmutil
 from chmutil.core import CHMConfigFromConfigFactory
 from chmutil.cluster import RocceSubmitScriptGenerator
 from chmutil.cluster import BatchedJobsListGenerator
+from chmutil.core import Parameters
+from chmutil import core
 
-LOG_FORMAT = "%(asctime)-15s %(levelname)s %(name)s %(message)s"
 
 # create logger
 logger = logging.getLogger('chmutil.runchmjob')
 
-
-class Parameters(object):
-    """Placeholder class for parameters
-    """
-    pass
-
-
-def _setup_logging(theargs):
-    """hi
-    """
-    theargs.logformat = LOG_FORMAT
-    theargs.numericloglevel = logging.NOTSET
-    if theargs.loglevel == 'DEBUG':
-        theargs.numericloglevel = logging.DEBUG
-    if theargs.loglevel == 'INFO':
-        theargs.numericloglevel = logging.INFO
-    if theargs.loglevel == 'WARNING':
-        theargs.numericloglevel = logging.WARNING
-    if theargs.loglevel == 'ERROR':
-        theargs.numericloglevel = logging.ERROR
-    if theargs.loglevel == 'CRITICAL':
-        theargs.numericloglevel = logging.CRITICAL
-
-    logger.setLevel(theargs.numericloglevel)
-    logging.basicConfig(format=theargs.logformat)
-
-    logging.getLogger('chmutil.runchmjob').setLevel(theargs.numericloglevel)
-    logging.getLogger('chmutil.core').setLevel(theargs.numericloglevel)
-    logging.getLogger('chmutil.cluster').setLevel(theargs.numericloglevel)
 
 
 def _parse_arguments(desc, args):
@@ -81,9 +53,6 @@ def _run_chm_job(theargs):
         sys.stdout.write('\nNo jobs need to be run\n\n')
         return 0
 
-    if num_jobs > 1:
-        num_jobs -= 1
-
     if theargs.cluster == 'rocce':
         sys.stdout.write('Run this:\n\n  cd ' + chmconfig.get_out_dir() + ';' +
                          'qsub -t 1-' + str(num_jobs) + ' ' +
@@ -115,7 +84,7 @@ def main(arglist):
     theargs = _parse_arguments(desc, arglist[1:])
     theargs.program = arglist[0]
     theargs.version = chmutil.__version__
-    _setup_logging(theargs)
+    core.setup_logging(logger, loglevel=theargs.loglevel)
     try:
         return _run_chm_job(theargs)
     finally:

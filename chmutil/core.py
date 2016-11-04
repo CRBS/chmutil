@@ -15,6 +15,47 @@ class OverlapTooLargeForTileSizeError(Exception):
     pass
 
 
+class LoadConfigError(Exception):
+    """Raised when there is an error reading the CHM job config
+    """
+    pass
+
+
+class InvalidJobDirError(Exception):
+    """Raised when invalid job directory is passed in or used
+    """
+    pass
+
+
+class Parameters(object):
+    """Placeholder class for parameters
+    """
+    pass
+
+
+def setup_logging(thelogger,
+                  log_format='%(asctime)-15s %(levelname)s %(name)s '
+                             '%(message)s',
+                  loglevel='WARNING'):
+    """Sets up logging
+    """
+    if loglevel == 'DEBUG':
+        numericloglevel = logging.DEBUG
+    if loglevel == 'INFO':
+        numericloglevel = logging.INFO
+    if loglevel == 'WARNING':
+        numericloglevel = logging.WARNING
+    if loglevel == 'ERROR':
+        numericloglevel = logging.ERROR
+    if loglevel == 'CRITICAL':
+        numericloglevel = logging.CRITICAL
+
+    thelogger.setLevel(numericloglevel)
+    logging.basicConfig(format=log_format)
+    logging.getLogger('chmutil.core').setLevel(numericloglevel)
+    logging.getLogger('chmutil.cluster').setLevel(numericloglevel)
+
+
 class CHMJobCreator(object):
     """Creates CHM Job to run on cluster
     """
@@ -352,22 +393,28 @@ class CHMConfigFromConfigFactory(object):
     def __init__(self, job_dir):
         """Constructor
         :param job_dir: Directory containing job config file
+        :raises InvalidJobDirError: if job_dir passed in is None
         """
+        if job_dir is None:
+            raise InvalidJobDirError('job directory passed in cannot be null')
         self._job_dir = job_dir
 
     def get_chmconfig(self):
-        """Gets CHMOpts
+        """Gets CHMOpts from configuration within `job_dir` passed into
+        constructor
+        :raises LoadConfigError: if no configuration file is found
+        :returns: CHMConfig configured from configuration in `job_dir`
+                  passed into constructor
         """
         config = configparser.ConfigParser()
-        config.read(os.path.join(self._job_dir,
-                                 CHMJobCreator.CONFIG_FILE_NAME))
+        cfile = os.path.join(self._job_dir, CHMJobCreator.CONFIG_FILE_NAME)
+
+        if not os.path.isfile(cfile):
+            raise LoadConfigError(cfile + ' configuration file does not exist')
+
+        config.read(cfile)
 
         default = CHMJobCreator.CONFIG_DEFAULT
-
-        disablehisteq = False
-        if config.get(default, CHMJobCreator.
-                      CONFIG_DISABLE_HISTEQ_IMAGES) is 'True':
-            disablehisteq = True
 
         opts = CHMConfig(config.get(default, CHMJobCreator.CONFIG_IMAGES),
                          config.get(default, CHMJobCreator.CONFIG_MODEL),
@@ -380,7 +427,9 @@ class CHMConfigFromConfigFactory(object):
                                                          CONFIG_TILES_PER_JOB),
                          jobs_per_node=config.get(default, CHMJobCreator.
                                                   CONFIG_JOBS_PER_NODE),
-                         disablehisteq=disablehisteq,
+                         disablehisteq=config.getboolean(default,
+                                          CHMJobCreator.
+                                          CONFIG_DISABLE_HISTEQ_IMAGES),
                          chmbin=config.get(default, CHMJobCreator.
                                            CONFIG_CHM_BIN),
                          config=config)
