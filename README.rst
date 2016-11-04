@@ -8,6 +8,11 @@ chmutil
      :target: https://pyup.io/repos/github/coleslaw481/chmutil/
      :alt: Updates
 
+.. image:: https://travis-ci.org/CRBS/chmutil.svg?branch=master
+       :target: https://travis-ci.org/CRBS/chmutil
+
+.. image:: https://coveralls.io/repos/github/CRBS/chmutil/badge.svg?branch=master
+   :target: https://coveralls.io/github/CRBS/chmutil?branch=master
 
 Utility package to run CHM jobs on clusters
 
