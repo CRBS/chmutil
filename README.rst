@@ -51,13 +51,27 @@ Try one of these:
 ::
 
   make dist
-  pip install dist/chmutil*wheel
+  pip install dist/chmutil*whl
 
   # or
 
   python setup.py install
 
   # soon will be available via pip install chmutil
+
+  # NOTE if super user not available try this
+
+  pip install --user dist/chmutil*whl
+
+
+Usage
+--------
+
+::
+
+  # creates a job assuming images are in ./images and ./trainedmodel has
+  # chm model
+  createchmjob.py ./images ./trainedmodel myrun --cluster rocce
 
 License
 -------
