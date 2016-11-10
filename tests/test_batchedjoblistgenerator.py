@@ -49,7 +49,6 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-
     def test_get_incomplete_jobs_list_two_images_one_missing(self):
         temp_dir = tempfile.mkdtemp()
         try:
@@ -103,17 +102,18 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
             gen._write_batched_job_config(bconfig)
             self.assertTrue(os.path.isfile(chmconfig.get_batchedjob_config()))
             self.assertFalse(os.path.isfile(chmconfig.get_batchedjob_config() +
-                                            BatchedJobsListGenerator.OLD_SUFFIX))
+                                            BatchedJobsListGenerator.
+                                            OLD_SUFFIX))
 
             # try writing where there is a previous file
             gen._write_batched_job_config(bconfig)
             self.assertTrue(os.path.isfile(chmconfig.get_batchedjob_config()))
             self.assertTrue(os.path.isfile(chmconfig.get_batchedjob_config() +
-                                            BatchedJobsListGenerator.OLD_SUFFIX))
+                                           BatchedJobsListGenerator.
+                                           OLD_SUFFIX))
 
         finally:
             shutil.rmtree(temp_dir)
-
 
     def test_generate_batched_jobs_list_all_jobs_complete(self):
         temp_dir = tempfile.mkdtemp()

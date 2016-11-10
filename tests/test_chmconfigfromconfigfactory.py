@@ -90,7 +90,7 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             self.assertEqual(chmconfig.get_overlap_width(), 10)
             self.assertEqual(chmconfig.get_overlap_size(), '10x20')
 
-            config.set('',CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES, 'False')
+            config.set('', CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES, 'False')
             f = open(cfile, 'w')
             config.write(f)
             f.flush()
@@ -98,7 +98,5 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             chmconfig = fac.get_chmconfig()
             self.assertEqual(chmconfig.get_disable_histogram_eq_val(), False)
 
-
         finally:
             shutil.rmtree(temp_dir)
-

@@ -17,7 +17,6 @@ from chmutil import core
 logger = logging.getLogger('chmutil.runchmjob')
 
 
-
 def _parse_arguments(desc, args):
     """Parses command line arguments using argparse.
     """

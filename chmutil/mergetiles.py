@@ -4,17 +4,9 @@ import sys
 import os
 import argparse
 import logging
-import uuid
-import configparser
-import subprocess
-import shlex
-import shutil
 import chmutil
-import time
 from PIL import Image
 
-from chmutil.core import CHMJobCreator
-from chmutil.core import CHMConfigFromConfigFactory
 from chmutil.core import Parameters
 from chmutil import core
 
@@ -76,8 +68,6 @@ def _merge_image_tiles(img_dir, dest_file, suffix):
 
     logger.info('Writing results to ' + dest_file)
     merged.save(dest_file)
-
-
 
 
 def main(arglist):

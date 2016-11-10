@@ -2,7 +2,6 @@
 
 
 import os
-import sys
 import logging
 import configparser
 from PIL import Image
@@ -62,6 +61,7 @@ class CHMJobCreator(object):
     """
 
     CONFIG_FILE_NAME = 'base.chm.jobs.list'
+
     CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.chm.jobs.list'
     RUN_DIR = 'chmrun'
     STDOUT_DIR = 'stdout'
@@ -131,7 +131,7 @@ class CHMJobCreator(object):
         i_name = os.path.basename(imagestats.get_file_path())
         i_dir = os.path.join(run_dir, i_name)
         if os.path.isdir(i_dir) is False:
-            logger.debug('Creating image dir ' + i_dir)z
+            logger.debug('Creating image dir ' + i_dir)
             os.makedirs(i_dir, mode=0o775)
         return i_dir, i_name
 
@@ -417,6 +417,9 @@ class CHMConfigFromConfigFactory(object):
 
         default = CHMJobCreator.CONFIG_DEFAULT
 
+        disablehisteq = config.getboolean(default,
+                                          CHMJobCreator.
+                                          CONFIG_DISABLE_HISTEQ_IMAGES)
         opts = CHMConfig(config.get(default, CHMJobCreator.CONFIG_IMAGES),
                          config.get(default, CHMJobCreator.CONFIG_MODEL),
                          self._job_dir,
@@ -428,9 +431,7 @@ class CHMConfigFromConfigFactory(object):
                                                          CONFIG_TILES_PER_JOB),
                          jobs_per_node=config.get(default, CHMJobCreator.
                                                   CONFIG_JOBS_PER_NODE),
-                         disablehisteq=config.getboolean(default,
-                                          CHMJobCreator.
-                                          CONFIG_DISABLE_HISTEQ_IMAGES),
+                         disablehisteq=disablehisteq,
                          chmbin=config.get(default, CHMJobCreator.
                                            CONFIG_CHM_BIN),
                          config=config)

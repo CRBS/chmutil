@@ -8,7 +8,6 @@ test_setuplogging
 Tests for `setup_logging in core`
 """
 
-import os
 import unittest
 import logging
 
@@ -38,7 +37,7 @@ class TestCore(unittest.TestCase):
         self.assertEqual(clusterlogger.getEffectiveLevel(),
                          logging.WARNING)
 
-        core.setup_logging(mylogger,loglevel='DEBUG')
+        core.setup_logging(mylogger, loglevel='DEBUG')
         self.assertEqual(mylogger.getEffectiveLevel(),
                          logging.DEBUG)
 
@@ -61,4 +60,3 @@ class TestCore(unittest.TestCase):
         core.setup_logging(mylogger, loglevel='CRITICAL')
         self.assertEqual(mylogger.getEffectiveLevel(),
                          logging.CRITICAL)
-
