@@ -53,7 +53,7 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_get_chmconfig(self):
+    def test_get_chmconfig_default_values(self):
         temp_dir = tempfile.mkdtemp()
         try:
             cfile = os.path.join(temp_dir,
@@ -71,6 +71,7 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             config.write(f)
             f.flush()
             f.close()
+
             fac = CHMConfigFromConfigFactory(temp_dir)
             chmconfig = fac.get_chmconfig()
             self.assertEqual(chmconfig.get_out_dir(), temp_dir)
