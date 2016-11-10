@@ -167,7 +167,7 @@ class TestCHMJobCreator(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             image_dir = os.path.join(temp_dir, 'images')
-            os.makedirs(image_dir, mode=0775)
+            os.makedirs(image_dir, mode=0o775)
             fooimg = os.path.join(image_dir, 'foo1.png')
             self._create_png_image(fooimg, (400, 300))
 
@@ -227,7 +227,7 @@ class TestCHMJobCreator(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             image_dir = os.path.join(temp_dir, 'images')
-            os.makedirs(image_dir, mode=0775)
+            os.makedirs(image_dir, mode=0o775)
             foo1img = os.path.join(image_dir, 'foo1.png')
             self._create_png_image(foo1img, (400, 300))
 
