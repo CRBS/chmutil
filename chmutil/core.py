@@ -64,8 +64,11 @@ class CHMJobCreator(object):
     CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.chm.jobs.list'
     MERGE_CONFIG_FILE_NAME = 'base.merge.jobs.list'
     MERGE_CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.merge.jobs.list'
+    MERGE_INPUT_IMAGE_DIR = 'inputimagedir'
+    MERGE_OUTPUT_IMAGE = 'outputimage'
     RUN_DIR = 'chmrun'
     STDOUT_DIR = 'stdout'
+    RESULT_DIR = 'result'
     TMP_DIR = 'tmp'
     CONFIG_DEFAULT = 'DEFAULT'
     CONFIG_CHM_BIN = 'chmbin'
@@ -122,6 +125,28 @@ class CHMJobCreator(object):
         f.close()
         return cfile
 
+    def _create_merge_config(self):
+        """Creates configparser object and populates it with CHMConfig data
+        needed for merge job
+        :returns: configparser config object filled with some data
+        """
+        config = configparser.ConfigParser()
+        return config
+
+    def _write_merge_config(self, config):
+        """Writes `config` to file to merge config
+        :param config: configparser config object
+        :returns: Path to written configuration file
+        """
+        cfile = os.path.join(self._chmopts.get_out_dir(),
+                             CHMJobCreator.MERGE_CONFIG_FILE_NAME)
+        logger.debug('Writing config to : ' + cfile)
+        f = open(cfile, 'w')
+        config.write(f)
+        f.flush()
+        f.close()
+        return cfile
+
     def _create_output_image_dir(self, imagestats, run_dir):
         """Creates directory where CHM output images will be written
         :param imagestats: ImageStats for image to create directory for
@@ -147,6 +172,10 @@ class CHMJobCreator(object):
             os.makedirs(run_dir, mode=0o775)
             os.makedirs(os.path.join(run_dir, CHMJobCreator.STDOUT_DIR),
                         mode=0o775)
+            os.makedirs(os.path.join(run_dir, CHMJobCreator.TMP_DIR),
+                        mode=0o775)
+            os.makedirs(os.path.join(run_dir, CHMJobCreator.RESULT_DIR),
+                        mode=0o775)
 
         return run_dir
 
@@ -170,6 +199,19 @@ class CHMJobCreator(object):
         config.set(counter_as_str, CHMJobCreator.CONFIG_OUTPUT_IMAGE,
                    os.path.join(i_dir, str(img_cntr).zfill(3) + '.' + i_name))
 
+    def _add_mergejob_for_image_to_config(self, config, counter_as_str, run_dir,
+                                          image_tile_dir, image_name):
+        """Adds merge job to config object
+        :param config: configparser config object to add merge job to
+        :param counter_as_str: Counter used in string form
+        :param image_tile_dir: Directory where image tiles of probmaps are put
+        :param image_name: name of image the tiles correspond to
+        """
+        config.add_section(counter_as_str)
+        config.set(counter_as_str, CHMJobCreator.MERGE_INPUT_IMAGE_DIR, image_tile_dir)
+        config.set(counter_as_str, CHMJobCreator.MERGE_OUTPUT_IMAGE,
+                   os.path.join(run_dir, CHMJobCreator.RESULT_DIR, image_name))
+
     def create_job(self):
         """Creates jobs
         """
@@ -179,18 +221,17 @@ class CHMJobCreator(object):
                                                   _chmopts.get_max_image_pixels())
         imagestats = statsfac.get_input_image_stats()
         config = self._create_config()
+        mergeconfig = self._create_merge_config()
         counter = 1
+        mergecounter = 1
         run_dir = self._create_run_dir()
-
-        # create shared tmp dir
-        tmpdir = os.path.join(run_dir,
-                              CHMJobCreator.TMP_DIR)
-        if not os.path.isdir(tmpdir):
-            os.makedirs(tmpdir, mode=0o775)
 
         for iis in imagestats:
             i_dir, i_name = self._create_output_image_dir(iis, run_dir)
             img_cntr = 1
+            self._add_mergejob_for_image_to_config(mergeconfig,
+                                                   str(mergecounter), run_dir,
+                                                   i_dir, i_name)
             for a in arg_gen.get_args(iis):
                 counter_as_str = str(counter)
                 self._add_job_for_image_to_config(config, counter_as_str,
@@ -198,9 +239,11 @@ class CHMJobCreator(object):
                                                   a)
                 counter += 1
                 img_cntr += 1
-
+            mergecounter += 1
         self._write_config(config)
+        self._write_merge_config(mergeconfig)
         self._chmopts.set_config(config)
+        self._chmopts.set_merge_config(mergeconfig)
 
         return self._chmopts
 
@@ -219,7 +262,8 @@ class CHMConfig(object):
                  jobname='chmjob',
                  walltime='12:00:00',
                  max_image_pixels=768000000,
-                 config=None):
+                 config=None,
+                 mergeconfig=None):
         """Constructor
         """
         self._images = images
@@ -238,6 +282,7 @@ class CHMConfig(object):
         self._walltime = walltime
         self._max_image_pixels = max_image_pixels
         self._config = config
+        self._mergeconfig = mergeconfig
 
     def _extract_width_and_height(self, val):
         """parses WxH value into tuple
@@ -287,6 +332,16 @@ class CHMConfig(object):
            reside
         """
         return self._scriptbin
+
+    def set_merge_config(self, config):
+        """SEts merge config
+        """
+        self._mergeconfig = config
+
+    def get_merge_config(self):
+        """Gets merge config
+        """
+        return self._mergeconfig
 
     def set_config(self, config):
         """Sets config
@@ -411,20 +466,41 @@ class CHMConfigFromConfigFactory(object):
             raise InvalidJobDirError('job directory passed in cannot be null')
         self._job_dir = job_dir
 
-    def get_chmconfig(self):
+    def _get_config(self, cfile):
+        """Gets configpaser.COnfigParser from configuration file
+        """
+        config = configparser.ConfigParser()
+
+        if not os.path.isfile(cfile):
+            raise LoadConfigError(cfile + ' configuration file does not exist')
+
+        config.read(cfile)
+        return config
+
+
+    def get_chmconfig(self, skip_loading_config=False,
+                      skip_loading_mergeconfig=True):
         """Gets CHMOpts from configuration within `job_dir` passed into
         constructor
         :raises LoadConfigError: if no configuration file is found
         :returns: CHMConfig configured from configuration in `job_dir`
                   passed into constructor
         """
-        config = configparser.ConfigParser()
-        cfile = os.path.join(self._job_dir, CHMJobCreator.CONFIG_FILE_NAME)
+        if skip_loading_config is False:
+            config = self._get_config(cfile = os.path.join(self._job_dir,
+                                                           CHMJobCreator.
+                                                           CONFIG_FILE_NAME))
+        else:
+            logger.debug('Skipping load of job configuration')
+            config = None
 
-        if not os.path.isfile(cfile):
-            raise LoadConfigError(cfile + ' configuration file does not exist')
-
-        config.read(cfile)
+        if skip_loading_mergeconfig is False:
+            mergecon = self._get_config(os.path.join(self._job_dir,
+                                                     CHMJobCreator.
+                                                     MERGE_CONFIG_FILE_NAME))
+        else:
+            logger.debug('Skipping load of merge job configuration')
+            mergecon = None
 
         default = CHMJobCreator.CONFIG_DEFAULT
 
@@ -445,7 +521,8 @@ class CHMConfigFromConfigFactory(object):
                          disablehisteq=disablehisteq,
                          chmbin=config.get(default, CHMJobCreator.
                                            CONFIG_CHM_BIN),
-                         config=config)
+                         config=config,
+                         mergeconfig=mergecon)
         return opts
 
 
