@@ -61,8 +61,9 @@ class CHMJobCreator(object):
     """
 
     CONFIG_FILE_NAME = 'base.chm.jobs.list'
-
     CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.chm.jobs.list'
+    MERGE_CONFIG_FILE_NAME = 'base.merge.jobs.list'
+    MERGE_CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.merge.jobs.list'
     RUN_DIR = 'chmrun'
     STDOUT_DIR = 'stdout'
     TMP_DIR = 'tmp'
@@ -173,7 +174,9 @@ class CHMJobCreator(object):
         """Creates jobs
         """
         arg_gen = CHMArgGenerator(self._chmopts)
-        statsfac = ImageStatsFromDirectoryFactory(self._chmopts.get_images())
+        statsfac = ImageStatsFromDirectoryFactory(self._chmopts.get_images(),
+                                                  max_image_pixels=self.
+                                                  _chmopts.get_max_image_pixels())
         imagestats = statsfac.get_input_image_stats()
         config = self._create_config()
         counter = 1
@@ -215,6 +218,7 @@ class CHMConfig(object):
                  scriptbin='',
                  jobname='chmjob',
                  walltime='12:00:00',
+                 max_image_pixels=768000000,
                  config=None):
         """Constructor
         """
@@ -232,6 +236,7 @@ class CHMConfig(object):
         self._scriptbin = scriptbin
         self._jobname = jobname
         self._walltime = walltime
+        self._max_image_pixels = max_image_pixels
         self._config = config
 
     def _extract_width_and_height(self, val):
@@ -260,6 +265,12 @@ class CHMConfig(object):
         self._overlap_width = w
         self._overlap_height = h
         return
+
+    def get_max_image_pixels(self):
+        """Gets maximum image pixels that dictates
+        the largest an image can be analyzed without error
+        """
+        return self._max_image_pixels
 
     def get_walltime(self):
         """gets job walltime
@@ -475,10 +486,12 @@ class ImageStatsFromDirectoryFactory(object):
     """Creates ImageStats objects from directory of images
     """
 
-    def __init__(self, directory):
+    def __init__(self, directory, max_image_pixels=768000000):
         """Constructor
         """
         self._directory = directory
+        logger.debug('Setting MAX_IMAGE_PIXELS to ' + str(max_image_pixels))
+        Image.MAX_IMAGE_PIXELS = max_image_pixels
 
     def get_input_image_stats(self):
         """Gets InputImageStats objects as list
@@ -495,8 +508,14 @@ class ImageStatsFromDirectoryFactory(object):
                     iis = ImageStats(fp, im.size[0],
                                      im.size[1], im.format)
                     image_stats_list.append(iis)
+                    im.clo
                 except Exception:
                     logger.exception('Skipping file unable to open ' + fp)
+                finally:
+                    try:
+                        im.close()
+                    except Exception:
+                        logger.exception('Caught exception attempting to close image')
 
         return image_stats_list
 
@@ -527,8 +546,8 @@ class CHMArgGenerator(object):
         """
         (tiles_w, tiles_h) = self._get_number_of_tiles_tuple(image_stats)
         tile_list = []
-        for c in range(1, tiles_w + 1):
-            for r in range(1, tiles_h + 1):
+        for c in range(1, int(tiles_w + 1)):
+            for r in range(1, int(tiles_h + 1)):
                 tile_list.append('-t ' + str(c) + ',' + str(r))
         total = tiles_w * tiles_h
         split_list = []
@@ -547,4 +566,4 @@ class CHMArgGenerator(object):
         tiles_height = (image_stats.get_height() +
                         self._t_height_w_over - 1) / self._t_height_w_over
 
-        return tiles_width, tiles_height
+        return int(tiles_width), int(tiles_height)

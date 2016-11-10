@@ -46,6 +46,7 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_script_bin(), '')
         self.assertEqual(opts.get_job_name(), 'chmjob')
         self.assertEqual(opts.get_walltime(), '12:00:00')
+        self.assertEqual(opts.get_max_image_pixels(), 768000000)
 
         opts = CHMConfig('images', 'model', 'out', '500x600', '20x30',
                          number_tiles_per_job=122,
@@ -54,7 +55,8 @@ class TestCHMConfig(unittest.TestCase):
                          config='hi',
                          scriptbin='/foo',
                          jobname='yo',
-                         walltime='1:2:3')
+                         walltime='1:2:3',
+                         max_image_pixels=10)
         self.assertEqual(opts.get_images(), 'images')
         self.assertEqual(opts.get_model(), 'model')
         self.assertEqual(opts.get_out_dir(), 'out')
@@ -80,6 +82,7 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_script_bin(), '/foo')
         self.assertEqual(opts.get_job_name(), 'yo')
         self.assertEqual(opts.get_walltime(), '1:2:3')
+        self.assertEqual(opts.get_max_image_pixels(), 10)
 
         opts.set_config('bye')
         self.assertEqual(opts.get_config(), 'bye')

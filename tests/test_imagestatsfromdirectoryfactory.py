@@ -25,6 +25,16 @@ class TestImageStatsFromDirectoryFactory(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_constructor_with_max_image_pixels(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            ImageStatsFromDirectoryFactory(temp_dir)
+            self.assertEqual(Image.MAX_IMAGE_PIXELS, 768000000)
+            ImageStatsFromDirectoryFactory(temp_dir, max_image_pixels=10)
+            self.assertEqual(Image.MAX_IMAGE_PIXELS, 10)
+        finally:
+            shutil.rmtree(temp_dir)
+
     def test_empty_dir(self):
         temp_dir = tempfile.mkdtemp()
         try:
