@@ -57,12 +57,11 @@ def _parse_arguments(desc, args):
                              'mean each job runs faster, but results in '
                              'more jobs. (default 50)')
 
-    parser.add_argument('--jobspernode', default='11',
-                        help='Number of jobs to run concurrently on a single'
-                             'compute node. For 500x500 tiles, Gordon '
-                             'should be set to 11, '
-                             'Comet should be set to 21,'
-                             ' rocce should be set to 1. (default 11)')
+    parser.add_argument('--jobspernode',
+                        help='Overrides number of jobs to run concurrently '
+                             'on a single compute node. If unset this will '
+                             'be set to 11 for gordon, 21 for comet and 1 '
+                             'for rocce and any other unknown cluster')
     parser.add_argument('--cluster', default='rocce',
                         help='Sets which cluster to generate job script for'
                              ' (default rocce)')
@@ -85,6 +84,18 @@ def _create_chm_job(theargs):
     :returns: exit code for program. 0 success otherwise failure
     """
     try:
+        lc_cluster = str(theargs.cluster).lower()
+        try:
+            jobspernode = int(theargs.jobspernode)
+        except AttributeError:
+            jobspernode = 1
+            if lc_cluster == 'gordon':
+                jobspernode = 11
+            if lc_cluster == 'comet':
+                jobspernode = 21
+            logger.debug('jobspernode using default for cluster ' +
+                         lc_cluster + ' which is ' + str(jobspernode))
+
         opts = CHMConfig(os.path.abspath(theargs.images),
                          os.path.abspath(theargs.model),
                          os.path.abspath(theargs.outdir),
@@ -92,7 +103,7 @@ def _create_chm_job(theargs):
                          theargs.overlapsize,
                          disablehisteq=theargs.disablechmhisteq,
                          number_tiles_per_job=int(theargs.tilesperjob),
-                         jobs_per_node=int(theargs.jobspernode),
+                         jobs_per_node=jobspernode,
                          chmbin=os.path.abspath(theargs.chmbin),
                          scriptbin=os.path.dirname(theargs.program),
                          walltime=theargs.walltime)
@@ -102,7 +113,7 @@ def _create_chm_job(theargs):
 
         # TODO create separate classes to generate submit script
         gen = None
-        if theargs.cluster == 'rocce':
+        if lc_cluster == 'rocce':
             gen = RocceSubmitScriptGenerator(opts)
 
         runchm = os.path.join(opts.get_script_bin(), 'runchmjob.py')
@@ -111,7 +122,7 @@ def _create_chm_job(theargs):
             sys.stdout.write('Run this to submit job\n' +
                              '  ' + runchm + ' ' + opts.get_out_dir() +
                              ' --cluster ' +
-                             theargs.cluster + '\n')
+                             lc_cluster + '\n')
 
         return 0
     except Exception:
