@@ -2,6 +2,7 @@
 
 
 import os
+import sys
 import logging
 import configparser
 from PIL import Image
@@ -130,8 +131,8 @@ class CHMJobCreator(object):
         i_name = os.path.basename(imagestats.get_file_path())
         i_dir = os.path.join(run_dir, i_name)
         if os.path.isdir(i_dir) is False:
-            logger.debug('Creating image dir ' + i_dir)
-            os.makedirs(i_dir, mode=0775)
+            logger.debug('Creating image dir ' + i_dir)z
+            os.makedirs(i_dir, mode=0o775)
         return i_dir, i_name
 
     def _create_run_dir(self):
@@ -142,9 +143,9 @@ class CHMJobCreator(object):
                                CHMJobCreator.RUN_DIR)
         if os.path.isdir(run_dir) is False:
             logger.debug('Creating run dir ' + run_dir)
-            os.makedirs(run_dir, mode=0775)
+            os.makedirs(run_dir, mode=0o775)
             os.makedirs(os.path.join(run_dir, CHMJobCreator.STDOUT_DIR),
-                        mode=0775)
+                        mode=0o775)
 
         return run_dir
 
@@ -182,7 +183,7 @@ class CHMJobCreator(object):
         tmpdir = os.path.join(run_dir,
                               CHMJobCreator.TMP_DIR)
         if not os.path.isdir(tmpdir):
-            os.makedirs(tmpdir, mode=0775)
+            os.makedirs(tmpdir, mode=0o775)
 
         for iis in imagestats:
             i_dir, i_name = self._create_output_image_dir(iis, run_dir)

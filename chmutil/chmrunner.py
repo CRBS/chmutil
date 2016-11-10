@@ -150,7 +150,7 @@ def _run_single_chm_job(theargs, taskid):
         input_image = config.get(taskid,
                                  CHMJobCreator.CONFIG_INPUT_IMAGE)
         logger.debug('Creating directory ' + out_dir)
-        os.makedirs(out_dir, mode=0775)
+        os.makedirs(out_dir, mode=0o775)
         if config.get(taskid, CHMJobCreator.
                       CONFIG_DISABLE_HISTEQ_IMAGES) == 'True':
             histeq_flag = ' -h '
