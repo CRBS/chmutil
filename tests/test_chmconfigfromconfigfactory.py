@@ -101,3 +101,27 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
 
         finally:
             shutil.rmtree(temp_dir)
+
+    def test_get_chmconfig_skip_loading_config_true_and_skip_merge_false(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            cfile = os.path.join(temp_dir,
+                                 CHMJobCreator.MERGE_CONFIG_FILE_NAME)
+            config = configparser.ConfigParser()
+            config.set('', CHMJobCreator.CONFIG_IMAGES, 'images')
+            f = open(cfile, 'w')
+            config.write(f)
+            f.flush()
+            f.close()
+
+            fac = CHMConfigFromConfigFactory(temp_dir)
+            chmconfig = fac.get_chmconfig(skip_loading_config=True,
+                                          skip_loading_mergeconfig=False)
+
+            self.assertEqual(chmconfig.get_out_dir(), temp_dir)
+            mcon = chmconfig.get_merge_config()
+            self.assertEqual(mcon.get(CHMJobCreator.CONFIG_DEFAULT,
+                                      CHMJobCreator.CONFIG_IMAGES),
+                             'images')
+        finally:
+            shutil.rmtree(temp_dir)
