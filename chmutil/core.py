@@ -66,8 +66,10 @@ class CHMJobCreator(object):
     MERGE_CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.merge.jobs.list'
     MERGE_INPUT_IMAGE_DIR = 'inputimagedir'
     MERGE_OUTPUT_IMAGE = 'outputimage'
+    MERGE_MERGETILES_BIN = 'mergetilesbin'
     RUN_DIR = 'chmrun'
     STDOUT_DIR = 'stdout'
+    MERGE_STDOUT_DIR = 'mergestdout'
     RESULT_DIR = 'result'
     TMP_DIR = 'tmp'
     CONFIG_DEFAULT = 'DEFAULT'
@@ -131,6 +133,9 @@ class CHMJobCreator(object):
         :returns: configparser config object filled with some data
         """
         config = configparser.ConfigParser()
+        config.set('', CHMJobCreator.MERGE_MERGETILES_BIN,
+                   os.path.join(self._chmopts.get_script_bin(),
+                                'mergetiles.py'))
         return config
 
     def _write_merge_config(self, config):
@@ -171,6 +176,8 @@ class CHMJobCreator(object):
             logger.debug('Creating run dir ' + run_dir)
             os.makedirs(run_dir, mode=0o775)
             os.makedirs(os.path.join(run_dir, CHMJobCreator.STDOUT_DIR),
+                        mode=0o775)
+            os.makedirs(os.path.join(run_dir, CHMJobCreator.MERGE_STDOUT_DIR),
                         mode=0o775)
             os.makedirs(os.path.join(run_dir, CHMJobCreator.TMP_DIR),
                         mode=0o775)
@@ -260,7 +267,9 @@ class CHMConfig(object):
                  chmbin='./chm-0.1.0.img',
                  scriptbin='',
                  jobname='chmjob',
+                 mergejobname = 'mergechmjob',
                  walltime='12:00:00',
+                 mergewalltime='12:00:00',
                  max_image_pixels=768000000,
                  config=None,
                  mergeconfig=None):
@@ -279,6 +288,8 @@ class CHMConfig(object):
         self._chmbin = chmbin
         self._scriptbin = scriptbin
         self._jobname = jobname
+        self._mergejobname = mergejobname
+        self._mergewalltime = mergewalltime
         self._walltime = walltime
         self._max_image_pixels = max_image_pixels
         self._config = config
@@ -322,10 +333,20 @@ class CHMConfig(object):
         """
         return self._walltime
 
+    def get_merge_walltime(self):
+        """gets merge job walltime
+        """
+        return self._mergewalltime
+
     def get_job_name(self):
         """gets name of job
         """
         return self._jobname
+
+    def get_mergejob_name(self):
+        """gets name of merge job
+        """
+        return self._mergejobname
 
     def get_script_bin(self):
         """Gets bin directory where chmutil scripts
@@ -367,6 +388,14 @@ class CHMConfig(object):
             return CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME
         return os.path.join(self.get_out_dir(),
                             CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME)
+
+    def get_batched_mergejob_config(self):
+        """Gets path to batched merge job config
+        """
+        if self.get_out_dir() is None:
+            return CHMJobCreator.MERGE_CONFIG_BATCHED_JOBS_FILE_NAME
+        return os.path.join(self.get_out_dir(),
+                            CHMJobCreator.MERGE_CONFIG_BATCHED_JOBS_FILE_NAME)
 
     def get_disable_histogram_eq_val(self):
         """gets boolean to indicate whether chm should
@@ -412,6 +441,11 @@ class CHMConfig(object):
         """gets stdout dir
         """
         return os.path.join(self.get_run_dir(), CHMJobCreator.STDOUT_DIR)
+
+    def get_merge_stdout_dir(self):
+        """gets merge stdout dir
+        """
+        return os.path.join(self.get_run_dir(), CHMJobCreator.MERGE_STDOUT_DIR)
 
     def get_shared_tmp_dir(self):
         """gets shared tmp dir
@@ -477,7 +511,6 @@ class CHMConfigFromConfigFactory(object):
         config.read(cfile)
         return config
 
-
     def get_chmconfig(self, skip_loading_config=False,
                       skip_loading_mergeconfig=True):
         """Gets CHMOpts from configuration within `job_dir` passed into
@@ -503,6 +536,11 @@ class CHMConfigFromConfigFactory(object):
             mergecon = None
 
         default = CHMJobCreator.CONFIG_DEFAULT
+
+        if config is None:
+            logger.debug('Config is None')
+            return CHMConfig(None, None, self._job_dir,
+                             None, None, mergeconfig=mergecon)
 
         disablehisteq = config.getboolean(default,
                                           CHMJobCreator.
