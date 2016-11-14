@@ -22,7 +22,7 @@ class BatchedJobsListGenerator(object):
         """
         self._chmconfig = chmconfig
 
-    def _get_incomplete_jobs_list(self):
+    def get_incomplete_jobs_list(self):
         """Gets list of incomplete jobs
         """
         config = self._chmconfig.get_config()
@@ -59,7 +59,7 @@ class BatchedJobsListGenerator(object):
         of jobs per node set in `CHMJobCreator.CONFIG_FILE_NAME`
         :returns: Number of jobs that need to be run
         """
-        job_list = self._get_incomplete_jobs_list()
+        job_list = self.get_incomplete_jobs_list()
         if len(job_list) is 0:
             logger.debug('All jobs complete')
             return 0
@@ -84,7 +84,9 @@ class RocceSubmitScriptGenerator(object):
     """Generates submit script for CHM job on Rocce cluster
     """
     SUBMIT_SCRIPT_NAME = 'runjobs.rocce'
+    MERGE_SUBMIT_SCRIPT_NAME = 'runmerge.rocce'
     CHMRUNNER = 'chmrunner.py'
+    MERGERUNNER = 'mergetilerunner.py'
 
     def __init__(self, chmconfig):
         """Constructor
@@ -101,6 +103,16 @@ class RocceSubmitScriptGenerator(object):
         return os.path.join(self._chmconfig.get_out_dir(),
                             RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME)
 
+    def _get_merge_submit_script_path(self):
+        """Gets path to submit script
+        """
+        if self._chmconfig is None:
+            return RocceSubmitScriptGenerator.MERGE_SUBMIT_SCRIPT_NAME
+
+        return os.path.join(self._chmconfig.get_out_dir(),
+                            RocceSubmitScriptGenerator.
+                            MERGE_SUBMIT_SCRIPT_NAME)
+
     def _get_chm_runner_path(self):
         """gets path to chmrunner.py
 
@@ -110,6 +122,14 @@ class RocceSubmitScriptGenerator(object):
             return RocceSubmitScriptGenerator.CHMRUNNER
         return os.path.join(self._chmconfig.get_script_bin(),
                             RocceSubmitScriptGenerator.CHMRUNNER)
+
+    def _get_merge_runner_path(self):
+        """gets path to mergetilerunner.py
+        """
+        if self._chmconfig is None:
+            return RocceSubmitScriptGenerator.MERGERUNNER
+        return os.path.join(self._chmconfig.get_script_bin(),
+                            RocceSubmitScriptGenerator.MERGERUNNER)
 
     def generate_submit_script(self):
         """Creates submit script and instructions for invocation
@@ -130,6 +150,32 @@ class RocceSubmitScriptGenerator(object):
         f.write('echo "HOST: $HOSTNAME"\n')
         f.write('echo "DATE: `date`"\n\n')
         f.write('/usr/bin/time -p ' + self._get_chm_runner_path() +
+                ' $SGE_TASK_ID ' + out_dir + ' --scratchdir ' +
+                self._chmconfig.get_shared_tmp_dir() + ' --log DEBUG\n')
+        f.flush()
+        f.close()
+        os.chmod(script, stat.S_IRWXU)
+        return script
+
+    def generate_merge_submit_script(self):
+        """Creates merge submit script and instructions for invocation
+        :returns: path to submit script
+        """
+        script = self._get_merge_submit_script_path()
+        out_dir = self._chmconfig.get_out_dir()
+        f = open(script, 'w')
+        f.write('#!/bin/sh\n')
+        f.write('#\n#$ -V\n#$ -S /bin/sh\n')
+        f.write('#$ -wd ' + out_dir + '\n')
+        f.write('#$ -o ' + os.path.join(self._chmconfig.get_merge_stdout_dir(),
+                                        '$JOB_ID.$TASK_ID.out') + '\n')
+        f.write('#$ -j y\n#$ -N ' + self._chmconfig.get_mergejob_name() + '\n')
+        f.write('#$ -l h_rt=' + self._chmconfig.get_walltime()
+                + ',h_vmem=5G,h=\'!compute-0-20\'\n')
+        f.write('#$ -q all.q\n#$ -m n\n\n')
+        f.write('echo "HOST: $HOSTNAME"\n')
+        f.write('echo "DATE: `date`"\n\n')
+        f.write('/usr/bin/time -p ' + self._get_merge_runner_path() +
                 ' $SGE_TASK_ID ' + out_dir + ' --scratchdir ' +
                 self._chmconfig.get_shared_tmp_dir() + ' --log DEBUG\n')
         f.flush()
