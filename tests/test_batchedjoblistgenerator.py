@@ -41,7 +41,7 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
 
             gen = BatchedJobsListGenerator(chmconfig)
 
-            j_list = gen._get_incomplete_jobs_list()
+            j_list = gen.get_incomplete_jobs_list()
 
             self.assertEqual(len(j_list), 1)
             self.assertEqual(j_list[0], '1')
@@ -68,7 +68,7 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
 
             gen = BatchedJobsListGenerator(chmconfig)
 
-            j_list = gen._get_incomplete_jobs_list()
+            j_list = gen.get_incomplete_jobs_list()
 
             self.assertEqual(len(j_list), 1)
             self.assertEqual(j_list[0], '2')
