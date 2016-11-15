@@ -10,6 +10,7 @@ from chmutil.core import CHMConfigFromConfigFactory
 from chmutil.cluster import RocceSubmitScriptGenerator
 from chmutil.cluster import BatchedJobsListGenerator
 from chmutil.core import Parameters
+from chmutil.cluster import CHMJobChecker
 from chmutil import core
 
 
@@ -45,9 +46,12 @@ def _run_chm_job(theargs):
     """
     cfac = CHMConfigFromConfigFactory(os.path.abspath(theargs.jobdir))
     chmconfig = cfac.get_chmconfig()
-
-    gen = BatchedJobsListGenerator(chmconfig)
-    num_jobs = gen.generate_batched_jobs_list()
+    checker = CHMJobChecker(chmconfig.get_config())
+    gen = BatchedJobsListGenerator(checker,
+                                   chmconfig.get_number_jobs_per_node())
+    num_jobs = gen.\
+        generate_batched_jobs_list(chmconfig.
+                                   get_batchedjob_config_file_path())
     if num_jobs is 0:
         sys.stdout.write('\nNo jobs need to be run\n\n')
         return 0

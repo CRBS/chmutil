@@ -18,7 +18,8 @@ requirements = [
 test_requirements = [
     "argparse",
     "configparser",
-    "Pillow"
+    "Pillow",
+    "mock"
 ]
 
 setup(

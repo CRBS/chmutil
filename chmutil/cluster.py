@@ -12,20 +12,22 @@ from chmutil.core import CHMJobCreator
 logger = logging.getLogger(__name__)
 
 
-class BatchedJobsListGenerator(object):
-    """Creates Batched Jobs List file used by chmrunner.py
+class InvalidConfigFileError(Exception):
+    """Raised if config file path is invalid
     """
-    OLD_SUFFIX = '.old'
+    pass
 
-    def __init__(self, chmconfig):
-        """Constructor
-        """
-        self._chmconfig = chmconfig
+
+class CHMJobChecker(object):
+    """Checks and returns incomplete CHM Jobs
+    """
+    def __init__(self, config):
+        self._config = config
 
     def get_incomplete_jobs_list(self):
-        """Gets list of incomplete jobs
+        """gets list of incomplete jobs
         """
-        config = self._chmconfig.get_config()
+        config = self._config
         job_list = []
 
         for s in config.sections():
@@ -37,46 +39,82 @@ class BatchedJobsListGenerator(object):
                     str(len(config.sections())) + ' to be incomplete jobs')
         return job_list
 
-    def _write_batched_job_config(self, bconfig):
+
+class MergeJobChecker(object):
+    """Checks and returns incomplete Merge Jobs
+    """
+    def __init__(self, config):
+        self._config = config
+
+    def get_incomplete_jobs_list(self):
+        """gets list of incomplete jobs
+        """
+        config = self._config
+        job_list = []
+
+        for s in config.sections():
+            out_file = config.get(s, CHMJobCreator.MERGE_OUTPUT_IMAGE)
+            if not os.path.isfile(out_file):
+                job_list.append(s)
+
+        logger.info('Found ' + str(len(job_list)) + ' of ' +
+                    str(len(config.sections())) + ' to be incomplete jobs')
+        return job_list
+
+
+class BatchedJobsListGenerator(object):
+    """Creates Batched Jobs List file used by chmrunner.py
+    """
+    OLD_SUFFIX = '.old'
+
+    def __init__(self, job_checker, jobs_per_node):
+        """Constructor
+        """
+        self._jobchecker = job_checker
+        self._jobs_per_node = int(jobs_per_node)
+
+    def _write_batched_job_config(self, bconfig, configfile):
         """Writes out batched job config
         """
-        cfile = self._chmconfig.get_batchedjob_config()
-        if os.path.isfile(cfile):
+
+        if os.path.isfile(configfile):
             logger.debug('Previous batched job config file found. '
                          'Appending .old suffix')
-            shutil.move(cfile, cfile + BatchedJobsListGenerator.OLD_SUFFIX)
+            shutil.move(configfile, configfile +
+                        BatchedJobsListGenerator.OLD_SUFFIX)
 
-        logger.debug('Writing batched job config file to ' + cfile)
-        f = open(cfile, 'w')
+        logger.debug('Writing batched job config file to ' + configfile)
+        f = open(configfile, 'w')
         bconfig.write(f)
         f.flush()
         f.close()
 
-    def generate_batched_jobs_list(self):
+    def generate_batched_jobs_list(self, configfile):
         """Examines chm jobs list and looks for
         incomplete jobs. The incomplete jobs are written
         into `CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME` batched by number
         of jobs per node set in `CHMJobCreator.CONFIG_FILE_NAME`
         :returns: Number of jobs that need to be run
         """
-        job_list = self.get_incomplete_jobs_list()
+        if configfile is None:
+            raise InvalidConfigFileError('configfile passed in cannot be null')
+
+        job_list = self._jobchecker.get_incomplete_jobs_list()
         if len(job_list) is 0:
             logger.debug('All jobs complete')
             return 0
-
-        jobspernode = int(self._chmconfig.get_number_jobs_per_node())
 
         bconfig = configparser.ConfigParser()
 
         total = len(job_list)
         job_counter = 1
-        for j in range(0, total, jobspernode):
+        for j in range(0, total, self._jobs_per_node):
             bconfig.add_section(str(job_counter))
             bconfig.set(str(job_counter), CHMJobCreator.BCONFIG_TASK_ID,
-                        ','.join(job_list[j:j+jobspernode]))
+                        ','.join(job_list[j:j+self._jobs_per_node]))
             job_counter += 1
 
-        self._write_batched_job_config(bconfig)
+        self._write_batched_job_config(bconfig, configfile)
         return job_counter-1
 
 

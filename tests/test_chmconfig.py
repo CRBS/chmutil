@@ -39,7 +39,7 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_disable_histogram_eq_val(), True)
         self.assertEqual(opts.get_config(), None)
         self.assertEqual(opts.get_job_config(), CHMJobCreator.CONFIG_FILE_NAME)
-        self.assertEqual(opts.get_batchedjob_config(),
+        self.assertEqual(opts.get_batchedjob_config_file_path(),
                          CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME)
         self.assertEqual(opts.get_run_dir(),
                          CHMJobCreator.RUN_DIR)
@@ -72,7 +72,7 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_config(), 'hi')
         self.assertEqual(opts.get_job_config(),
                          os.path.join('out', CHMJobCreator.CONFIG_FILE_NAME))
-        self.assertEqual(opts.get_batchedjob_config(),
+        self.assertEqual(opts.get_batchedjob_config_file_path(),
                          os.path.join('out',
                                       CHMJobCreator.
                                       CONFIG_BATCHED_JOBS_FILE_NAME))

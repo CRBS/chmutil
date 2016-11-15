@@ -4,7 +4,12 @@
 import os
 import logging
 import configparser
+import shlex
+import subprocess
+import time
 from PIL import Image
+
+import chmutil
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +59,91 @@ def setup_logging(thelogger,
     logging.basicConfig(format=log_format)
     logging.getLogger('chmutil.core').setLevel(numericloglevel)
     logging.getLogger('chmutil.cluster').setLevel(numericloglevel)
+
+
+def add_standard_parameters(parser):
+    """Adds some common flags to `ArgumentParser` passed in
+    :param parser: ArgumentParser object
+    :returns: ArgumentParser with common fields added
+    """
+    parser.add_argument("--scratchdir", help='Scratch Directory '
+                                             '(default /tmp)',
+                        default='/tmp')
+    parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
+                        'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+                        help="Set the logging level (default WARNING)",
+                        default='WARNING')
+    parser.add_argument('--version', action='version',
+                        version=('%(prog)s ' + chmutil.__version__))
+    return
+
+
+def run_external_command(cmd_to_run, tmp_dir,
+                         polling_sleep_time=10):
+    """Runs command passed in
+    :param cmd_to_run: command with arguments to run set as a string
+    :param tmp_dir: temporary directory where stdout.txt and stderr.txt
+                    files can be temporarily written
+    :param polling_sleep_time: time in seconds to sleep between checks for
+                               command completion.
+    :returns: tuple containing (exit code, stdout, stderr)
+    """
+    if cmd_to_run is None:
+        return 256, '', 'Command must be set'
+
+    logger.info("Running command " + cmd_to_run)
+    tmp_stdout = os.path.join(tmp_dir, 'stdout.txt')
+    stdout_f = open(tmp_stdout, 'w')
+    tmp_stderr = os.path.join(tmp_dir, 'stderr.txt')
+    stderr_f = open(tmp_stderr, 'w')
+    p = subprocess.Popen(shlex.split(cmd_to_run),
+                         stdout=stdout_f,
+                         stderr=stderr_f)
+
+    logger.debug('Waiting for process to complete')
+    p.poll()
+
+    while p.returncode is None:
+        time.sleep(polling_sleep_time)
+        p.poll()
+
+    stdout_f.flush()
+    stdout_f.close()
+    stderr_f.flush()
+    stderr_f.close()
+
+    fo = open(tmp_stdout, 'r')
+    out = fo.read()
+    fo.close()
+    fe = open(tmp_stderr, 'r')
+    err = fe.read()
+    fe.close()
+
+    return p.returncode, out, err
+
+
+def wait_for_children_to_exit(process_list):
+    """Waits for children processes in process_list to finish
+    """
+    exit_code = 0
+    running_procs = len(process_list)
+    while running_procs > 0:
+        logger.info('Still waiting on ' + str(running_procs) + ' processes')
+        logger.debug('Waiting on pid: ' + str(process_list[0]))
+        try:
+            ecode = os.waitpid(process_list[0], 0)[1]
+            if ecode > 255:
+                ecode = ecode >> 8
+            logger.info('Process ' + str(process_list[0]) +
+                        ' exited with code: ' + str(ecode))
+            exit_code += ecode
+        except OSError:
+            logger.exception('Caught exception, but it might not '
+                             'be a big deal')
+        time.sleep(1)
+        del process_list[0]
+        running_procs = len(process_list)
+    return exit_code
 
 
 class CHMJobCreator(object):
@@ -381,7 +471,7 @@ class CHMConfig(object):
             return CHMJobCreator.CONFIG_FILE_NAME
         return os.path.join(self.get_out_dir(), CHMJobCreator.CONFIG_FILE_NAME)
 
-    def get_batchedjob_config(self):
+    def get_batchedjob_config_file_path(self):
         """Gets path to batched job config
         """
         if self.get_out_dir() is None:
@@ -389,7 +479,7 @@ class CHMConfig(object):
         return os.path.join(self.get_out_dir(),
                             CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME)
 
-    def get_batched_mergejob_config(self):
+    def get_batched_mergejob_config_file_path(self):
         """Gets path to batched merge job config
         """
         if self.get_out_dir() is None:

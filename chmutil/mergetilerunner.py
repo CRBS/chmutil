@@ -6,11 +6,8 @@ import argparse
 import logging
 import uuid
 import configparser
-import subprocess
-import shlex
 import shutil
 import chmutil
-import time
 
 from chmutil.core import CHMJobCreator
 from chmutil.core import CHMConfigFromConfigFactory
@@ -34,55 +31,10 @@ def _parse_arguments(desc, args):
     parser.add_argument("taskid", help='Task id')
     parser.add_argument("jobdir", help='Directory containing chm.list.job'
                                        'file')
-    parser.add_argument("--scratchdir", help='Scratch Directory '
-                                             '(default /tmp)',
-                        default='/tmp')
-    parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
-                        'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-                        help="Set the logging level (default WARNING)",
-                        default='WARNING')
-    parser.add_argument('--version', action='version',
-                        version=('%(prog)s ' + chmutil.__version__))
+
+    core.add_standard_parameters(parser)
 
     return parser.parse_args(args, namespace=parsed_arguments)
-
-
-def _run_external_command(cmd_to_run, tmp_dir):
-    """Runs command
-    """
-    # TODO MOVE THIS INTO A SEPARATE RUN CLASS
-    if cmd_to_run is None:
-        return 256, '', 'Command must be set'
-
-    logger.info("Running command " + cmd_to_run)
-    tmp_stdout = os.path.join(tmp_dir, 'stdout.txt')
-    stdout_f = open(tmp_stdout, 'w')
-    tmp_stderr = os.path.join(tmp_dir, 'stderr.txt')
-    stderr_f = open(tmp_stderr, 'w')
-    p = subprocess.Popen(shlex.split(cmd_to_run),
-                         stdout=stdout_f,
-                         stderr=stderr_f)
-
-    logger.debug('Waiting for process to complete')
-    p.poll()
-
-    while p.returncode is None:
-        time.sleep(10)
-        p.poll()
-
-    stdout_f.flush()
-    stdout_f.close()
-    stderr_f.flush()
-    stderr_f.close()
-
-    fo = open(tmp_stdout, 'r')
-    out = fo.read()
-    fo.close()
-    fe = open(tmp_stderr, 'r')
-    err = fe.read()
-    fe.close()
-
-    return p.returncode, out, err
 
 
 def _run_merge_job(theargs):
@@ -91,9 +43,9 @@ def _run_merge_job(theargs):
     cfac = CHMConfigFromConfigFactory(theargs.jobdir)
     chmconfig = cfac.get_chmconfig(skip_loading_config=True,
                                    skip_loading_mergeconfig=False)
-    if not os.path.isfile(chmconfig.get_batched_mergejob_config()):
+    if not os.path.isfile(chmconfig.get_batched_mergejob_config_file_path()):
         logger.error('No batched merge config found: ' +
-                     chmconfig.get_batched_mergejob_config())
+                     chmconfig.get_batched_mergejob_config_file_path())
         return 1
     return _run_jobs(chmconfig, theargs, theargs.taskid)
 
@@ -102,7 +54,7 @@ def _run_jobs(chmconfig, theargs, taskid):
     """Runs jobs for task in parallel
     """
     bconfig = configparser.ConfigParser()
-    bconfig.read(chmconfig.get_batched_mergejob_config())
+    bconfig.read(chmconfig.get_batched_mergejob_config_file_path())
     tasks = bconfig.get(taskid, CHMJobCreator.BCONFIG_TASK_ID).split(',')
     process_list = []
     logger.debug('Running ' + str(len(tasks)) + 'child processes')
@@ -115,25 +67,7 @@ def _run_jobs(chmconfig, theargs, taskid):
             logger.debug('Appending child process to list: ' + str(pid))
             process_list.append(pid)
 
-    exit_code = 0
-    running_procs = len(process_list)
-    while running_procs > 0:
-        logger.info('Still waiting on ' + str(running_procs) + ' processes')
-        logger.debug('Waiting on pid: ' + str(process_list[0]))
-        try:
-            ecode = os.waitpid(process_list[0], 0)[1]
-            if ecode > 255:
-                ecode = ecode >> 8
-            logger.info('Process ' + str(process_list[0]) +
-                        ' exited with code: ' + str(ecode))
-            exit_code += ecode
-        except OSError:
-            logger.exception('Caught exception, but it might not '
-                             'be a big deal')
-        time.sleep(1)
-        del process_list[0]
-        running_procs = len(process_list)
-    return exit_code
+    return core.wait_for_children_to_exit(process_list)
 
 
 def _run_single_merge_job(theargs, taskid):
@@ -158,7 +92,7 @@ def _run_single_merge_job(theargs, taskid):
         cmd = (config.get(CHMJobCreator.CONFIG_DEFAULT,
                           CHMJobCreator.MERGE_MERGETILES_BIN) + ' ' +
                input_dir + ' ' + out_file + ' --suffix png ')
-        exitcode, out, err = _run_external_command(cmd, out_dir)
+        exitcode, out, err = core.run_external_command(cmd, out_dir)
 
         sys.stdout.write(out)
         sys.stderr.write(err)
