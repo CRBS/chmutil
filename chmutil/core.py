@@ -38,6 +38,11 @@ class Parameters(object):
     pass
 
 
+class SingularityAbortError(Exception):
+    """Raised if Singularity aborted"""
+    pass
+
+
 def setup_logging(thelogger,
                   log_format='%(asctime)-15s %(levelname)s %(name)s '
                              '%(message)s',
@@ -161,6 +166,8 @@ class CHMJobCreator(object):
     STDOUT_DIR = 'stdout'
     MERGE_STDOUT_DIR = 'mergestdout'
     RESULT_DIR = 'result'
+    PROBMAPS_DIR = 'probmaps'
+    OVERLAYMAPS_DIR = 'overlaymaps'
     TMP_DIR = 'tmp'
     CONFIG_DEFAULT = 'DEFAULT'
     CONFIG_CHM_BIN = 'chmbin'
