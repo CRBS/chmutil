@@ -12,6 +12,7 @@ import chmutil
 from chmutil.core import CHMJobCreator
 from chmutil.core import CHMConfigFromConfigFactory
 from chmutil.core import Parameters
+from chmutil.core import SingularityAbortError
 from chmutil import core
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s (%(process)d) %(name)s %(message)s"
@@ -61,7 +62,11 @@ def _run_jobs(chmconfig, theargs, taskid):
         pid = os.fork()
         if pid is 0:
             logger.debug('In child submitting job to run task ' + t)
-            return _run_single_chm_job(theargs, t)
+            try:
+                return _run_single_chm_job(theargs, t)
+            except SingularityAbortError:
+                logger.exception('Caught exception, retrying job')
+                return _run_single_chm_job(theargs, t)
         else:
             logger.debug('Appending child process to list: ' + str(pid))
             process_list.append(pid)
@@ -115,7 +120,9 @@ def _run_single_chm_job(theargs, taskid):
             # TODO need to handle this case where singularity pukes:
             # ABORT: Could not create temporary directory
             # /tmp/.singularity-1000.64770.13026447427: File exists
-            return 2
+            if 'ABORT: Could not create temporary directory /tmp' in err:
+                raise SingularityAbortError(err)
+            return 3
 
         shutil.move(prob_map,
                     config.get(taskid,
