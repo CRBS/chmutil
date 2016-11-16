@@ -6,7 +6,7 @@ import argparse
 import logging
 import chmutil
 from PIL import Image
-
+from PIL import ImageMath
 from chmutil.core import Parameters
 from chmutil import core
 
@@ -59,12 +59,10 @@ def _merge_image_tiles(img_dir, dest_file, suffix):
             merged = Image.open(fp)
             continue
         tile = Image.open(fp)
-        bbox = tile.getbbox()
-        logger.debug('Merging ' + entry + ' bbox = ' + str(bbox))
-        subtile = tile.crop(bbox)
-        merged.paste(subtile, box=bbox)
+        logger.debug('Merging ' + entry)
+
+        merged = ImageMath.eval("convert(max(a, b), 'L')", a=merged, b=tile)
         tile.close()
-        subtile.close()
 
     logger.info('Writing results to ' + dest_file)
     merged.save(dest_file)
