@@ -53,7 +53,9 @@ setup(
     ],
     scripts=['chmutil/createchmjob.py', 'chmutil/chmrunner.py',
              'chmutil/runchmjob.py',
-             'chmutil/mergetiles.py'],
+             'chmutil/mergetiles.py',
+             'chmutil/createchmimage.py',
+             'chmutil/createprobmapoverlay.py'],
     test_suite='tests',
     tests_require=test_requirements
 )
