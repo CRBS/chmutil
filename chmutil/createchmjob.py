@@ -87,7 +87,7 @@ def _create_chm_job(theargs):
         lc_cluster = str(theargs.cluster).lower()
         try:
             jobspernode = int(theargs.jobspernode)
-        except AttributeError:
+        except TypeError:
             jobspernode = 1
             if lc_cluster == 'gordon':
                 jobspernode = 11
