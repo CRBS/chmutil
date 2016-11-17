@@ -38,6 +38,14 @@ def _parse_arguments(desc, args):
     parser.add_argument("output", help='Output image path, should have .png'
                                        'extension, if not .png will be '
                                        'appended')
+    parser.add_argument("--overlaycolor", help="Color to use for overlay"
+                                               "(default blue)",
+                        choices=['red', 'blue', 'green', 'yellow',
+                                 'cyan', 'magenta', 'purple'],
+                        default='blue')
+    parser.add_argument("--blend", type=float, default=0.3,
+                        help='Blend value used to blend probability'
+                             'map with base image. (default 0.3')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level (default WARNING)",
@@ -46,6 +54,29 @@ def _parse_arguments(desc, args):
                         version=('%(prog)s ' + chmutil.__version__))
 
     return parser.parse_args(args, namespace=parsed_arguments)
+
+
+def _get_pixel_coloring_tuple(thecolor):
+
+    if thecolor is 'red':
+        return 1, 0, 0
+
+    if thecolor is 'green':
+        return 0, 1, 0
+
+    if thecolor is 'yello':
+        return 1, 1, 0
+
+    if thecolor is 'cyan':
+        return 0, 1, 1
+
+    if thecolor is 'magenta':
+        return 1, 0, 1
+
+    if thecolor is 'purple':
+        return 0.5, 0, 0.5
+
+    return 0, 0, 1
 
 
 def _convert_image(image_file, probmap_file, dest_file, theargs):
@@ -68,15 +99,16 @@ def _convert_image(image_file, probmap_file, dest_file, theargs):
 
     pixels = list(probimg.getdata())
     blue_pixels = []
+    ctuple = _get_pixel_coloring_tuple(theargs.overlaycolor)
     for r, g, b in pixels:
-        blue_pixels.append((0, 0, b))
+        blue_pixels.append((b*ctuple[0], b*ctuple[1], b*ctuple[2]))
 
     blueprobmap = Image.new('RGBA', probimg.size)
     blueprobmap.putdata(blue_pixels)
 
     img = Image.open(image_file).convert(mode='RGBA')
 
-    res = Image.blend(img, blueprobmap, 0.3)
+    res = Image.blend(img, blueprobmap, theargs.blend)
 
     if not dest_file.endswith('.png'):
         dest_file += '.png'
