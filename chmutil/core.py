@@ -733,12 +733,12 @@ class ImageStatsFromDirectoryFactory(object):
         for entry in os.listdir(self._directory):
             fp = os.path.join(self._directory, entry)
             if os.path.isfile(fp):
+                im = None
                 try:
                     im = Image.open(fp)
                     iis = ImageStats(fp, im.size[0],
                                      im.size[1], im.format)
                     image_stats_list.append(iis)
-                    im.clo
                 except Exception:
                     logger.exception('Skipping file unable to open ' + fp)
                 finally:
