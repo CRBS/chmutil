@@ -32,6 +32,10 @@ class InvalidJobDirError(Exception):
     pass
 
 
+class InvalidCommaDelimitedStringError(Exception):
+    """Raised when box is unable to parse a string"""
+    pass
+
 class Parameters(object):
     """Placeholder class for parameters
     """
@@ -149,6 +153,20 @@ def wait_for_children_to_exit(process_list):
         del process_list[0]
         running_procs = len(process_list)
     return exit_code
+
+
+def get_image_path_list(image_dir, suffix):
+    """gets list of images with suffix from dir
+    """
+    img_list = []
+    for entry in os.listdir(image_dir):
+        fp = os.path.join(image_dir, entry)
+        if not os.path.isfile(fp):
+            logger.debug(entry + ' is not a file. skipping')
+            continue
+        if entry.endswith(suffix):
+            img_list.append(fp)
+    return img_list
 
 
 class CHMJobCreator(object):
@@ -779,3 +797,114 @@ class CHMArgGenerator(object):
                         self._t_height_w_over - 1) / self._t_height_w_over
 
         return int(tiles_width), int(tiles_height)
+
+
+class Box(object):
+    """Represents a box used in Pillow image library
+    """
+    COMMA = ','
+
+    def __init__(self, left=None, upper=None, right=None, lower=None):
+        """constructor"""
+        self._left = left
+        self._upper = upper
+        self._right = right
+        self._lower = lower
+
+    def are_any_corners_none(self):
+        """Checks if any of the corner coordinates
+        are none
+        :returns: True if yes otherwise False
+        """
+        if self._left is None or self._upper is None:
+            return True
+
+        if self._right is None or self._lower is None:
+            return True
+
+        return False
+
+    def load_from_comma_delimited_string(self, string):
+        """Parses comma delimited string to set values of object
+        :param string: comma delimited string in this format
+                       left,upper,right,lower with each value
+                       convertible to an int
+        """
+        elements = string.split(Box.COMMA)
+        if len(elements) != 4:
+            raise InvalidCommaDelimitedStringError('string does not have 4 '
+                                                   'elements when parsed')
+
+        self._left = int(elements[0])
+        self._upper = int(elements[1])
+        self._right = int(elements[2])
+        self._lower = int(elements[3])
+
+    def get_box_as_tuple(self):
+        return (self._left, self._upper,
+                self._right, self._lower)
+
+    def get_list_of_tuple_of_corner_coordinates(self):
+        """gets tuple of corner coordinates
+        """
+        if self.are_any_corners_none():
+            return None
+
+        return [(self._left, self._upper),
+                (self._left, self._lower),
+                (self._right, self._upper),
+                (self._right, self._lower)]
+
+    def get_box_as_comma_delimited_string(self):
+        """Returns object as a string of values delimited by commas
+        :returns: string of positions delimited by commas in this order
+                  left,upper,right,lower
+        """
+        return (str(self._left) + Box.COMMA + str(self._upper) + Box.COMMA +
+                str(self._right) + Box.COMMA + str(self._lower))
+
+    def is_coordinate_in_box(self, coordinate_tuple):
+        """Checks if coordinate is in box
+        :param coordinate_tuple: tuple containing 2 int coordinates (x, y)
+        :returns: True if yes otherwise False
+        """
+
+        x = coordinate_tuple[0]
+        y = coordinate_tuple[1]
+        if self.are_any_corners_none() is True:
+            return False
+
+        if self._left <= x <= self._right:
+            if self._upper >= y <= self._lower:
+                return True
+
+        return False
+
+    def does_box_intersect(self, box):
+        """Checks if two Box's intersect
+
+        :param box: Box to check
+        :return: True if they intersect, False otherwise
+        """
+
+        if self.are_any_corners_none() is True:
+            return False
+
+        if box.are_any_corners_none() is True:
+            return False
+
+        # check for overlap and case where box passed in
+        # could be within this box
+        c_list = box.get_list_of_tuple_of_corner_coordinates()
+        for c_tup in c_list:
+            if self.is_coordinate_in_box(c_tup) is True:
+                return True
+
+        # case where this box is smaller and partially or wholly
+        # within larger box
+        c_list = self.get_list_of_tuple_of_corner_coordinates()
+        for c_tup in c_list:
+            if box.is_coordinate_in_box(c_tup) is True:
+                return True
+
+        return False
