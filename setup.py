@@ -55,7 +55,8 @@ setup(
              'chmutil/runchmjob.py',
              'chmutil/mergetiles.py',
              'chmutil/createchmimage.py',
-             'chmutil/createprobmapoverlay.py'],
+             'chmutil/createprobmapoverlay.py',
+             'chmutil/createtrainingmrcstack.py'],
     test_suite='tests',
     tests_require=test_requirements
 )
