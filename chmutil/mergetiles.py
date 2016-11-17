@@ -46,19 +46,12 @@ def _merge_image_tiles(img_dir, dest_file, suffix):
     """
     logger.info('Merging images in ' + img_dir)
     merged = None
-    for entry in os.listdir(img_dir):
-
-        fp = os.path.join(img_dir, entry)
-        if not os.path.isfile(fp):
-            continue
-
-        if not entry.endswith(suffix):
-            continue
+    for entry in core.get_image_path_list(img_dir, suffix):
 
         if merged is None:
-            merged = Image.open(fp)
+            merged = Image.open(entry)
             continue
-        tile = Image.open(fp)
+        tile = Image.open(entry)
         logger.debug('Merging ' + entry)
 
         merged = ImageMath.eval("convert(max(a, b), 'L')", a=merged, b=tile)
