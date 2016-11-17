@@ -24,12 +24,12 @@ test_requirements = [
 
 setup(
     name='chmutil',
-    version='0.1.0',
+    version='0.2.0',
     description="Utility package to run CHM jobs on clusters",
     long_description=readme + '\n\n' + history,
     author="Christopher Churas",
     author_email='churas@ncmir.ucsd.edu',
-    url='https://github.com/coleslaw481/chmutil',
+    url='https://github.com/CRBS/chmutil',
     packages=[
         'chmutil',
     ],
