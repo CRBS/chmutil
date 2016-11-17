@@ -10,41 +10,24 @@ import tempfile
 import shutil
 import configparser
 from PIL import Image
-from PIL import ImageOps
-from PIL import ImageFilter
+
 
 from chmutil.core import Parameters
 from chmutil import core
+from chmutil.core import Box
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s (%(process)d) %(name)s %(message)s"
 
+IMAGEDIR_KEY = 'imagedir'
 # create logger
 logger = logging.getLogger('chmutil.createchmimage')
+
 
 
 class NoInputImageFoundError(Exception):
     """Raised if input image does not exist
     """
     pass
-
-
-class Box(object):
-    """Represents a box
-    """
-    def __init__(self, left, upper, right, lower):
-        """constructor"""
-        self._left = left
-        self._upper = upper
-        self._right = right
-        self._lower = lower
-
-    def get_box_as_tuple(self):
-        return (self._left, self._upper,
-                self._right, self._lower)
-
-    def does_box_intersect(self, box):
-
-        return False
 
 
 def _parse_arguments(desc, args):
@@ -62,7 +45,7 @@ def _parse_arguments(desc, args):
     parser.add_argument("output", help='Full path to output mrc file')
     parser.add_argument("--suffix", default='.png',
                         help='Image suffix (default .png)')
-    parser.add_argument("--useconfig", help='NOT IMPLEMENTED  Instead of generating random'
+    parser.add_argument("--useconfig", help='Instead of generating random'
                                             'tiles use config passed in')
     parser.add_argument("--tilesize", default='512x512',
                         help='NOT IMPLEMENTED Size of tiles in WxH format (default 512x512)')
@@ -78,19 +61,6 @@ def _parse_arguments(desc, args):
 
     return parser.parse_args(args, namespace=parsed_arguments)
 
-def _get_image_list(image_dir, suffix):
-    """gets list of images with suffix from dir
-    """
-    img_list = []
-    for entry in os.listdir(image_dir):
-        fp = os.path.join(image_dir, entry)
-        if not os.path.isfile(fp):
-            logger.debug(entry + ' is not a file. skipping')
-            continue
-        if entry.endswith(suffix):
-            img_list.append(fp)
-    return img_list
-
 
 def _pick_tile(img_path, tile_width, tile_height):
     """picks a tile
@@ -105,7 +75,8 @@ def _pick_tile(img_path, tile_width, tile_height):
         ypos = random.randint(0,ymax)
         logger.info('Rando tile: ' + img_path + ' x=' + str(xpos) +
                     ' y='+str(ypos))
-        return Box(xpos, ypos, xpos + tile_width, ypos + tile_height)
+        return Box(left=xpos, upper=ypos, right=xpos + tile_width,
+                   lower=ypos + tile_height)
     finally:
         if img is not None:
             img.close()
@@ -124,7 +95,8 @@ def _does_tile_intersect_any_other_tiles(tile_tuple_list, new_tile_tuple):
 
 def _pick_random_tiles(img_list, num_tiles, tile_width=512,
                       tile_height=512):
-    """Randomly picks image
+    """Using random generates a list of tuples with image path and tile
+    location
     :returns: nested tuple (image path, (left, upper, right, and lower))
     """
     num_images = len(img_list)
@@ -139,12 +111,49 @@ def _pick_random_tiles(img_list, num_tiles, tile_width=512,
     return tile_tuple_list
 
 
+def _get_tiles_from_tuple_list(img_list, config_file):
+    """Loads list of tuples with image path and tile location
+    :returns: nested tuple (image path, (left, upper, right, and lower))
+    """
+    num_images = len(img_list)
+    config = configparser.ConfigParser()
+    config.read(config_file)
+    tile_tuple_list = []
+
+    tile_dict = {}
+    for entry in img_list:
+        img_basename = os.path.basename(entry)
+        logger.debug('Looking for entries with section name: ' + img_basename)
+        if not config.has_section(img_basename):
+            continue
+        for subentry in config.items(img_basename):
+            logger.debug('tile: ' + subentry[0] + ' => ' + subentry[1])
+            if subentry[0] == IMAGEDIR_KEY:
+                logger.debug('skipping ' + IMAGEDIR_KEY)
+                continue
+            tile_dict[int(subentry[0])] = (entry, subentry[1])
+
+    sorted_keys = tile_dict.keys()
+    sorted_keys.sort()
+    for x in sorted_keys:
+        tbox = Box()
+        tbox.load_from_comma_delimited_string(tile_dict[x][1])
+        tile_tuple_list.append((tile_dict[x][0], tbox))
+
+
+
+    return tile_tuple_list
+
+
 def _extract_and_save_tile(temp_dir, entry, counter):
     """extract and save tile
     """
     img = None
     tile = None
     try:
+        logger.info('Creating tile from ' + entry[0] +
+                    ' with these coords ' +
+                    entry[1].get_box_as_comma_delimited_string())
         img = Image.open(entry[0])
         tile = img.crop(entry[1].get_box_as_tuple())
         tif_file = os.path.join(temp_dir, str(counter).zfill(4) + '.tif')
@@ -156,16 +165,22 @@ def _extract_and_save_tile(temp_dir, entry, counter):
         if tile is not None:
             tile.close()
 
+
 def _save_tile_tuple_list_as_config_file(tile_tuple_list, config_file):
     """saves tile tuple list as config file
     """
     config = configparser.ConfigParser()
     counter = 1
     for entry in tile_tuple_list:
-        cntr_as_str = str(counter)
-        config.add_section(cntr_as_str)
-        config.set(cntr_as_str, 'image', entry[0])
-        config.set(cntr_as_str, 'tile', str(entry[1]))
+        counter_as_str = str(counter)
+        if counter is 1:
+            config.set('', IMAGEDIR_KEY, os.path.dirname(entry[0]))
+
+        img_basename = os.path.basename(entry[0])
+        if not config.has_section(img_basename):
+            config.add_section(img_basename)
+        config.set(img_basename, counter_as_str,
+                   entry[1].get_box_as_comma_delimited_string())
         counter += 1
 
     f = open(config_file, 'w')
@@ -173,17 +188,29 @@ def _save_tile_tuple_list_as_config_file(tile_tuple_list, config_file):
     f.flush()
     f.close()
 
+
 def _create_mrc_stack(image_dir, num_tiles, dest_file, theargs):
     """Convert image
     """
-    img_list = _get_image_list(image_dir, theargs.suffix)
+    img_list = core.get_image_path_list(image_dir, theargs.suffix)
     if len(img_list) is 0:
         logger.error('No images found in ' + image_dir)
         return 1
 
+    parse_config = True
+    try:
+        logger.debug('--useconfig set to ' + theargs.useconfig)
+    except AttributeError:
+        parse_config = False
 
-    random.seed(theargs.seed)
-    tile_tuple_list = _pick_random_tiles(img_list, num_tiles)
+    if parse_config is True:
+        logger.debug('Using config for tiles')
+        tile_tuple_list = _get_tiles_from_tuple_list(img_list,
+                                                     theargs.useconfig)
+    else:
+        logger.debug('Generating random tiles')
+        random.seed(theargs.seed)
+        tile_tuple_list = _pick_random_tiles(img_list, num_tiles)
 
     temp_dir = tempfile.mkdtemp(dir=theargs.scratchdir)
     curdir = os.getcwd()
@@ -207,7 +234,8 @@ def _create_mrc_stack(image_dir, num_tiles, dest_file, theargs):
         sys.stdout.write(out)
         sys.stderr.write(err)
 
-        _save_tile_tuple_list_as_config_file(dest_file + '.tile.list.config')
+        _save_tile_tuple_list_as_config_file(tile_tuple_list,
+                                             dest_file + '.tile.list.config')
         return exit
     finally:
         os.chdir(curdir)
