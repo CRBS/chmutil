@@ -118,7 +118,7 @@ class BatchedJobsListGenerator(object):
         return job_counter-1
 
 
-class RocceSubmitScriptGenerator(object):
+class RocceCluster(object):
     """Generates submit script for CHM job on Rocce cluster
     """
     SUBMIT_SCRIPT_NAME = 'runjobs.rocce'
@@ -136,19 +136,19 @@ class RocceSubmitScriptGenerator(object):
         """Gets path to submit script
         """
         if self._chmconfig is None:
-            return RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME
+            return RocceCluster.SUBMIT_SCRIPT_NAME
 
         return os.path.join(self._chmconfig.get_out_dir(),
-                            RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME)
+                            RocceCluster.SUBMIT_SCRIPT_NAME)
 
     def _get_merge_submit_script_path(self):
         """Gets path to submit script
         """
         if self._chmconfig is None:
-            return RocceSubmitScriptGenerator.MERGE_SUBMIT_SCRIPT_NAME
+            return RocceCluster.MERGE_SUBMIT_SCRIPT_NAME
 
         return os.path.join(self._chmconfig.get_out_dir(),
-                            RocceSubmitScriptGenerator.
+                            RocceCluster.
                             MERGE_SUBMIT_SCRIPT_NAME)
 
     def _get_chm_runner_path(self):
@@ -157,17 +157,17 @@ class RocceSubmitScriptGenerator(object):
         :return: path to chmrunner.py
         """
         if self._chmconfig is None:
-            return RocceSubmitScriptGenerator.CHMRUNNER
+            return RocceCluster.CHMRUNNER
         return os.path.join(self._chmconfig.get_script_bin(),
-                            RocceSubmitScriptGenerator.CHMRUNNER)
+                            RocceCluster.CHMRUNNER)
 
     def _get_merge_runner_path(self):
         """gets path to mergetilerunner.py
         """
         if self._chmconfig is None:
-            return RocceSubmitScriptGenerator.MERGERUNNER
+            return RocceCluster.MERGERUNNER
         return os.path.join(self._chmconfig.get_script_bin(),
-                            RocceSubmitScriptGenerator.MERGERUNNER)
+                            RocceCluster.MERGERUNNER)
 
     def generate_submit_script(self):
         """Creates submit script and instructions for invocation
@@ -220,3 +220,21 @@ class RocceSubmitScriptGenerator(object):
         f.close()
         os.chmod(script, stat.S_IRWXU)
         return script
+
+    def get_chm_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler
+        """
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub -t 1-' + str(number_jobs) + ' ' +
+               RocceCluster.SUBMIT_SCRIPT_NAME)
+        return val
+
+    def get_merge_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler
+        """
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub -t 1-' + str(number_jobs) + ' ' +
+               RocceCluster.MERGE_SUBMIT_SCRIPT_NAME)
+        return val

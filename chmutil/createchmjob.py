@@ -9,7 +9,7 @@ import chmutil
 from chmutil.core import CHMJobCreator
 from chmutil.core import CHMConfig
 from chmutil.core import Parameters
-from chmutil.cluster import RocceSubmitScriptGenerator
+from chmutil.cluster import RocceCluster
 from chmutil import core
 
 # create logger
@@ -106,7 +106,9 @@ def _create_chm_job(theargs):
                          jobs_per_node=jobspernode,
                          chmbin=os.path.abspath(theargs.chmbin),
                          scriptbin=os.path.dirname(theargs.program),
-                         walltime=theargs.walltime)
+                         walltime=theargs.walltime,
+                         jobname=theargs.jobname,
+                         mergejobname='merge' + theargs.jobname)
 
         creator = CHMJobCreator(opts)
         opts = creator.create_job()
@@ -114,14 +116,15 @@ def _create_chm_job(theargs):
         # TODO create separate classes to generate submit script
         gen = None
         if lc_cluster == 'rocce':
-            gen = RocceSubmitScriptGenerator(opts)
+            gen = RocceCluster(opts)
 
         runchm = os.path.join(opts.get_script_bin(), 'runchmjob.py')
         if gen is not None:
             gen.generate_submit_script()
+            gen.generate_merge_submit_script()
             sys.stdout.write('Run this to submit job\n' +
-                             '  ' + runchm + ' ' + opts.get_out_dir() +
-                             ' --cluster ' +
+                             '  ' + runchm + ' "' + opts.get_out_dir() +
+                             '" --cluster ' +
                              lc_cluster + '\n')
 
         return 0

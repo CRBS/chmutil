@@ -7,7 +7,7 @@ import logging
 import chmutil
 
 from chmutil.core import CHMConfigFromConfigFactory
-from chmutil.cluster import RocceSubmitScriptGenerator
+from chmutil.cluster import RocceCluster
 from chmutil.cluster import BatchedJobsListGenerator
 from chmutil.core import Parameters
 from chmutil.cluster import CHMJobChecker
@@ -52,14 +52,24 @@ def _run_chm_job(theargs):
     num_jobs = gen.\
         generate_batched_jobs_list(chmconfig.
                                    get_batchedjob_config_file_path())
+
+    lc_cluster = str(theargs.cluster).lower()
     if num_jobs is 0:
-        sys.stdout.write('\nNo jobs need to be run\n\n')
+        sys.stdout.write('\nNo chm jobs need to be run\n\n')
+        runmerge = os.path.join(chmconfig.get_script_bin(), 'runmergejob.py')
+        if lc_cluster == 'rocce':
+            sys.stdout.write('Run this to submit merge job\n' +
+                             '  ' + runmerge + ' "' + chmconfig.get_out_dir() +
+                             '" --cluster ' +
+                             lc_cluster + '\n')
         return 0
 
-    if theargs.cluster == 'rocce':
-        sys.stdout.write('Run this:\n\n  cd ' + chmconfig.get_out_dir() + ';' +
-                         'qsub -t 1-' + str(num_jobs) + ' ' +
-                         RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME +
+    if lc_cluster == 'rocce':
+        clust = RocceCluster(chmconfig)
+
+    if clust is not None:
+        sys.stdout.write('Run this:\n\n ' +
+                         clust.get_chm_submit_command(num_jobs) +
                          '\n\n')
         return 0
 

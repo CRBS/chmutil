@@ -179,11 +179,11 @@ class CHMJobCreator(object):
     MERGE_CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.merge.jobs.list'
     MERGE_INPUT_IMAGE_DIR = 'inputimagedir'
     MERGE_OUTPUT_IMAGE = 'outputimage'
+    MERGE_OUTPUT_OVERLAY_IMAGE = 'overlayoutputimage'
     MERGE_MERGETILES_BIN = 'mergetilesbin'
     RUN_DIR = 'chmrun'
     STDOUT_DIR = 'stdout'
     MERGE_STDOUT_DIR = 'mergestdout'
-    RESULT_DIR = 'result'
     PROBMAPS_DIR = 'probmaps'
     OVERLAYMAPS_DIR = 'overlaymaps'
     TMP_DIR = 'tmp'
@@ -296,7 +296,9 @@ class CHMJobCreator(object):
                         mode=0o775)
             os.makedirs(os.path.join(run_dir, CHMJobCreator.TMP_DIR),
                         mode=0o775)
-            os.makedirs(os.path.join(run_dir, CHMJobCreator.RESULT_DIR),
+            os.makedirs(os.path.join(run_dir, CHMJobCreator.PROBMAPS_DIR),
+                        mode=0o775)
+            os.makedirs(os.path.join(run_dir, CHMJobCreator.OVERLAYMAPS_DIR),
                         mode=0o775)
 
         return run_dir
@@ -330,9 +332,15 @@ class CHMJobCreator(object):
         :param image_name: name of image the tiles correspond to
         """
         config.add_section(counter_as_str)
-        config.set(counter_as_str, CHMJobCreator.MERGE_INPUT_IMAGE_DIR, image_tile_dir)
+        config.set(counter_as_str, CHMJobCreator.MERGE_INPUT_IMAGE_DIR,
+                   image_tile_dir)
         config.set(counter_as_str, CHMJobCreator.MERGE_OUTPUT_IMAGE,
-                   os.path.join(run_dir, CHMJobCreator.RESULT_DIR, image_name))
+                   os.path.join(run_dir, CHMJobCreator.PROBMAPS_DIR,
+                                image_name))
+        config.set(counter_as_str,
+                   CHMJobCreator.MERGE_OUTPUT_OVERLAY_IMAGE,
+                   os.path.join(run_dir, CHMJobCreator.OVERLAYMAPS_DIR,
+                                image_name))
 
     def create_job(self):
         """Creates jobs

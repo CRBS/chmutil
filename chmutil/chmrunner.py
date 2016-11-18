@@ -97,11 +97,11 @@ def _run_single_chm_job(theargs, taskid):
         else:
             histeq_flag = ' '
 
-        cmd = (config.get('DEFAULT', CHMJobCreator.CONFIG_CHM_BIN) + ' test ' +
+        cmd = ('"' + config.get('DEFAULT', CHMJobCreator.CONFIG_CHM_BIN) + '" test "' +
                input_image +
-               ' ' + out_dir + ' -m ' +
+               '" ' + out_dir + ' -m "' +
                config.get(taskid, CHMJobCreator.CONFIG_MODEL) +
-               ' -b ' +
+               '" -b ' +
                config.get(taskid, CHMJobCreator.CONFIG_TILE_SIZE) +
                ' -o ' +
                config.get(taskid, CHMJobCreator.CONFIG_OVERLAP_SIZE) +
