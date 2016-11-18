@@ -14,7 +14,7 @@ import tempfile
 import shutil
 
 from chmutil.core import CHMConfig
-from chmutil.cluster import RocceSubmitScriptGenerator
+from chmutil.cluster import RocceCluster
 
 
 class TestRocceSubmitScriptGenerator(unittest.TestCase):
@@ -28,34 +28,34 @@ class TestRocceSubmitScriptGenerator(unittest.TestCase):
     def test_get_submit_script_path(self):
         opts = CHMConfig('images', 'model', 'out',
                          '500x500', '20x20')
-        gen = RocceSubmitScriptGenerator(None)
+        gen = RocceCluster(None)
         val = gen._get_submit_script_path()
         self.assertEqual(val,
-                         RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME)
-        gen = RocceSubmitScriptGenerator(opts)
+                         RocceCluster.SUBMIT_SCRIPT_NAME)
+        gen = RocceCluster(opts)
 
         val = gen._get_submit_script_path()
         script = os.path.join(opts.get_out_dir(),
-                              RocceSubmitScriptGenerator.SUBMIT_SCRIPT_NAME)
+                              RocceCluster.SUBMIT_SCRIPT_NAME)
         self.assertEqual(val, script)
 
     def test_get_chm_runner_path(self):
-        gen = RocceSubmitScriptGenerator(None)
+        gen = RocceCluster(None)
         self.assertEqual(gen._get_chm_runner_path(),
-                         RocceSubmitScriptGenerator.CHMRUNNER)
+                         RocceCluster.CHMRUNNER)
 
         opts = CHMConfig('images', 'model', 'out',
                          '500x500', '20x20')
-        gen = RocceSubmitScriptGenerator(opts)
+        gen = RocceCluster(opts)
         self.assertEqual(gen._get_chm_runner_path(),
-                         RocceSubmitScriptGenerator.CHMRUNNER)
+                         RocceCluster.CHMRUNNER)
 
         opts = CHMConfig('images', 'model', 'out',
                          '500x500', '20x20',
                          scriptbin='/home/foo/.local/bin')
-        gen = RocceSubmitScriptGenerator(opts)
+        gen = RocceCluster(opts)
         spath = os.path.join('/home/foo/.local/bin',
-                             RocceSubmitScriptGenerator.CHMRUNNER)
+                             RocceCluster.CHMRUNNER)
         self.assertEqual(gen._get_chm_runner_path(),
                          spath)
 
@@ -64,7 +64,7 @@ class TestRocceSubmitScriptGenerator(unittest.TestCase):
         try:
             opts = CHMConfig('images', 'model', temp_dir,
                              '500x500', '20x20')
-            gen = RocceSubmitScriptGenerator(opts)
+            gen = RocceCluster(opts)
             script = gen._get_submit_script_path()
             self.assertEqual(os.path.isfile(script), False)
             gen.generate_submit_script()
