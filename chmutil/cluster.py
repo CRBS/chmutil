@@ -190,9 +190,13 @@ class RocceCluster(object):
         f.write('/usr/bin/time -p ' + self._get_chm_runner_path() +
                 ' $SGE_TASK_ID ' + out_dir + ' --scratchdir ' +
                 self._chmconfig.get_shared_tmp_dir() + ' --log DEBUG\n')
+        f.write('\nexitcode=$?\n')
+        f.write('echo "' + RocceCluster.CHMRUNNER +
+                ' exited with code: $exitcode"\n')
+        f.write('exit $exitcode\n')
         f.flush()
         f.close()
-        os.chmod(script, stat.S_IRWXU)
+        os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
         return script
 
     def generate_merge_submit_script(self):
@@ -216,9 +220,13 @@ class RocceCluster(object):
         f.write('/usr/bin/time -p ' + self._get_merge_runner_path() +
                 ' $SGE_TASK_ID ' + out_dir + ' --scratchdir ' +
                 self._chmconfig.get_shared_tmp_dir() + ' --log DEBUG\n')
+        f.write('\nexitcode=$?\n')
+        f.write('echo "' + RocceCluster.MERGERUNNER +
+                ' exited with code: $exitcode"\n')
+        f.write('exit $exitcode\n')
         f.flush()
         f.close()
-        os.chmod(script, stat.S_IRWXU)
+        os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
         return script
 
     def get_chm_submit_command(self, number_jobs):
