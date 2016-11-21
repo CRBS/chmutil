@@ -24,7 +24,7 @@ test_requirements = [
 
 setup(
     name='chmutil',
-    version='0.2.0',
+    version='0.3.0',
     description="Utility package to run CHM jobs on clusters",
     long_description=readme + '\n\n' + history,
     author="Christopher Churas",
@@ -57,7 +57,8 @@ setup(
              'chmutil/createchmimage.py',
              'chmutil/createprobmapoverlay.py',
              'chmutil/createtrainingmrcstack.py',
-             'chmutil/runmergejob.py'],
+             'chmutil/runmergejob.py',
+             'chmutil/mergetilerunner.py'],
     test_suite='tests',
     tests_require=test_requirements
 )
