@@ -10,7 +10,6 @@ from chmutil.core import CHMConfigFromConfigFactory
 from chmutil.cluster import RocceCluster
 from chmutil.cluster import BatchedJobsListGenerator
 from chmutil.core import Parameters
-from chmutil.cluster import CHMJobChecker
 from chmutil.cluster import MergeJobChecker
 from chmutil import core
 
@@ -46,8 +45,8 @@ def _run_merge_job(theargs):
     """Runs all jobs for task
     """
     cfac = CHMConfigFromConfigFactory(os.path.abspath(theargs.jobdir))
-    chmconfig = cfac.get_chmconfig()
-    checker = MergeJobChecker(chmconfig.get_config())
+    chmconfig = cfac.get_chmconfig(skip_loading_mergeconfig=False)
+    checker = MergeJobChecker(chmconfig.get_merge_config())
     gen = BatchedJobsListGenerator(checker,
                                    chmconfig.get_number_jobs_per_node())
     num_jobs = gen.\
