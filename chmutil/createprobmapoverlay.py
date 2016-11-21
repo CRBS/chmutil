@@ -38,8 +38,9 @@ def _parse_arguments(desc, args):
     parser.add_argument("output", help='Output image path, should have .png'
                                        'extension, if not .png will be '
                                        'appended')
-    parser.add_argument("--overlaycolor", help="Color to use for overlay"
-                                               "(default blue)",
+    parser.add_argument("--overlaycolor", type=str,
+                        help="Color to use for overlay"
+                             "(default blue)",
                         choices=['red', 'blue', 'green', 'yellow',
                                  'cyan', 'magenta', 'purple'],
                         default='blue')
@@ -58,22 +59,24 @@ def _parse_arguments(desc, args):
 
 def _get_pixel_coloring_tuple(thecolor):
 
-    if thecolor is 'red':
+    logger.debug('Overlay color set to: ' + thecolor)
+
+    if thecolor == 'red':
         return 1, 0, 0
 
-    if thecolor is 'green':
+    if thecolor == 'green':
         return 0, 1, 0
 
-    if thecolor is 'yello':
+    if thecolor == 'yellow':
         return 1, 1, 0
 
-    if thecolor is 'cyan':
+    if thecolor == 'cyan':
         return 0, 1, 1
 
-    if thecolor is 'magenta':
+    if thecolor == 'magenta':
         return 1, 0, 1
 
-    if thecolor is 'purple':
+    if thecolor == 'purple':
         return 0.5, 0, 0.5
 
     return 0, 0, 1
@@ -101,7 +104,8 @@ def _convert_image(image_file, probmap_file, dest_file, theargs):
     blue_pixels = []
     ctuple = _get_pixel_coloring_tuple(theargs.overlaycolor)
     for r, g, b in pixels:
-        blue_pixels.append((b*ctuple[0], b*ctuple[1], b*ctuple[2]))
+        blue_pixels.append((int(r*ctuple[0]), int(g*ctuple[1]),
+                            int(b*ctuple[2])))
 
     blueprobmap = Image.new('RGBA', probimg.size)
     blueprobmap.putdata(blue_pixels)
@@ -142,8 +146,8 @@ def main(arglist):
     try:
         return _convert_image(os.path.abspath(theargs.image),
                               os.path.abspath(theargs.probmap),
-                                  os.path.abspath(theargs.output),
-                                  theargs)
+                              os.path.abspath(theargs.output),
+                              theargs)
     finally:
         logging.shutdown()
 
