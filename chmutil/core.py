@@ -111,16 +111,19 @@ def run_external_command(cmd_to_run, tmp_dir,
 
     logger.debug('Waiting for process to complete')
     p.poll()
-
+    logger.debug('Polling returned None looping until'
+                 'p.returncode is not None')
     while p.returncode is None:
         time.sleep(polling_sleep_time)
         p.poll()
 
+    logger.debug('Got a return code that is not None: ' +
+                 str(p.returncode))
     stdout_f.flush()
     stdout_f.close()
     stderr_f.flush()
     stderr_f.close()
-
+    logger.debug('Writing stderr and stdout to ' + tmp_dir)
     fo = open(tmp_stdout, 'r')
     out = fo.read()
     fo.close()
