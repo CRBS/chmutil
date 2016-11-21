@@ -82,16 +82,17 @@ def _run_single_merge_job(theargs, taskid):
         out_dir = os.path.join(theargs.scratchdir, uuid.uuid4().hex)
         config = configparser.ConfigParser()
         config.read(os.path.join(theargs.jobdir,
-                    CHMJobCreator.CONFIG_FILE_NAME))
+                    CHMJobCreator.MERGE_CONFIG_FILE_NAME))
+        thebin = config.get(taskid, CHMJobCreator.MERGE_MERGETILES_BIN)
+
         input_dir = config.get(taskid,
                                CHMJobCreator.MERGE_INPUT_IMAGE_DIR)
         out_file = config.get(taskid,
                               CHMJobCreator.MERGE_OUTPUT_IMAGE)
         logger.debug('Creating directory ' + out_dir)
         os.makedirs(out_dir, mode=0o775)
-        cmd = (config.get(CHMJobCreator.CONFIG_DEFAULT,
-                          CHMJobCreator.MERGE_MERGETILES_BIN) + ' ' +
-               input_dir + ' ' + out_file + ' --suffix png ')
+        cmd = (thebin + ' ' +
+               input_dir + ' ' + out_file + ' --suffix png --log DEBUG')
         exitcode, out, err = core.run_external_command(cmd, out_dir)
 
         sys.stdout.write(out)
