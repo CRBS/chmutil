@@ -57,7 +57,7 @@ def _run_jobs(chmconfig, theargs, taskid):
     bconfig.read(chmconfig.get_batchedjob_config_file_path())
     tasks = bconfig.get(taskid, CHMJobCreator.BCONFIG_TASK_ID).split(',')
     process_list = []
-    logger.debug('Running ' + str(len(tasks)) + 'child processes')
+    logger.debug('Running ' + str(len(tasks)) + ' child processes')
     for t in tasks:
         pid = os.fork()
         if pid is 0:
@@ -65,8 +65,11 @@ def _run_jobs(chmconfig, theargs, taskid):
             try:
                 return _run_single_chm_job(theargs, t)
             except SingularityAbortError:
-                logger.exception('Caught exception, retrying job')
+                logger.exception('Caught SingularityAbortError, retrying job')
                 return _run_single_chm_job(theargs, t)
+            except Exception:
+                logger.exception('Caught exception')
+                return 2
         else:
             logger.debug('Appending child process to list: ' + str(pid))
             process_list.append(pid)
@@ -113,6 +116,7 @@ def _run_single_chm_job(theargs, taskid):
         sys.stderr.write(err)
         sys.stdout.flush()
         sys.stderr.flush()
+        logger.info('Job has completed with exit code: ' + str(exitcode))
 
         prob_map = os.path.join(out_dir, os.path.basename(input_image))
         if os.path.isfile(prob_map) is False:
@@ -124,17 +128,20 @@ def _run_single_chm_job(theargs, taskid):
                 raise SingularityAbortError(err)
             return 3
 
-        shutil.move(prob_map,
-                    config.get(taskid,
-                               CHMJobCreator.CONFIG_OUTPUT_IMAGE))
+        out_image = config.get(taskid,
+                               CHMJobCreator.CONFIG_OUTPUT_IMAGE)
+
+        logger.debug('Copying image ' + prob_map +
+                     ' to final destination: ' +
+                     out_image)
+
+        shutil.move(prob_map,out_image)
 
         return exitcode
-    except Exception:
-        logger.exception("Error caught exception")
-        return 2
     finally:
         if out_dir is not None:
             if os.path.isdir(out_dir):
+                logger.debug('Removing directory: ' + out_dir)
                 shutil.rmtree(out_dir)
 
 
