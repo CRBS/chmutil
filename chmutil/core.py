@@ -123,8 +123,8 @@ def run_external_command(cmd_to_run, tmp_dir,
 
     logger.debug('Waiting for process to complete')
     p.poll()
-    logger.debug('Polling returned None looping until'
-                 'p.returncode is not None')
+    logger.debug('Polling returned None, looping until'
+                 ' p.returncode is not None')
     while p.returncode is None:
         time.sleep(polling_sleep_time)
         p.poll()
