@@ -32,6 +32,12 @@ class InvalidJobDirError(Exception):
     pass
 
 
+class InvalidImageDirError(Exception):
+    """Raised when invalid image directory is used
+    """
+    pass
+
+
 class InvalidCommaDelimitedStringError(Exception):
     """Raised when box is unable to parse a string"""
     pass
@@ -88,7 +94,7 @@ def add_standard_parameters(parser):
 
 
 def run_external_command(cmd_to_run, tmp_dir,
-                         polling_sleep_time=10):
+                         polling_sleep_time=1):
     """Runs command passed in
     :param cmd_to_run: command with arguments to run set as a string
     :param tmp_dir: temporary directory where stdout.txt and stderr.txt
@@ -99,6 +105,12 @@ def run_external_command(cmd_to_run, tmp_dir,
     """
     if cmd_to_run is None:
         return 256, '', 'Command must be set'
+
+    if tmp_dir is None:
+        return 255, '', 'Tmpdir must be set'
+
+    if not os.path.isdir(tmp_dir):
+        return 254, '', 'Tmpdir must be a directory'
 
     logger.info("Running command " + cmd_to_run)
     tmp_stdout = os.path.join(tmp_dir, 'stdout.txt')
@@ -138,6 +150,11 @@ def wait_for_children_to_exit(process_list):
     """Waits for children processes in process_list to finish
     """
     exit_code = 0
+
+    if process_list is None:
+        logger.info('None passed into wait_for_children_to_exit()')
+        return exit_code
+
     running_procs = len(process_list)
     while running_procs > 0:
         logger.info('Still waiting on ' + str(running_procs) + ' processes')
@@ -159,15 +176,34 @@ def wait_for_children_to_exit(process_list):
 
 
 def get_image_path_list(image_dir, suffix):
-    """gets list of images with suffix from dir
+    """Gets list of images with suffix from dir
+    :param image_dir: Path to directory with images
+    :param suffix: Only include files ending with suffix.
+                   code uses str().endswidth for checking.
+                   If `suffix` is None then all files match
+    :raises InvalidImageDirError: if `image_dir` is None or not
+                                  a directory
+    :raises OSError: if there is an error invoking os.listdir on `image_dir`
+    :returns: list of file paths
     """
+    if image_dir is None:
+        raise InvalidImageDirError('image_dir is None')
+
+    if not os.path.isdir(image_dir):
+        raise InvalidImageDirError('image_dir must be a directory')
+
+    if suffix is None:
+        adjusted_suffix = ''
+    else:
+        adjusted_suffix = suffix
+
     img_list = []
     for entry in os.listdir(image_dir):
         fp = os.path.join(image_dir, entry)
         if not os.path.isfile(fp):
             logger.debug(entry + ' is not a file. skipping')
             continue
-        if entry.endswith(suffix):
+        if entry.endswith(adjusted_suffix):
             img_list.append(fp)
     return img_list
 
@@ -203,6 +239,7 @@ class CHMJobCreator(object):
     CONFIG_OVERLAP_SIZE = 'overlapsize'
     CONFIG_DISABLE_HISTEQ_IMAGES = 'disablehisteqimages'
     CONFIG_JOBS_PER_NODE = 'jobspernode'
+    CHMUTIL_VERSION = 'chmutilversion'
 
     def __init__(self, chmopts):
         """Constructor
@@ -214,6 +251,8 @@ class CHMJobCreator(object):
         :returns: configparser config object filled with CHMOpts data
         """
         config = configparser.ConfigParser()
+        config.set('', CHMJobCreator.CHMUTIL_VERSION,
+                   self._chmopts.get_version())
         config.set('', CHMJobCreator.CONFIG_IMAGES,
                    self._chmopts.get_images())
         config.set('', CHMJobCreator.CONFIG_CHM_BIN,
@@ -397,6 +436,7 @@ class CHMConfig(object):
                  walltime='12:00:00',
                  mergewalltime='12:00:00',
                  max_image_pixels=768000000,
+                 version='unknown',
                  config=None,
                  mergeconfig=None):
         """Constructor
@@ -418,6 +458,7 @@ class CHMConfig(object):
         self._mergewalltime = mergewalltime
         self._walltime = walltime
         self._max_image_pixels = max_image_pixels
+        self._version = version
         self._config = config
         self._mergeconfig = mergeconfig
 
@@ -447,6 +488,11 @@ class CHMConfig(object):
         self._overlap_width = w
         self._overlap_height = h
         return
+
+    def get_version(self):
+        """Gets version of chmutil
+        """
+        return self._version
 
     def get_max_image_pixels(self):
         """Gets maximum image pixels that dictates
@@ -793,8 +839,10 @@ class CHMArgGenerator(object):
         total = tiles_w * tiles_h
         split_list = []
         t_per_job = self._chmopts.get_number_tiles_per_job()
+
         for ts in range(0, total, t_per_job):
             split_list.append(tile_list[ts:ts+t_per_job])
+
         return split_list
 
     def _get_number_of_tiles_tuple(self, image_stats):
