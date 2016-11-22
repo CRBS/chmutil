@@ -53,6 +53,7 @@ def _run_chm_job(theargs):
 def _run_jobs(chmconfig, theargs, taskid):
     """Runs jobs for task in parallel
     """
+    # TODO Switch to using multiprocessing.Process
     bconfig = configparser.ConfigParser()
     bconfig.read(chmconfig.get_batchedjob_config_file_path())
     tasks = bconfig.get(taskid, CHMJobCreator.BCONFIG_TASK_ID).split(',')
@@ -63,10 +64,12 @@ def _run_jobs(chmconfig, theargs, taskid):
         if pid is 0:
             logger.debug('In child submitting job to run task ' + t)
             try:
-                return _run_single_chm_job(theargs, t)
+                return _run_single_chm_job(theargs.jobdir,
+                                           theargs.scratchdir, t)
             except SingularityAbortError:
                 logger.exception('Caught SingularityAbortError, retrying job')
-                return _run_single_chm_job(theargs, t)
+                return _run_single_chm_job(theargs.jobdir,
+                                           theargs.scratchdir, t)
             except Exception:
                 logger.exception('Caught exception')
                 return 2
@@ -77,18 +80,19 @@ def _run_jobs(chmconfig, theargs, taskid):
     return core.wait_for_children_to_exit(process_list)
 
 
-def _run_single_chm_job(theargs, taskid):
+def _run_single_chm_job(jobdir, scratchdir, taskid):
     """runs CHM Job
-    :param theargs: list of arguments obtained from _parse_arguments()
+    :param jobdir: path to job directory
+    :param scratchdir: temp directory
     :returns: exit code for program. 0 success otherwise failure
     """
     # TODO REFACTOR THIS INTO FACTORY CLASS TO GET CONFIG
     # TODO REFACTOR THIS INTO CLASS TO GENERATE CHM JOB COMMAND
     out_dir = None
     try:
-        out_dir = os.path.join(theargs.scratchdir, uuid.uuid4().hex)
+        out_dir = os.path.join(scratchdir, uuid.uuid4().hex)
         config = configparser.ConfigParser()
-        config.read(os.path.join(theargs.jobdir,
+        config.read(os.path.join(jobdir,
                     CHMJobCreator.CONFIG_FILE_NAME))
         input_image = config.get(taskid,
                                  CHMJobCreator.CONFIG_INPUT_IMAGE)
@@ -121,9 +125,8 @@ def _run_single_chm_job(theargs, taskid):
         prob_map = os.path.join(out_dir, os.path.basename(input_image))
         if os.path.isfile(prob_map) is False:
             logger.error('Result file missing : ' + prob_map)
-            # TODO need to handle this case where singularity pukes:
-            # ABORT: Could not create temporary directory
-            # /tmp/.singularity-1000.64770.13026447427: File exists
+            # this handles case where singularity pukes cause the
+            # directory under /tmp already exists
             if 'ABORT: Could not create temporary directory /tmp' in err:
                 raise SingularityAbortError(err)
             return 3
