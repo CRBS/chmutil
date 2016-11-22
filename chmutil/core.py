@@ -874,8 +874,7 @@ class Box(object):
         self._lower = lower
 
     def are_any_corners_none(self):
-        """Checks if any of the corner coordinates
-        are none
+        """Checks if any of the corner coordinates are None
         :returns: True if yes otherwise False
         """
         if self._left is None or self._upper is None:
@@ -891,11 +890,18 @@ class Box(object):
         :param string: comma delimited string in this format
                        left,upper,right,lower with each value
                        convertible to an int
+        :raises InvalidCommaDelimitedStringError: if splitting does not result
+                in 4 elements that are assumed to be the box coordinates
+        :raises ValueError: If any of elements cannot be converted to int
         """
+        if string is None:
+            raise InvalidCommaDelimitedStringError('string is None')
+
         elements = string.split(Box.COMMA)
         if len(elements) != 4:
             raise InvalidCommaDelimitedStringError('string does not have 4 '
-                                                   'elements when parsed')
+                                                   'elements when parsed: ' +
+                                                   string)
 
         self._left = int(elements[0])
         self._upper = int(elements[1])
@@ -903,11 +909,16 @@ class Box(object):
         self._lower = int(elements[3])
 
     def get_box_as_tuple(self):
+        """Gets box as tuple
+        :returns: Tuple with 4 values (left, upper, right, lower)
+        """
         return (self._left, self._upper,
                 self._right, self._lower)
 
     def get_list_of_tuple_of_corner_coordinates(self):
-        """gets tuple of corner coordinates
+        """Gets Box as tuple of x,y coordinates
+        :returns: list of tuples of corner coordinates in format
+                  [(left,upper),(left,lower),(right,upper),(right,lower)]
         """
         if self.are_any_corners_none():
             return None
@@ -929,22 +940,24 @@ class Box(object):
         """Checks if coordinate is in box
         :param coordinate_tuple: tuple containing 2 int coordinates (x, y)
         :returns: True if yes otherwise False
+        :raises ValueError: if values in `coordinate_tuple` are not of type int
         """
+        if coordinate_tuple is None:
+            return False
 
-        x = coordinate_tuple[0]
-        y = coordinate_tuple[1]
+        x = int(coordinate_tuple[0])
+        y = int(coordinate_tuple[1])
         if self.are_any_corners_none() is True:
             return False
 
         if self._left <= x <= self._right:
-            if self._upper >= y <= self._lower:
+            if self._upper <= y <= self._lower:
                 return True
 
         return False
 
     def does_box_intersect(self, box):
         """Checks if two Box's intersect
-
         :param box: Box to check
         :return: True if they intersect, False otherwise
         """
