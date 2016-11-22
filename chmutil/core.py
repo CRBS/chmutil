@@ -42,6 +42,7 @@ class InvalidCommaDelimitedStringError(Exception):
     """Raised when box is unable to parse a string"""
     pass
 
+
 class Parameters(object):
     """Placeholder class for parameters
     """
@@ -365,8 +366,8 @@ class CHMJobCreator(object):
         config.set(counter_as_str, CHMJobCreator.CONFIG_OUTPUT_IMAGE,
                    os.path.join(i_dir, str(img_cntr).zfill(3) + '.' + i_name))
 
-    def _add_mergejob_for_image_to_config(self, config, counter_as_str, run_dir,
-                                          image_tile_dir, image_name):
+    def _add_mergejob_for_image_to_config(self, config, counter_as_str,
+                                          run_dir, image_tile_dir, image_name):
         """Adds merge job to config object
         :param config: configparser config object to add merge job to
         :param counter_as_str: Counter used in string form
@@ -390,7 +391,8 @@ class CHMJobCreator(object):
         arg_gen = CHMArgGenerator(self._chmopts)
         statsfac = ImageStatsFromDirectoryFactory(self._chmopts.get_images(),
                                                   max_image_pixels=self.
-                                                  _chmopts.get_max_image_pixels())
+                                                  _chmopts.
+                                                  get_max_image_pixels())
         imagestats = statsfac.get_input_image_stats()
         config = self._create_config()
         mergeconfig = self._create_merge_config()
@@ -432,7 +434,7 @@ class CHMConfig(object):
                  chmbin='./chm-0.1.0.img',
                  scriptbin='',
                  jobname='chmjob',
-                 mergejobname = 'mergechmjob',
+                 mergejobname='mergechmjob',
                  walltime='12:00:00',
                  mergewalltime='12:00:00',
                  max_image_pixels=768000000,
@@ -692,9 +694,9 @@ class CHMConfigFromConfigFactory(object):
                   passed into constructor
         """
         if skip_loading_config is False:
-            config = self._get_config(cfile = os.path.join(self._job_dir,
-                                                           CHMJobCreator.
-                                                           CONFIG_FILE_NAME))
+            config = self._get_config(cfile=os.path.join(self._job_dir,
+                                                         CHMJobCreator.
+                                                         CONFIG_FILE_NAME))
         else:
             logger.debug('Skipping load of job configuration')
             config = None
@@ -802,7 +804,8 @@ class ImageStatsFromDirectoryFactory(object):
                     try:
                         im.close()
                     except Exception:
-                        logger.exception('Caught exception attempting to close image')
+                        logger.exception('Caught exception attempting '
+                                         'to close image')
 
         return image_stats_list
 

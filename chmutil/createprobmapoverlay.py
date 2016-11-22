@@ -6,8 +6,6 @@ import argparse
 import logging
 import chmutil
 from PIL import Image
-from PIL import ImageOps
-from PIL import ImageFilter
 
 from chmutil.core import Parameters
 from chmutil import core

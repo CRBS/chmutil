@@ -104,9 +104,8 @@ def _run_single_chm_job(jobdir, scratchdir, taskid):
         else:
             histeq_flag = ' '
 
-        cmd = ('"' + config.get('DEFAULT', CHMJobCreator.CONFIG_CHM_BIN) + '" test "' +
-               input_image +
-               '" ' + out_dir + ' -m "' +
+        cmd = ('"' + config.get('DEFAULT', CHMJobCreator.CONFIG_CHM_BIN) +
+               '" test "' + input_image + '" ' + out_dir + ' -m "' +
                config.get(taskid, CHMJobCreator.CONFIG_MODEL) +
                '" -b ' +
                config.get(taskid, CHMJobCreator.CONFIG_TILE_SIZE) +
@@ -140,7 +139,7 @@ def _run_single_chm_job(jobdir, scratchdir, taskid):
                      ' to final destination: ' +
                      out_image)
 
-        shutil.move(prob_map,out_image)
+        shutil.move(prob_map, out_image)
 
         return exitcode
     finally:

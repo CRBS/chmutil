@@ -58,7 +58,7 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
             ocfile = cfile + BatchedJobsListGenerator.OLD_SUFFIX
             self.assertTrue(os.path.isfile(ocfile))
             bconfig.read(ocfile)
-            self.assertEqual(bconfig.get('DEFAULT','somekey'), 'val')
+            self.assertEqual(bconfig.get('DEFAULT', 'somekey'), 'val')
 
             bconfig.read(cfile)
             self.assertEqual(bconfig.get('DEFAULT', 'somekey'), 'anotherval')

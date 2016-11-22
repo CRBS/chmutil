@@ -14,15 +14,10 @@ import unittest
 import tempfile
 import shutil
 import stat
-import time
-import sys
 
 from chmutil.core import Parameters
 from chmutil import core
 from chmutil.core import InvalidImageDirError
-
-
-
 
 
 class TestCoreFunctions(unittest.TestCase):
@@ -41,12 +36,12 @@ class TestCoreFunctions(unittest.TestCase):
         parser.add_argument("foo", help='foo help')
         core.add_standard_parameters(parser)
 
-        ret = parser.parse_args(['hi'], namespace=p)
+        parser.parse_args(['hi'], namespace=p)
 
         self.assertEqual(p.scratchdir, '/tmp')
         self.assertEqual(p.loglevel, 'WARNING')
-        ret = parser.parse_args(['hi','--log', 'DEBUG',
-                                 '--scratchdir','yo'], namespace=p)
+        parser.parse_args(['hi', '--log', 'DEBUG',
+                           '--scratchdir', 'yo'], namespace=p)
         self.assertEqual(p.scratchdir, 'yo')
         self.assertEqual(p.loglevel, 'DEBUG')
 
@@ -136,17 +131,17 @@ class TestCoreFunctions(unittest.TestCase):
             self.assertEqual(len(res), 0)
 
             # one file
-            onefile = os.path.join(temp_dir,'foo.txt')
+            onefile = os.path.join(temp_dir, 'foo.txt')
             open(onefile, 'a').close()
             res = core.get_image_path_list(temp_dir, None)
             self.assertEqual(len(res), 1)
             self.assertTrue(onefile in res)
 
             # two files and a directory
-            twofile = os.path.join(temp_dir,'two.png')
+            twofile = os.path.join(temp_dir, 'two.png')
             open(twofile, 'a').close()
 
-            adir = os.path.join(temp_dir,'somedir.png')
+            adir = os.path.join(temp_dir, 'somedir.png')
             os.makedirs(adir, mode=0o775)
             res = core.get_image_path_list(temp_dir, None)
             self.assertEqual(len(res), 2)

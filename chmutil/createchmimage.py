@@ -117,8 +117,8 @@ def main(arglist):
                        loglevel=theargs.loglevel)
     try:
         return _convert_image(os.path.abspath(theargs.image),
-                                  os.path.abspath(theargs.output),
-                                  theargs)
+                              os.path.abspath(theargs.output),
+                              theargs)
     finally:
         logging.shutdown()
 

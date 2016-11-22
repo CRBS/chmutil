@@ -23,7 +23,6 @@ IMAGEDIR_KEY = 'imagedir'
 logger = logging.getLogger('chmutil.createchmimage')
 
 
-
 class NoInputImageFoundError(Exception):
     """Raised if input image does not exist
     """
@@ -48,7 +47,8 @@ def _parse_arguments(desc, args):
     parser.add_argument("--useconfig", help='Instead of generating random'
                                             'tiles use config passed in')
     parser.add_argument("--tilesize", default='512x512',
-                        help='NOT IMPLEMENTED Size of tiles in WxH format (default 512x512)')
+                        help='NOT IMPLEMENTED Size of tiles in WxH format '
+                             '(default 512x512)')
     parser.add_argument("--scratchdir", default='/tmp')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -71,8 +71,8 @@ def _pick_tile(img_path, tile_width, tile_height):
         xmax = img.size[0]-tile_width
         ymax = img.size[1]-tile_height
 
-        xpos = random.randint(0,xmax)
-        ypos = random.randint(0,ymax)
+        xpos = random.randint(0, xmax)
+        ypos = random.randint(0, ymax)
         logger.info('Rando tile: ' + img_path + ' x=' + str(xpos) +
                     ' y='+str(ypos))
         return Box(left=xpos, upper=ypos, right=xpos + tile_width,
@@ -94,7 +94,7 @@ def _does_tile_intersect_any_other_tiles(tile_tuple_list, new_tile_tuple):
 
 
 def _pick_random_tiles(img_list, num_tiles, tile_width=512,
-                      tile_height=512):
+                       tile_height=512):
     """Using random generates a list of tuples with image path and tile
     location
     :returns: nested tuple (image path, (left, upper, right, and lower))
@@ -105,7 +105,8 @@ def _pick_random_tiles(img_list, num_tiles, tile_width=512,
         the_img = img_list[random.randint(0, num_images-1)]
         tile_box = _pick_tile(the_img, tile_width, tile_height)
         new_tile_tuple = the_img, tile_box
-        if _does_tile_intersect_any_other_tiles(tile_tuple_list,new_tile_tuple) is False:
+        if _does_tile_intersect_any_other_tiles(tile_tuple_list,
+                                                new_tile_tuple) is False:
             tile_tuple_list.append(new_tile_tuple)
 
     return tile_tuple_list
@@ -115,7 +116,6 @@ def _get_tiles_from_tuple_list(img_list, config_file):
     """Loads list of tuples with image path and tile location
     :returns: nested tuple (image path, (left, upper, right, and lower))
     """
-    num_images = len(img_list)
     config = configparser.ConfigParser()
     config.read(config_file)
     tile_tuple_list = []
@@ -139,8 +139,6 @@ def _get_tiles_from_tuple_list(img_list, config_file):
         tbox = Box()
         tbox.load_from_comma_delimited_string(tile_dict[x][1])
         tile_tuple_list.append((tile_dict[x][0], tbox))
-
-
 
     return tile_tuple_list
 
