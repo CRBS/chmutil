@@ -108,7 +108,8 @@ def _create_chm_job(theargs):
                          scriptbin=os.path.dirname(theargs.program),
                          walltime=theargs.walltime,
                          jobname=theargs.jobname,
-                         mergejobname='merge' + theargs.jobname)
+                         mergejobname='merge' + theargs.jobname,
+                         version=chmutil.__version__)
 
         creator = CHMJobCreator(opts)
         opts = creator.create_job()
