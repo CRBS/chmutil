@@ -41,12 +41,16 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_job_config(), CHMJobCreator.CONFIG_FILE_NAME)
         self.assertEqual(opts.get_batchedjob_config_file_path(),
                          CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME)
+        self.assertEqual(opts.get_batched_mergejob_config_file_path(),
+                         CHMJobCreator.MERGE_CONFIG_BATCHED_JOBS_FILE_NAME)
         self.assertEqual(opts.get_run_dir(),
                          CHMJobCreator.RUN_DIR)
         self.assertEqual(opts.get_script_bin(), '')
         self.assertEqual(opts.get_job_name(), 'chmjob')
         self.assertEqual(opts.get_walltime(), '12:00:00')
         self.assertEqual(opts.get_max_image_pixels(), 768000000)
+        self.assertEqual(opts.get_merge_walltime(), '12:00:00')
+        self.assertEqual(opts.get_mergejob_name(), 'mergechmjob')
 
         opts = CHMConfig('images', 'model', 'out', '500x600', '20x30',
                          number_tiles_per_job=122,
@@ -56,6 +60,8 @@ class TestCHMConfig(unittest.TestCase):
                          scriptbin='/foo',
                          jobname='yo',
                          walltime='1:2:3',
+                         mergewalltime='4:5:6',
+                         mergejobname='mergy',
                          max_image_pixels=10)
         self.assertEqual(opts.get_images(), 'images')
         self.assertEqual(opts.get_model(), 'model')
@@ -76,6 +82,10 @@ class TestCHMConfig(unittest.TestCase):
                          os.path.join('out',
                                       CHMJobCreator.
                                       CONFIG_BATCHED_JOBS_FILE_NAME))
+        self.assertEqual(opts.get_batched_mergejob_config_file_path(),
+                         os.path.join('out',
+                                      CHMJobCreator.
+                                      MERGE_CONFIG_BATCHED_JOBS_FILE_NAME))
         self.assertEqual(opts.get_run_dir(),
                          os.path.join(opts.get_out_dir(),
                                       CHMJobCreator.RUN_DIR))
@@ -83,6 +93,14 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_job_name(), 'yo')
         self.assertEqual(opts.get_walltime(), '1:2:3')
         self.assertEqual(opts.get_max_image_pixels(), 10)
+        self.assertEqual(opts.get_merge_walltime(), '4:5:6')
+        self.assertEqual(opts.get_mergejob_name(), 'mergy')
+        self.assertEqual(opts.get_stdout_dir(),
+                         os.path.join(opts.get_run_dir(),
+                                      CHMJobCreator.STDOUT_DIR))
+        self.assertEqual(opts.get_merge_stdout_dir(),
+                         os.path.join(opts.get_run_dir(),
+                                      CHMJobCreator.MERGE_STDOUT_DIR))
 
         opts.set_config('bye')
         self.assertEqual(opts.get_config(), 'bye')
