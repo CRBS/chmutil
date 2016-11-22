@@ -129,6 +129,8 @@ def _run_single_chm_job(jobdir, scratchdir, taskid):
             # directory under /tmp already exists
             if 'ABORT: Could not create temporary directory /tmp' in err:
                 raise SingularityAbortError(err)
+            if 'ABORT: Could not create directory /tmp' in err:
+                raise SingularityAbortError(err)
             return 3
 
         out_image = config.get(taskid,
