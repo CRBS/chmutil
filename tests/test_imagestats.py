@@ -33,3 +33,7 @@ class TestImageStats(unittest.TestCase):
         self.assertEqual(im_stats.get_height(), 'foo')
         self.assertEqual(im_stats.get_file_path(), 'fee')
         self.assertEqual(im_stats.get_format(), 'fum')
+
+
+if __name__ == '__main__':
+    unittest.main()

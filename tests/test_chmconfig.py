@@ -136,3 +136,7 @@ class TestCHMConfig(unittest.TestCase):
             self.fail('Expected ValueError')
         except ValueError:
             pass
+
+
+if __name__ == '__main__':
+    unittest.main()

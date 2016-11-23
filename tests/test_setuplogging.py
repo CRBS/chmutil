@@ -60,3 +60,7 @@ class TestCore(unittest.TestCase):
         core.setup_logging(mylogger, loglevel='CRITICAL')
         self.assertEqual(mylogger.getEffectiveLevel(),
                          logging.CRITICAL)
+
+
+if __name__ == '__main__':
+    unittest.main()

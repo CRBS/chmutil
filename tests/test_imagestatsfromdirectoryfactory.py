@@ -98,3 +98,7 @@ class TestImageStatsFromDirectoryFactory(unittest.TestCase):
             self.assertEqual(len(res), 100)
         finally:
             shutil.rmtree(temp_dir)
+
+
+if __name__ == '__main__':
+    unittest.main()

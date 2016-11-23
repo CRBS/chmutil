@@ -72,3 +72,7 @@ class TestRocceSubmitScriptGenerator(unittest.TestCase):
             # TODO Test qsub script file has correct data in it
         finally:
             shutil.rmtree(temp_dir)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -141,3 +141,7 @@ class TestCore(unittest.TestCase):
         a = Box(left=12, upper=40, right=18, lower=45)
         self.assertEqual(a.does_box_intersect(b), False)
         self.assertEqual(b.does_box_intersect(a), False)
+
+
+if __name__ == '__main__':
+    unittest.main()

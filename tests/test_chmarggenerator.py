@@ -128,3 +128,7 @@ class TestCHMArgGenerator(unittest.TestCase):
         self.assertEqual(len(tlist), 4)
         self.assertEqual(tlist, [['-t 1,1'], ['-t 1,2'],
                                  ['-t 2,1'], ['-t 2,2']])
+
+
+if __name__ == '__main__':
+    unittest.main()

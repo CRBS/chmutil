@@ -276,3 +276,7 @@ class TestCHMJobCreator(unittest.TestCase):
                                                        'foo3.png')))
         finally:
             shutil.rmtree(temp_dir)
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -174,3 +174,7 @@ class TestCoreFunctions(unittest.TestCase):
         self.assertEqual(core.wait_for_children_to_exit(None), 0)
         self.assertEqual(core.wait_for_children_to_exit([]), 0)
         self.assertEqual(core.wait_for_children_to_exit([123, 456]), 0)
+
+
+if __name__ == '__main__':
+    unittest.main()
