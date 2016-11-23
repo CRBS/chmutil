@@ -438,6 +438,8 @@ class CHMConfig(object):
                  walltime='12:00:00',
                  mergewalltime='12:00:00',
                  max_image_pixels=768000000,
+                 max_chm_memory_in_gb=10,
+                 max_merge_memory_in_gb=10,
                  version='unknown',
                  config=None,
                  mergeconfig=None):
@@ -460,6 +462,8 @@ class CHMConfig(object):
         self._mergewalltime = mergewalltime
         self._walltime = walltime
         self._max_image_pixels = max_image_pixels
+        self._max_chm_memory_in_gb = max_chm_memory_in_gb
+        self._max_merge_memory_in_gb = max_merge_memory_in_gb
         self._version = version
         self._config = config
         self._mergeconfig = mergeconfig
@@ -490,6 +494,18 @@ class CHMConfig(object):
         self._overlap_width = w
         self._overlap_height = h
         return
+
+    def get_max_chm_memory_in_gb(self):
+        """Gets maximum memory a CHM job will use
+        :return: Maximum memory in gigabytes a chm job will use
+        """
+        return self._max_chm_memory_in_gb
+
+    def get_max_merge_memory_in_gb(self):
+        """Gets maximum memory a merge job will use
+        :return: Maximum memory in gigabytes a merge job will use
+        """
+        return self._max_merge_memory_in_gb
 
     def get_version(self):
         """Gets version of chmutil

@@ -51,6 +51,8 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_max_image_pixels(), 768000000)
         self.assertEqual(opts.get_merge_walltime(), '12:00:00')
         self.assertEqual(opts.get_mergejob_name(), 'mergechmjob')
+        self.assertEqual(opts.get_max_chm_memory_in_gb(), 10)
+        self.assertEqual(opts.get_max_merge_memory_in_gb(), 10)
 
         opts = CHMConfig('images', 'model', 'out', '500x600', '20x30',
                          number_tiles_per_job=122,
@@ -62,7 +64,9 @@ class TestCHMConfig(unittest.TestCase):
                          walltime='1:2:3',
                          mergewalltime='4:5:6',
                          mergejobname='mergy',
-                         max_image_pixels=10)
+                         max_image_pixels=10,
+                         max_chm_memory_in_gb=5,
+                         max_merge_memory_in_gb=7)
         self.assertEqual(opts.get_images(), 'images')
         self.assertEqual(opts.get_model(), 'model')
         self.assertEqual(opts.get_out_dir(), 'out')
@@ -101,6 +105,8 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_merge_stdout_dir(),
                          os.path.join(opts.get_run_dir(),
                                       CHMJobCreator.MERGE_STDOUT_DIR))
+        self.assertEqual(opts.get_max_chm_memory_in_gb(), 5)
+        self.assertEqual(opts.get_max_merge_memory_in_gb(), 7)
 
         opts.set_config('bye')
         self.assertEqual(opts.get_config(), 'bye')
