@@ -175,29 +175,16 @@ class RocceCluster(object):
         """
         script = self._get_submit_script_path()
         out_dir = self._chmconfig.get_out_dir()
-        f = open(script, 'w')
-        f.write('#!/bin/sh\n')
-        f.write('#\n#$ -V\n#$ -S /bin/sh\n')
-        f.write('#$ -wd ' + out_dir + '\n')
-        f.write('#$ -o ' + os.path.join(self._chmconfig.get_stdout_dir(),
-                                        '$JOB_ID.$TASK_ID.out') + '\n')
-        f.write('#$ -j y\n#$ -N ' + self._chmconfig.get_job_name() + '\n')
-        f.write('#$ -l h_rt=' + self._chmconfig.get_walltime()
-                + ',h_vmem=5G,h=\'!compute-0-20\'\n')
-        f.write('#$ -q all.q\n#$ -m n\n\n')
-        f.write('echo "HOST: $HOSTNAME"\n')
-        f.write('echo "DATE: `date`"\n\n')
-        f.write('/usr/bin/time -p ' + self._get_chm_runner_path() +
-                ' $SGE_TASK_ID ' + out_dir + ' --scratchdir ' +
-                self._chmconfig.get_shared_tmp_dir() + ' --log DEBUG\n')
-        f.write('\nexitcode=$?\n')
-        f.write('echo "' + RocceCluster.CHMRUNNER +
-                ' exited with code: $exitcode"\n')
-        f.write('exit $exitcode\n')
-        f.flush()
-        f.close()
-        os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
-        return script
+        max_mem = str(self._chmconfig.get_max_chm_memory_in_gb())
+
+        stdout_path = os.path.join(self._chmconfig.get_stdout_dir(),
+                                   '$JOB_ID.$TASK_ID.out')
+        return self._write_submit_script(script, out_dir, stdout_path,
+                                         self._chmconfig.get_job_name(),
+                                         self._chmconfig.get_walltime(),
+                                         self._get_chm_runner_path(),
+                                         ',h_vmem=' + max_mem + 'G',
+                                         self._chmconfig.get_shared_tmp_dir())
 
     def generate_merge_submit_script(self):
         """Creates merge submit script and instructions for invocation
@@ -205,23 +192,44 @@ class RocceCluster(object):
         """
         script = self._get_merge_submit_script_path()
         out_dir = self._chmconfig.get_out_dir()
+        max_mem = str(self._chmconfig.get_max_merge_memory_in_gb())
+        stdout_path = os.path.join(self._chmconfig.get_merge_stdout_dir(),
+                                   '$JOB_ID.$TASK_ID.out')
+        return self._write_submit_script(script, out_dir, stdout_path,
+                                         self._chmconfig.get_mergejob_name(),
+                                         self._chmconfig.get_merge_walltime(),
+                                         self._get_merge_runner_path(),
+                                         ',h_vmem=' + max_mem + 'G',
+                                         self._chmconfig.get_shared_tmp_dir())
+
+    def _write_submit_script(self, script, working_dir, stdout_path, job_name,
+                             walltime, run_script_path,
+                             resource_reqs, tmp_dir):
+        """Generates submit script content suitable for rocce cluster
+        :param working_dir: Working directory
+        :param stdout_path: Standard out file path for jobs.
+                            ie ./$JOB_ID.$TASKID
+        :param job_name: Job name ie foojob
+        :param walltime: Maximum time job is allowed to run ie 12:00:00
+        :param run_script_path: full path to run script
+        :return: string of submit job
+        """
         f = open(script, 'w')
         f.write('#!/bin/sh\n')
-        f.write('#\n#$ -V\n#$ -S /bin/sh\n')
-        f.write('#$ -wd ' + out_dir + '\n')
-        f.write('#$ -o ' + os.path.join(self._chmconfig.get_merge_stdout_dir(),
-                                        '$JOB_ID.$TASK_ID.out') + '\n')
-        f.write('#$ -j y\n#$ -N ' + self._chmconfig.get_mergejob_name() + '\n')
-        f.write('#$ -l h_rt=' + self._chmconfig.get_walltime()
-                + ',h_vmem=5G,h=\'!compute-0-20\'\n')
+        f.write('#\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n')
+        f.write('#$ -wd ' + working_dir + '\n')
+        f.write('#$ -o ' + stdout_path + '\n')
+        f.write('#$ -j y\n#$ -N ' + job_name + '\n')
+        f.write('#$ -l h_rt=' + walltime
+                + resource_reqs + '\n')
         f.write('#$ -q all.q\n#$ -m n\n\n')
         f.write('echo "HOST: $HOSTNAME"\n')
         f.write('echo "DATE: `date`"\n\n')
-        f.write('/usr/bin/time -p ' + self._get_merge_runner_path() +
-                ' $SGE_TASK_ID ' + out_dir + ' --scratchdir ' +
-                self._chmconfig.get_shared_tmp_dir() + ' --log DEBUG\n')
+        f.write('/usr/bin/time -p ' + run_script_path +
+                ' $SGE_TASK_ID ' + working_dir + ' --scratchdir ' +
+                tmp_dir + ' --log DEBUG\n')
         f.write('\nexitcode=$?\n')
-        f.write('echo "' + RocceCluster.MERGERUNNER +
+        f.write('echo "' + os.path.basename(run_script_path) +
                 ' exited with code: $exitcode"\n')
         f.write('exit $exitcode\n')
         f.flush()
