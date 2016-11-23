@@ -80,7 +80,7 @@ class TestCore(unittest.TestCase):
         self.assertEqual(b.get_list_of_tuple_of_corner_coordinates(), None)
         b.load_from_comma_delimited_string('10,50,20,100')
         res = b.get_list_of_tuple_of_corner_coordinates()
-        self.assertEqual(res,[(10, 50), (10, 100), (20, 50), (20, 100)])
+        self.assertEqual(res, [(10, 50), (10, 100), (20, 50), (20, 100)])
 
     def test_get_box_as_tuple(self):
         b = Box()
@@ -95,7 +95,7 @@ class TestCore(unittest.TestCase):
         self.assertEqual(b.is_coordinate_in_box(None), False)
 
         # test where box has None values
-        self.assertEqual(b.is_coordinate_in_box((123,2345)), False)
+        self.assertEqual(b.is_coordinate_in_box((123, 2345)), False)
 
         # test where coordinate is in box
         b = Box(left=10, upper=50, right=20, lower=100)
