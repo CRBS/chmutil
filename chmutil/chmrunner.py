@@ -90,6 +90,8 @@ def _run_single_chm_job(jobdir, scratchdir, taskid):
     # TODO REFACTOR THIS INTO CLASS TO GENERATE CHM JOB COMMAND
     out_dir = None
     try:
+        # TODO try using JOB_ID and TASK_ID environment variables first and
+        # TODO then fallback to uuid for directory name
         out_dir = os.path.join(scratchdir, uuid.uuid4().hex)
         config = configparser.ConfigParser()
         config.read(os.path.join(jobdir,
