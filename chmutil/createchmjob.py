@@ -9,7 +9,7 @@ import chmutil
 from chmutil.core import CHMJobCreator
 from chmutil.core import CHMConfig
 from chmutil.core import Parameters
-from chmutil.cluster import RocceCluster
+from chmutil.cluster import ClusterFactory
 from chmutil import core
 
 # create logger
@@ -34,12 +34,12 @@ def _parse_arguments(desc, args):
     parser.add_argument("--chmbin", help='Full path to chm binary',
                         default='./chm-0.1.0.img')
     parser.add_argument('--tilesize',
-                        default='',
+                        default='512x512',
                         help='Sets size of tiles to use when running chm in '
                              'tile mode.  If set value should be WxH format '
                              'or widthXheight aka 200x100 would mean each tile'
                              ' is 200 pixels wide and 100 pixels wide. '
-                             '(default empty string meaning no tiling)')
+                             '(default 512x512)')
     parser.add_argument('--overlapsize',
                         default='0x0',
                         help='Sets overlap of tiles to use when running chm '
@@ -52,17 +52,19 @@ def _parse_arguments(desc, args):
                         help='If set tells CHM NOT to do internal histogram '
                              'equalization')
 
-    parser.add_argument('--tilesperjob', default='50',
+    parser.add_argument('--tilesperjob', default='50', type=int,
                         help='Number of tiles to run per job. Lower numbers '
                              'mean each job runs faster, but results in '
                              'more jobs. (default 50)')
 
-    parser.add_argument('--jobspernode',
+    parser.add_argument('--jobspernode', default=0, type=int,
                         help='Overrides number of jobs to run concurrently '
-                             'on a single compute node. If unset this will '
-                             'be set to 11 for gordon, 21 for comet and 1 '
-                             'for rocce and any other unknown cluster')
+                             'on a single compute node. (default is 0'
+                             'which tells script to set this value to a '
+                             'number appropriate for cluster set'
+                             'in --cluster option ')
     parser.add_argument('--cluster', default='rocce',
+                        choices=ClusterFactory.VALID_CLUSTERS,
                         help='Sets which cluster to generate job script for'
                              ' (default rocce)')
     parser.add_argument('--jobname', default='chmjob',
@@ -84,50 +86,32 @@ def _create_chm_job(theargs):
     :returns: exit code for program. 0 success otherwise failure
     """
     try:
-        lc_cluster = str(theargs.cluster).lower()
-        try:
-            jobspernode = int(theargs.jobspernode)
-        except TypeError:
-            jobspernode = 1
-            if lc_cluster == 'gordon':
-                jobspernode = 11
-            if lc_cluster == 'comet':
-                jobspernode = 21
-            logger.debug('jobspernode using default for cluster ' +
-                         lc_cluster + ' which is ' + str(jobspernode))
+        cluster_fac = ClusterFactory()
+        cluster = cluster_fac.get_cluster_by_name(theargs.cluster)
+        jobspernode = cluster.get_suggested_jobs_per_node(theargs.jobspernode)
 
-        opts = CHMConfig(os.path.abspath(theargs.images),
-                         os.path.abspath(theargs.model),
-                         os.path.abspath(theargs.outdir),
-                         theargs.tilesize,
-                         theargs.overlapsize,
-                         disablehisteq=theargs.disablechmhisteq,
-                         number_tiles_per_job=int(theargs.tilesperjob),
-                         jobs_per_node=jobspernode,
-                         chmbin=os.path.abspath(theargs.chmbin),
-                         scriptbin=os.path.dirname(theargs.program),
-                         walltime=theargs.walltime,
-                         jobname=theargs.jobname,
-                         mergejobname='merge' + theargs.jobname,
-                         version=chmutil.__version__)
+        con = CHMConfig(os.path.abspath(theargs.images),
+                        os.path.abspath(theargs.model),
+                        os.path.abspath(theargs.outdir),
+                        theargs.tilesize,
+                        theargs.overlapsize,
+                        disablehisteq=theargs.disablechmhisteq,
+                        number_tiles_per_job=theargs.tilesperjob,
+                        jobs_per_node=jobspernode,
+                        chmbin=os.path.abspath(theargs.chmbin),
+                        scriptbin=os.path.dirname(theargs.program),
+                        walltime=theargs.walltime,
+                        jobname=theargs.jobname,
+                        mergejobname='merge' + theargs.jobname,
+                        version=chmutil.__version__)
 
-        creator = CHMJobCreator(opts)
-        opts = creator.create_job()
-
-        # TODO create separate classes to generate submit script
-        gen = None
-        if lc_cluster == 'rocce':
-            gen = RocceCluster(opts)
-
-        runchm = os.path.join(opts.get_script_bin(), 'runchmjob.py')
-        if gen is not None:
-            gen.generate_submit_script()
-            gen.generate_merge_submit_script()
-            sys.stdout.write('Run this to submit job\n' +
-                             '  ' + runchm + ' "' + opts.get_out_dir() +
-                             '" --cluster ' +
-                             lc_cluster + '\n')
-
+        creator = CHMJobCreator(con)
+        creator.create_job()
+        cluster.set_chmconfig(con)
+        cluster.generate_submit_script()
+        cluster.generate_merge_submit_script()
+        sys.stdout.write('Run this to submit job\n' +
+                         cluster.get_runchmjob_submit_command() + '\n')
         return 0
     except Exception:
         logger.exception("Error caught exception")
@@ -164,5 +148,5 @@ def main(arglist):
         logging.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     sys.exit(main(sys.argv))
