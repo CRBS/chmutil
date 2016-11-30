@@ -40,13 +40,11 @@ def _parse_arguments(desc, args):
 
 def _run_chm_job(theargs):
     """Runs all jobs for task
+    :raises LoadConfigError: if no config is found in job dir
+    :returns: status of `_run_jobs` call 0 for success otherwise error
     """
     cfac = CHMConfigFromConfigFactory(theargs.jobdir)
     chmconfig = cfac.get_chmconfig()
-    if not os.path.isfile(chmconfig.get_batchedjob_config_file_path()):
-        logger.error('No batched config found: ' +
-                     chmconfig.get_batchedjob_config_file_path())
-        return 1
     return _run_jobs(chmconfig, theargs, theargs.taskid)
 
 
@@ -56,6 +54,11 @@ def _run_jobs(chmconfig, theargs, taskid):
     # TODO Switch to using multiprocessing.Process
     bconfig = configparser.ConfigParser()
     bconfig.read(chmconfig.get_batchedjob_config_file_path())
+
+    config = configparser.ConfigParser()
+    config.read(os.path.join(theargs.jobdir,
+                             CHMJobCreator.CONFIG_FILE_NAME))
+
     tasks = bconfig.get(taskid, CHMJobCreator.BCONFIG_TASK_ID).split(',')
     process_list = []
     logger.debug('Running ' + str(len(tasks)) + ' child processes')
@@ -64,12 +67,10 @@ def _run_jobs(chmconfig, theargs, taskid):
         if pid is 0:
             logger.debug('In child submitting job to run task ' + t)
             try:
-                return _run_single_chm_job(theargs.jobdir,
-                                           theargs.scratchdir, t)
+                return _run_single_chm_job(theargs.scratchdir, t, config)
             except SingularityAbortError:
                 logger.exception('Caught SingularityAbortError, retrying job')
-                return _run_single_chm_job(theargs.jobdir,
-                                           theargs.scratchdir, t)
+                return _run_single_chm_job(theargs.scratchdir, t, config)
             except Exception:
                 logger.exception('Caught exception')
                 return 2
@@ -80,9 +81,8 @@ def _run_jobs(chmconfig, theargs, taskid):
     return core.wait_for_children_to_exit(process_list)
 
 
-def _run_single_chm_job(jobdir, scratchdir, taskid):
+def _run_single_chm_job(scratchdir, taskid, config):
     """runs CHM Job
-    :param jobdir: path to job directory
     :param scratchdir: temp directory
     :returns: exit code for program. 0 success otherwise failure
     """
@@ -93,9 +93,6 @@ def _run_single_chm_job(jobdir, scratchdir, taskid):
         # TODO try using JOB_ID and TASK_ID environment variables first and
         # TODO then fallback to uuid for directory name
         out_dir = os.path.join(scratchdir, uuid.uuid4().hex)
-        config = configparser.ConfigParser()
-        config.read(os.path.join(jobdir,
-                    CHMJobCreator.CONFIG_FILE_NAME))
         input_image = config.get(taskid,
                                  CHMJobCreator.CONFIG_INPUT_IMAGE)
         logger.debug('Creating directory ' + out_dir)
@@ -181,5 +178,5 @@ def main(arglist):
         logging.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     sys.exit(main(sys.argv))
