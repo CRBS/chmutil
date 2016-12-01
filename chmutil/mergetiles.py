@@ -28,7 +28,7 @@ def _parse_arguments(desc, args):
                                          'from CHM')
     parser.add_argument("output", help='Output image path, should have '
                                        'same extension as input')
-    parser.add_argument("maxpixels", type=int, default=768000000,
+    parser.add_argument("--maxpixels", type=int, default=768000000,
                         help='Sets maximum number of pixels in Image library'
                              'MAX_IMAGE_PIXELS default(768000000)')
     parser.add_argument("--suffix", default='png',
@@ -60,8 +60,13 @@ def _merge_image_tiles(img_dir, dest_file, suffix):
         merged = ImageMath.eval("convert(max(a, b), 'L')", a=merged, b=tile)
         tile.close()
 
+    if merged is None:
+        logger.error('No images were merged')
+        return 1
+
     logger.info('Writing results to ' + dest_file)
     merged.save(dest_file)
+    return 0
 
 
 def main(arglist):
@@ -96,6 +101,9 @@ def main(arglist):
         return _merge_image_tiles(os.path.abspath(theargs.imagedir),
                                   os.path.abspath(theargs.output),
                                   theargs.suffix)
+    except Exception:
+        logger.exception('Caught exception')
+        return 2
     finally:
         logging.shutdown()
 
