@@ -87,8 +87,18 @@ def _run_single_merge_job(theargs, taskid):
 
         input_dir = config.get(taskid,
                                CHMJobCreator.MERGE_INPUT_IMAGE_DIR)
+
+        if not input_dir.startswith('/'):
+            input_dir = os.path.join(theargs.jobdir, CHMJobCreator.RUN_DIR,
+                                     input_dir)
+
         out_file = config.get(taskid,
                               CHMJobCreator.MERGE_OUTPUT_IMAGE)
+
+        if not out_file.startswith('/'):
+            out_file = os.path.join(theargs.jobdir, CHMJobCreator.RUN_DIR,
+                                    out_file)
+
         logger.debug('Creating directory ' + out_dir)
         os.makedirs(out_dir, mode=0o775)
         cmd = (thebin + ' ' +

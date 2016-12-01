@@ -67,10 +67,12 @@ def _run_jobs(chmconfig, theargs, taskid):
         if pid is 0:
             logger.debug('In child submitting job to run task ' + t)
             try:
-                return _run_single_chm_job(theargs.scratchdir, t, config)
+                return _run_single_chm_job(theargs.jobdir,
+                                           theargs.scratchdir, t, config)
             except SingularityAbortError:
                 logger.exception('Caught SingularityAbortError, retrying job')
-                return _run_single_chm_job(theargs.scratchdir, t, config)
+                return _run_single_chm_job(theargs.jobdir,
+                                           theargs.scratchdir, t, config)
             except Exception:
                 logger.exception('Caught exception')
                 return 2
@@ -81,7 +83,7 @@ def _run_jobs(chmconfig, theargs, taskid):
     return core.wait_for_children_to_exit(process_list)
 
 
-def _run_single_chm_job(scratchdir, taskid, config):
+def _run_single_chm_job(jobdir, scratchdir, taskid, config):
     """runs CHM Job
     :param scratchdir: temp directory
     :returns: exit code for program. 0 success otherwise failure
@@ -95,6 +97,12 @@ def _run_single_chm_job(scratchdir, taskid, config):
         out_dir = os.path.join(scratchdir, uuid.uuid4().hex)
         input_image = config.get(taskid,
                                  CHMJobCreator.CONFIG_INPUT_IMAGE)
+        if not input_image.startswith('/'):
+            logger.debug('Prepending images dir to path: ' + input_image)
+            input_image = os.path.join(config.get(taskid,
+                                                  CHMJobCreator.CONFIG_IMAGES),
+                                       input_image)
+
         logger.debug('Creating directory ' + out_dir)
         os.makedirs(out_dir, mode=0o775)
         if config.get(taskid, CHMJobCreator.
@@ -133,6 +141,10 @@ def _run_single_chm_job(scratchdir, taskid, config):
 
         out_image = config.get(taskid,
                                CHMJobCreator.CONFIG_OUTPUT_IMAGE)
+
+        if not out_image.startswith('/'):
+            logger.debug('Prepending rundir to out image path' + out_image)
+            out_image = os.path.join(jobdir, CHMJobCreator.RUN_DIR, out_image)
 
         logger.debug('Copying image ' + prob_map +
                      ' to final destination: ' +

@@ -6,6 +6,8 @@ import stat
 import logging
 import shutil
 import configparser
+from configparser import NoOptionError
+
 
 from chmutil.core import CHMJobCreator
 
@@ -30,8 +32,19 @@ class CHMJobChecker(object):
         config = self._config
         job_list = []
 
+        try:
+            jobdir = config.get(CHMJobCreator.CONFIG_DEFAULT,
+                                CHMJobCreator.JOB_DIR)
+        except NoOptionError:
+            logger.exception('No ' + CHMJobCreator.JOB_DIR +
+                             ' in configuration')
+            jobdir = None
+
         for s in config.sections():
             out_file = config.get(s, CHMJobCreator.CONFIG_OUTPUT_IMAGE)
+            if not out_file.startswith('/') and jobdir is not None:
+                out_file = os.path.join(jobdir, CHMJobCreator.RUN_DIR,
+                                        out_file)
             if not os.path.isfile(out_file):
                 job_list.append(s)
 
@@ -52,8 +65,19 @@ class MergeJobChecker(object):
         config = self._config
         job_list = []
 
+        try:
+            jobdir = config.get(CHMJobCreator.CONFIG_DEFAULT,
+                                CHMJobCreator.JOB_DIR)
+        except NoOptionError:
+            logger.exception('No ' + CHMJobCreator.JOB_DIR +
+                             ' in configuration')
+            jobdir = None
+
         for s in config.sections():
             out_file = config.get(s, CHMJobCreator.MERGE_OUTPUT_IMAGE)
+            if not out_file.startswith('/') and jobdir is not None:
+                out_file = os.path.join(jobdir, CHMJobCreator.RUN_DIR,
+                                        out_file)
             if not os.path.isfile(out_file):
                 job_list.append(s)
 

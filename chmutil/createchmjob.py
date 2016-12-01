@@ -59,10 +59,10 @@ def _parse_arguments(desc, args):
 
     parser.add_argument('--jobspernode', default=0, type=int,
                         help='Overrides number of jobs to run concurrently '
-                             'on a single compute node. (default is 0'
+                             'on a single compute node. (default is 0 '
                              'which tells script to set this value to a '
-                             'number appropriate for cluster set'
-                             'in --cluster option ')
+                             'number appropriate for cluster set '
+                             'in --cluster option)')
     parser.add_argument('--cluster', default='rocce',
                         choices=ClusterFactory.VALID_CLUSTERS,
                         help='Sets which cluster to generate job script for'
@@ -129,14 +129,106 @@ def main(arglist):
 
               Creates job scripts to run CHM on images in <images> directory
               using model specified in <model> directory. The generated scripts
-              are put in <outdir>
+              are put in <outdir>.
+
+              CHM requires TWO phases of processing.
+
+              In the FIRST phase CHM tasks are run which work on tiles of each
+              image in the input. This is done to parallelize the processing
+              as well as reduce the memory footprint of CHM which gets huge on
+              tiles larger then 1000x1000. For example tiles of 500x500 easily
+              use 4 to 6 gigabytes of ram. These tiles are stored on the
+              filesystem under <outdir>/{rundir}/<image.png> directories
+              desribed below.
+
+              In the SECOND phase merge tasks are run which combine the tiles
+              into what are known as probability maps. Probability maps are
+              simply greyscale 8-bit images (values 0-255)
+              of the same size as in the input images where the intensity of
+              the pixel correlates to the probability that it belongs to the
+              feature trained for in the trained model. The probability maps
+              are stored in <outdir>/{rundir}/{probmaps} directory described
+              below.
+
+              Here is a breakdown of the following directories
+              created under the <outdir>:
+
+              {config}
+                 -- Configuration containing CHM tasks.
+
+                    At the top of this file are some are options common
+                    to all CHM tasks denoted by the header [DEFAULT]
+
+                    Following the [DEFAULT] section are options for each
+                    CHM task which are delimited by a [#] where # is a number
+                    starting at 1.
+
+                    Example default:
+
+                    [DEFAULT]
+                    chmutilversion = {version}
+                    images = /home/foo/images
+                    chmbin = /foo/chm.img
+                    model = /home/foo/trainedmodel
+                    tilesperjob = 50
+                    tilesize = 512x512
+                    overlapsize = 0x0
+                    disablehisteqimages = False
+                    jobspernode = 1
+
+                    Example task:
+
+                    [1]
+                    inputimage = someimage.png
+                    args = -t 1,1 -t 1,2 -t 1,3
+                    outputimage = someimage.png/001.someimage.png
+
+
+              {mergeconfig}
+                 -- Configuration containing merge tasks
+
+              runjobs.<cluster>
+                  -- Cluster submit script
+
+              {rundir}/
+                  -- Directory containing output of job
+
+              {rundir}/{stdout}
+                  -- Directory containing output from CHM jobs
+
+              {rundir}/{mergestdout}
+                 -- Directory containing output from merge jobs
+
+              {rundir}/{tmp}
+                 -- Directory used to hold temporary CHM outputs
+
+              {rundir}/{probmaps}
+                 -- Directory containing finished probability map images
+                    generated from merge phase
+
+              {rundir}/{overlaymaps}
+                 -- Directory containing overlay images where input images
+                    are overlayed with probability maps. This is generated in
+                    merge phase
+
+              {rundir}/<image.png>
+                 -- Directories containing image tiles from individual
+                    CHM tasks
 
 
               Example Usage:
 
               createchmjob.py ./images ./model ./mychmjob
 
-              """.format(version=chmutil.__version__)
+              """.format(version=chmutil.__version__,
+                         config=CHMJobCreator.CONFIG_FILE_NAME,
+                         mergeconfig=CHMJobCreator.MERGE_CONFIG_FILE_NAME,
+                         rundir=CHMJobCreator.RUN_DIR,
+                         stdout=CHMJobCreator.STDOUT_DIR,
+                         mergestdout=CHMJobCreator.MERGE_STDOUT_DIR,
+                         tmp=CHMJobCreator.TMP_DIR,
+                         probmaps=CHMJobCreator.PROBMAPS_DIR,
+                         overlaymaps=CHMJobCreator.OVERLAYMAPS_DIR)
 
     theargs = _parse_arguments(desc, arglist[1:])
     theargs.program = arglist[0]

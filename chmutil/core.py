@@ -212,7 +212,7 @@ def get_image_path_list(image_dir, suffix):
 class CHMJobCreator(object):
     """Creates CHM Job to run on cluster
     """
-
+    JOB_DIR = 'jobdir'
     CONFIG_FILE_NAME = 'base.chm.jobs.list'
     CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.chm.jobs.list'
     MERGE_CONFIG_FILE_NAME = 'base.merge.jobs.list'
@@ -254,6 +254,8 @@ class CHMJobCreator(object):
         config = configparser.ConfigParser()
         config.set('', CHMJobCreator.CHMUTIL_VERSION,
                    self._chmopts.get_version())
+        config.set('', CHMJobCreator.JOB_DIR,
+                   self._chmopts.get_out_dir())
         config.set('', CHMJobCreator.CONFIG_IMAGES,
                    self._chmopts.get_images())
         config.set('', CHMJobCreator.CONFIG_CHM_BIN,
@@ -294,6 +296,10 @@ class CHMJobCreator(object):
         config.set('', CHMJobCreator.MERGE_MERGETILES_BIN,
                    os.path.join(self._chmopts.get_script_bin(),
                                 'mergetiles.py'))
+        config.set('', CHMJobCreator.CONFIG_IMAGES,
+                   self._chmopts.get_images())
+        config.set('', CHMJobCreator.JOB_DIR,
+                   self._chmopts.get_out_dir())
         return config
 
     def _write_merge_config(self, config):
@@ -347,8 +353,7 @@ class CHMJobCreator(object):
         return run_dir
 
     def _add_job_for_image_to_config(self, config, counter_as_str,
-                                     imagestats, i_dir, i_name,
-                                     img_cntr, theargs):
+                                     i_name, img_cntr, theargs):
         """Adds job to config object
         :param config: configparser config object to add job to
         :param counter_as_str: Counter used in string form
@@ -360,11 +365,11 @@ class CHMJobCreator(object):
         """
         config.add_section(counter_as_str)
         config.set(counter_as_str, CHMJobCreator.CONFIG_INPUT_IMAGE,
-                   imagestats.get_file_path())
+                   i_name)
         config.set(counter_as_str, CHMJobCreator.CONFIG_ARGS,
                    ' '.join(theargs))
         config.set(counter_as_str, CHMJobCreator.CONFIG_OUTPUT_IMAGE,
-                   os.path.join(i_dir, str(img_cntr).zfill(3) + '.' + i_name))
+                   os.path.join(i_name, str(img_cntr).zfill(3) + '.' + i_name))
 
     def _add_mergejob_for_image_to_config(self, config, counter_as_str,
                                           run_dir, image_tile_dir, image_name):
@@ -376,13 +381,13 @@ class CHMJobCreator(object):
         """
         config.add_section(counter_as_str)
         config.set(counter_as_str, CHMJobCreator.MERGE_INPUT_IMAGE_DIR,
-                   image_tile_dir)
+                   image_name)
         config.set(counter_as_str, CHMJobCreator.MERGE_OUTPUT_IMAGE,
-                   os.path.join(run_dir, CHMJobCreator.PROBMAPS_DIR,
+                   os.path.join(CHMJobCreator.PROBMAPS_DIR,
                                 image_name))
         config.set(counter_as_str,
                    CHMJobCreator.MERGE_OUTPUT_OVERLAY_IMAGE,
-                   os.path.join(run_dir, CHMJobCreator.OVERLAYMAPS_DIR,
+                   os.path.join(CHMJobCreator.OVERLAYMAPS_DIR,
                                 image_name))
 
     def create_job(self):
@@ -409,8 +414,7 @@ class CHMJobCreator(object):
             for a in arg_gen.get_args(iis):
                 counter_as_str = str(counter)
                 self._add_job_for_image_to_config(config, counter_as_str,
-                                                  iis, i_dir, i_name, img_cntr,
-                                                  a)
+                                                  i_name, img_cntr, a)
                 counter += 1
                 img_cntr += 1
             mergecounter += 1

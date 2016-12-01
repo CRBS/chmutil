@@ -103,18 +103,17 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertEqual(i_dir, expected_i_dir)
             self.assertEqual(i_name, 'foo123.png')
 
-            creator._add_job_for_image_to_config(config, '12', iis,
-                                                 i_dir, i_name,
+            creator._add_job_for_image_to_config(config, '12', i_name,
                                                  2, ['-t 1,1'])
             self.assertEqual(config.get('12',
                                         CHMJobCreator.CONFIG_INPUT_IMAGE),
-                             iis.get_file_path())
+                             'foo123.png')
             self.assertEqual(config.get('12',
                                         CHMJobCreator.CONFIG_ARGS),
                              '-t 1,1')
             self.assertEqual(config.get('12',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(i_dir, '002.' + i_name))
+                             os.path.join(i_name, '002.' + i_name))
         finally:
             shutil.rmtree(temp_dir)
 
@@ -142,13 +141,12 @@ class TestCHMJobCreator(unittest.TestCase):
                              ['1', '2', '3', '4', '5', '6'])
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_INPUT_IMAGE),
-                             fooimg)
+                             'foo1.png')
             self.assertEqual(config.get('1', CHMJobCreator.CONFIG_ARGS),
                              '-t 1,1')
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(temp_dir, CHMJobCreator.RUN_DIR,
-                                          'foo1.png', '001.foo1.png'))
+                             os.path.join('foo1.png', '001.foo1.png'))
 
             self.assertEqual(config.get('1', CHMJobCreator.CONFIG_MODEL),
                              'model')
@@ -189,27 +187,25 @@ class TestCHMJobCreator(unittest.TestCase):
                              ['1', '2'])
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_INPUT_IMAGE),
-                             fooimg)
+                             'foo1.png')
             self.assertEqual(config.get('1', CHMJobCreator.CONFIG_ARGS),
                              '-t 1,1 -t 1,2 -t 1,3 -t 2,1 -t 2,2')
 
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(temp_dir, CHMJobCreator.RUN_DIR,
-                                          'foo1.png', '001.foo1.png'))
+                             os.path.join('foo1.png', '001.foo1.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        'foo1.png')))
 
             self.assertEqual(config.get('2',
                                         CHMJobCreator.CONFIG_INPUT_IMAGE),
-                             fooimg)
+                             'foo1.png')
             self.assertEqual(config.get('2', CHMJobCreator.CONFIG_ARGS),
                              '-t 2,3')
             self.assertEqual(config.get('2',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(temp_dir, CHMJobCreator.RUN_DIR,
-                                          'foo1.png', '002.foo1.png'))
+                             os.path.join('foo1.png', '002.foo1.png'))
 
             self.assertEqual(config.get('2', CHMJobCreator.CONFIG_MODEL),
                              'model')
@@ -254,23 +250,20 @@ class TestCHMJobCreator(unittest.TestCase):
 
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(temp_dir, CHMJobCreator.RUN_DIR,
-                                          'foo1.png', '001.foo1.png'))
+                             os.path.join('foo1.png', '001.foo1.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        'foo1.png')))
             self.assertEqual(config.get('3',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(temp_dir, CHMJobCreator.RUN_DIR,
-                                          'foo2.png', '001.foo2.png'))
+                             os.path.join('foo2.png', '001.foo2.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        'foo2.png')))
 
             self.assertEqual(config.get('7',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(temp_dir, CHMJobCreator.RUN_DIR,
-                                          'foo3.png', '004.foo3.png'))
+                             os.path.join('foo3.png', '004.foo3.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        'foo3.png')))

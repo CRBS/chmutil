@@ -26,7 +26,7 @@ class TestMergeJobChecker(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_get_incomplete_jobs_list_empty_config(self):
+    def test_get_incomplete_jobs_list_full_paths(self):
         temp_dir = tempfile.mkdtemp()
         try:
             config = configparser.ConfigParser()
@@ -53,8 +53,43 @@ class TestMergeJobChecker(unittest.TestCase):
             open(img_two, 'a').close()
             res = checker.get_incomplete_jobs_list()
             self.assertEqual(res, [])
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_incomplete_jobs_list_relative_paths(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            config = configparser.ConfigParser()
+            checker = MergeJobChecker(config)
 
 
+            # test with empty config
+            self.assertEqual(checker.get_incomplete_jobs_list(), [])
+
+            rundir = os.path.join(temp_dir, CHMJobCreator.RUN_DIR)
+            os.makedirs(rundir, mode=0o755)
+            # set jobdir in config
+            config.set('', CHMJobCreator.JOB_DIR, temp_dir)
+
+            # test with config with 2 entries no files on filesystem
+            config.add_section('1')
+            config.set('1', CHMJobCreator.MERGE_OUTPUT_IMAGE, 'image_one.png')
+
+            img_two = os.path.join(temp_dir, 'image_two.png')
+            config.add_section('2')
+            config.set('2', CHMJobCreator.MERGE_OUTPUT_IMAGE, 'image_two.png')
+            res = checker.get_incomplete_jobs_list()
+            self.assertEqual(res, ['1', '2'])
+
+            img_one = os.path.join(rundir, 'image_one.png')
+            open(img_one, 'a').close()
+            res = checker.get_incomplete_jobs_list()
+            self.assertEqual(res, ['2'])
+
+            img_two = os.path.join(rundir, 'image_two.png')
+            open(img_two, 'a').close()
+            res = checker.get_incomplete_jobs_list()
+            self.assertEqual(res, [])
         finally:
             shutil.rmtree(temp_dir)
 

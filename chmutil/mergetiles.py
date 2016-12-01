@@ -28,6 +28,9 @@ def _parse_arguments(desc, args):
                                          'from CHM')
     parser.add_argument("output", help='Output image path, should have '
                                        'same extension as input')
+    parser.add_argument("maxpixels", type=int, default=768000000,
+                        help='Sets maximum number of pixels in Image library'
+                             'MAX_IMAGE_PIXELS default(768000000)')
     parser.add_argument("--suffix", default='png',
                         help='Only attempt to merge image files with'
                              'this suffix. (Default png)')
@@ -86,6 +89,10 @@ def main(arglist):
     core.setup_logging(logger, log_format=LOG_FORMAT,
                        loglevel=theargs.loglevel)
     try:
+        logger.debug('Setting Image.MAX_IMAGE_PIXELS to ' +
+                     str(theargs.maxpixels))
+        Image.MAX_IMAGE_PIXELS = theargs.maxpixels
+
         return _merge_image_tiles(os.path.abspath(theargs.imagedir),
                                   os.path.abspath(theargs.output),
                                   theargs.suffix)
