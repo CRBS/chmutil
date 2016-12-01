@@ -87,7 +87,7 @@ def _run_single_merge_job(theargs, taskid):
 
         input_dir = config.get(taskid,
                                CHMJobCreator.MERGE_INPUT_IMAGE_DIR)
-
+        # TODO TEST that relative paths work with MERGE phase
         if not input_dir.startswith('/'):
             input_dir = os.path.join(theargs.jobdir, CHMJobCreator.RUN_DIR,
                                      input_dir)
