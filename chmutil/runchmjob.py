@@ -7,7 +7,7 @@ import logging
 import chmutil
 
 from chmutil.core import CHMConfigFromConfigFactory
-from chmutil.cluster import RocceCluster
+from chmutil.cluster import ClusterFactory
 from chmutil.cluster import BatchedJobsListGenerator
 from chmutil.core import Parameters
 from chmutil.cluster import CHMJobChecker
@@ -30,6 +30,7 @@ def _parse_arguments(desc, args):
                                        'file')
     parser.add_argument("--cluster", help='Cluster job is to run on '
                                           '(default rocce)',
+                        choices=['rocce'],
                         default='rocce')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -44,6 +45,7 @@ def _parse_arguments(desc, args):
 def _run_chm_job(theargs):
     """Runs all jobs for task
     """
+    # TODO refactor this cause its too hard to test
     cfac = CHMConfigFromConfigFactory(os.path.abspath(theargs.jobdir))
     chmconfig = cfac.get_chmconfig()
     checker = CHMJobChecker(chmconfig.get_config())
@@ -53,28 +55,29 @@ def _run_chm_job(theargs):
         generate_batched_jobs_list(chmconfig.
                                    get_batchedjob_config_file_path())
 
-    lc_cluster = str(theargs.cluster).lower()
+    cfac = ClusterFactory()
+    clust = cfac.get_cluster_by_name(theargs.cluster)
+
+    if clust is None:
+        logger.error('Cluster not supported: ' + theargs.cluster)
+        return 2
+
+    clust.set_chmconfig(chmconfig)
     if num_jobs is 0:
         sys.stdout.write('\nNo chm jobs need to be run\n\n')
         runmerge = os.path.join(chmconfig.get_script_bin(), 'runmergejob.py')
-        if lc_cluster == 'rocce':
-            sys.stdout.write('Run this to submit merge job\n' +
-                             '  ' + runmerge + ' "' + chmconfig.get_out_dir() +
-                             '" --cluster ' +
-                             lc_cluster + '\n')
+        sys.stdout.write('Run this to submit merge job\n' +
+                         '  ' + runmerge + ' "' + chmconfig.get_out_dir() +
+                         '" --cluster ' +
+                         clust.get_cluster() + '\n')
         return 0
 
-    if lc_cluster == 'rocce':
-        clust = RocceCluster(chmconfig)
+    sys.stdout.write('Run this:\n\n ' +
+                     clust.get_chm_submit_command(num_jobs) +
+                     '\n\n')
+    return 0
 
-    if clust is not None:
-        sys.stdout.write('Run this:\n\n ' +
-                         clust.get_chm_submit_command(num_jobs) +
-                         '\n\n')
-        return 0
 
-    logger.error('Cluster not supported: ' + theargs.cluster)
-    return 2
 
 
 def main(arglist):
