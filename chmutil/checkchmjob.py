@@ -125,17 +125,18 @@ def _submit(chmconfig, chm_task_list, merge_task_list):
     num_chm_tasks = len(chm_task_list)
     if num_chm_tasks > 0:
         logger.info('Found ' + str(num_chm_tasks) +
-                    'CHM tasks that need submission')
+                    ' CHM tasks that need submission')
         chm_con_file = chmconfig.get_batchedjob_config_file_path()
-        return _submit_chm_tasks(batcher, num_chm_tasks, chm_con_file, clust)
+        logger.info('Batched config file path: ' + chm_con_file)
+        return _submit_chm_tasks(batcher, chm_con_file, chm_task_list, clust)
 
     num_merge_tasks = len(merge_task_list)
     if num_merge_tasks > 0:
         logger.info('Found ' + str(num_merge_tasks) +
-                    'Merge tasks that need submission')
+                    ' Merge tasks that need submission')
         mer_con_file = chmconfig.get_batched_mergejob_config_file_path()
-
-        return _submit_merge_tasks(batcher, num_merge_tasks, mer_con_file,
+        logger.info('Batched config file path: ' + mer_con_file)
+        return _submit_merge_tasks(batcher, mer_con_file, merge_task_list,
                                    clust)
 
     sys.stdout.write('\nAll jobs completed. Have a nice day!\n\n')
@@ -149,7 +150,7 @@ def _check_chm_job(theargs):
     merge_task_list = _get_incompleted_merge_task_list(chmconfig.
                                                        get_merge_config())
 
-    sys.stdout.write('Summary should go here!!!!')
+    sys.stdout.write('\n\n\nSummary should go here!!!!\n\n')
 
     if theargs.submit is True:
         logger.info(SUBMIT_FLAG + ' set')

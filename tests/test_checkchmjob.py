@@ -96,6 +96,7 @@ class TestCheckCHMJob(unittest.TestCase):
             pargs.program = 'foo'
             pargs.version = '1.0.0'
             img_tile = os.path.join(out, CHMJobCreator.RUN_DIR,
+                                    CHMJobCreator.TILES_DIR,
                                     'foo.png', '001.foo.png')
             size = 800, 800
             myimg = Image.new('L', size)

@@ -80,10 +80,10 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertTrue(os.path.isdir(run_dir))
             iis = ImageStats(os.path.join(temp_dir, 'images', 'foo123.png'),
                              500, 400, 'PNG')
-            i_dir, i_name = creator._create_output_image_dir(iis, run_dir)
-            expected_i_dir = os.path.join(temp_dir, CHMJobCreator.RUN_DIR,
-                                          'foo123.png')
-            self.assertEqual(i_dir, expected_i_dir)
+            i_name = creator._create_output_image_dir(iis, run_dir)
+            self.assertTrue(os.path.isdir(os.path.join(run_dir,
+                                                       CHMJobCreator.TILES_DIR,
+                                                       'foo123.png')))
             self.assertEqual(i_name, 'foo123.png')
 
         finally:
@@ -100,10 +100,7 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertTrue(os.path.isdir(run_dir))
             iis = ImageStats(os.path.join(temp_dir, 'images', 'foo123.png'),
                              500, 400, 'PNG')
-            i_dir, i_name = creator._create_output_image_dir(iis, run_dir)
-            expected_i_dir = os.path.join(temp_dir, CHMJobCreator.RUN_DIR,
-                                          'foo123.png')
-            self.assertEqual(i_dir, expected_i_dir)
+            i_name = creator._create_output_image_dir(iis, run_dir)
             self.assertEqual(i_name, 'foo123.png')
 
             creator._add_task_for_image_to_config(config, '12', i_name,
@@ -202,6 +199,7 @@ class TestCHMJobCreator(unittest.TestCase):
                                           'foo1.png', '001.foo1.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
+                                                       CHMJobCreator.TILES_DIR,
                                                        'foo1.png')))
 
             self.assertEqual(config.get('2',
@@ -261,6 +259,7 @@ class TestCHMJobCreator(unittest.TestCase):
                                           'foo1.png', '001.foo1.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
+                                                       CHMJobCreator.TILES_DIR,
                                                        'foo1.png')))
             self.assertEqual(config.get('3',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
@@ -268,6 +267,7 @@ class TestCHMJobCreator(unittest.TestCase):
                                           'foo2.png', '001.foo2.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
+                                                       CHMJobCreator.TILES_DIR,
                                                        'foo2.png')))
 
             self.assertEqual(config.get('7',
@@ -276,6 +276,7 @@ class TestCHMJobCreator(unittest.TestCase):
                                           'foo3.png', '004.foo3.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
+                                                       CHMJobCreator.TILES_DIR,
                                                        'foo3.png')))
         finally:
             shutil.rmtree(temp_dir)

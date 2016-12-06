@@ -334,11 +334,11 @@ class CHMJobCreator(object):
         form `imagestats`)
         """
         i_name = os.path.basename(imagestats.get_file_path())
-        i_dir = os.path.join(run_dir, i_name)
+        i_dir = os.path.join(run_dir, CHMJobCreator.TILES_DIR, i_name)
         if os.path.isdir(i_dir) is False:
             logger.debug('Creating image dir ' + i_dir)
             os.makedirs(i_dir, mode=0o775)
-        return i_dir, i_name
+        return i_name
 
     def _create_run_dir(self):
         """Creates CHM job run directory
@@ -370,7 +370,6 @@ class CHMJobCreator(object):
         :param config: configparser config object to add job to
         :param counter_as_str: Counter used in string form
         :param imagestats: `ImageStats` for job
-        :param i_dir: Output image directory
         :param i_name: Name of image
         :param img_cntr: Image counter
         :param theargs: args for CHM job
@@ -385,7 +384,7 @@ class CHMJobCreator(object):
                                 str(img_cntr).zfill(3) + '.' + i_name))
 
     def _add_mergetask_for_image_to_config(self, config, counter_as_str,
-                                           run_dir, image_tile_dir, image_name):
+                                           image_name):
         """Adds merge job to config object
         :param config: configparser config object to add merge job to
         :param counter_as_str: Counter used in string form
@@ -419,11 +418,11 @@ class CHMJobCreator(object):
         run_dir = self._create_run_dir()
 
         for iis in imagestats:
-            i_dir, i_name = self._create_output_image_dir(iis, run_dir)
+            i_name = self._create_output_image_dir(iis, run_dir)
             img_cntr = 1
             self._add_mergetask_for_image_to_config(mergeconfig,
-                                                    str(mergecounter), run_dir,
-                                                    i_dir, i_name)
+                                                    str(mergecounter),
+                                                    i_name)
             for a in arg_gen.get_args(iis):
                 counter_as_str = str(counter)
                 self._add_task_for_image_to_config(config, counter_as_str,
