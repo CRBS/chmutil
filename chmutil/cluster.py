@@ -51,7 +51,7 @@ class TaskStats(object):
         """sets total number of tasks
         :param count: total number of tasks
         """
-        self._completed_task_count = count
+        self._total_task_count = count
 
     def get_total_task_count(self):
         """returns total tasks count
@@ -68,10 +68,22 @@ class TaskSummary(object):
         """Constructor
         """
         self._chmconfig = chmconfig
+        self._chm_task_stats = chm_task_stats
+        self._merge_task_stats = merge_task_stats
         self._chm_task_summary = self.\
-            _get_summary_from_task_stats(chm_task_stats)
+            _get_summary_from_task_stats(self._chm_task_stats)
         self._merge_task_summary = self.\
-            _get_summary_from_task_stats(merge_task_stats)
+            _get_summary_from_task_stats(self._merge_task_stats)
+
+    def get_chm_task_stats(self):
+        """Returns `TaskStats` for CHM tasks
+        """
+        return self._chm_task_stats
+
+    def get_merge_task_stats(self):
+        """Returns `TaskStats` for merge tasks
+        """
+        return self._merge_task_stats
 
     def _get_summary_from_task_stats(self, task_stats):
         """Creates a summary string from `task_stats` object
@@ -85,10 +97,10 @@ class TaskSummary(object):
 
         total = task_stats.get_total_task_count()
         if total <= 0:
-            return 'Total number of tasks is >= 0'
+            return 'Total number of tasks is <= 0'
 
         completed = task_stats.get_completed_task_count()
-        pc_complete_str = '{:.2%}'.format(completed/total)
+        pc_complete_str = '{:.0%}'.format((float(completed)/float(total)))
         completed_str = '{:,}'.format(completed)
         total_str = '{:,}'.format(total)
         return (pc_complete_str + ' complete (' + completed_str + ' of ' +
@@ -97,18 +109,26 @@ class TaskSummary(object):
     def get_summary(self):
         """Gets the summary of CHM job in human readable form
         """
-        val = ('chmutil version: ' + self._chmconfig.get_version() + '\n' +
-               'Tiles: ' + self._chmconfig.get_tile_size() + ' with ' +
-               self._chmconfig.get_overlap_size() + ' overlap\n' +
-               'Disable histogram equalization in CHM: ' +
-               str(self._chmconfig.get_disable_histogram_eq_val()) + '\n' +
-               'Tasks: ' + str(self._chmconfig.get_number_tiles_per_task()) +
-               ' tiles per task, ' + str(self._chmconfig.get_jobs_per_node()) +
-               ' tasks(s) per node\nTrained CHM model: ' +
-               self._chmconfig.get_model() + '\nCHM binary: ' +
-               self._chmconfig.get_chm_binary() + '\n\n' + 'CHM tasks: ' +
-               self._chm_task_summary + '\nMerge tasks: ' +
-               self._merge_task_summary + '\n')
+        if self._chmconfig is None:
+            logger.warning('CHMConfig is None in TaskSummary so '
+                           'skipping output of job details')
+            return ('CHM tasks: ' +
+                    self._chm_task_summary + '\nMerge tasks: ' +
+                    self._merge_task_summary + '\n')
+
+        return ('chmutil version: ' + self._chmconfig.get_version() + '\n' +
+                'Tiles: ' + self._chmconfig.get_tile_size() + ' with ' +
+                self._chmconfig.get_overlap_size() + ' overlap\n' +
+                'Disable histogram equalization in CHM: ' +
+                str(self._chmconfig.get_disable_histogram_eq_val()) + '\n' +
+                'Tasks: ' + str(self._chmconfig.get_number_tiles_per_task()) +
+                ' tiles per task, ' +
+                str(self._chmconfig.get_number_tasks_per_node()) +
+                ' tasks(s) per node\nTrained CHM model: ' +
+                self._chmconfig.get_model() + '\nCHM binary: ' +
+                self._chmconfig.get_chm_binary() + '\n\n' + 'CHM tasks: ' +
+                self._chm_task_summary + '\nMerge tasks: ' +
+                self._merge_task_summary + '\n')
 
 
 class TaskSummaryFactory(object):
@@ -116,7 +136,62 @@ class TaskSummaryFactory(object):
        which contains summary information about the
        job.
     """
-    pass
+    def __init__(self, chmconfig, chm_incomplete_tasks=None,
+                 merge_incomplete_tasks=None):
+        """Constructor
+           :param chmconfig: Should be a `CHMConfig` object loaded with a
+                             valid CHM job
+           :param chm_incomplete_tasks: list of incomplete chm tasks
+           :param merge_incomplete_tasks: list of incomplete merge tasks
+        """
+        self._chmconfig = chmconfig
+        self._chm_incomplete_tasks = chm_incomplete_tasks
+        self._merge_incomplete_tasks = merge_incomplete_tasks
+
+    def _get_chm_task_stats(self):
+        """Gets `TaskStats` for CHM tasks
+        """
+        total_chm_tasks = 0
+        if self._chmconfig is not None:
+            con = self._chmconfig.get_config()
+            if con is not None:
+                total_chm_tasks = len(self._chmconfig.get_config().sections())
+
+        completed_chm_tasks = 0
+        if self._chm_incomplete_tasks is not None:
+            completed_chm_tasks = total_chm_tasks - \
+                                  len(self._chm_incomplete_tasks)
+
+        chmts = TaskStats()
+        chmts.set_completed_task_count(completed_chm_tasks)
+        chmts.set_total_task_count(total_chm_tasks)
+        return chmts
+
+    def _get_merge_task_stats(self):
+        """Gets `TaskStats` for merge tasks
+        """
+        total_merge_tasks = 0
+        if self._chmconfig.get_merge_config() is not None:
+            total_merge_tasks = len(self._chmconfig.get_merge_config().
+                                    sections())
+
+        completed_merge_tasks = 0
+        if self._merge_incomplete_tasks is not None:
+            completed_merge_tasks = total_merge_tasks - \
+                                    len(self._merge_incomplete_tasks)
+
+        mergets = TaskStats()
+        mergets.set_completed_task_count(completed_merge_tasks)
+        mergets.set_total_task_count(total_merge_tasks)
+        return mergets
+
+    def get_task_summary(self):
+        """Gets `TaskSummary` for CHM job defined in constructor
+           :returns: TaskSummary object
+        """
+        return TaskSummary(self._chmconfig,
+                           chm_task_stats=self._get_chm_task_stats(),
+                           merge_task_stats=self._get_merge_task_stats())
 
 
 class CHMTaskChecker(object):
@@ -188,6 +263,34 @@ class MergeTaskChecker(object):
         logger.info('Found ' + str(len(task_list)) + ' of ' +
                     str(len(config.sections())) + ' to be incomplete tasks')
         return task_list
+
+
+class CanMergeTaskBeRun(object):
+    """Given a merge taskid instances of this class
+       check to see if all tiles needed to perform
+       the merge have been created by CHM task(s)
+    """
+    def __init__(self, chmconfig, incomplete_chm_tasks):
+        """Constructor
+        """
+        self._chmconfig = chmconfig
+        self._incomplete_chm_tasks = incomplete_chm_tasks
+
+
+    def _build_lookup_table_mapping_merge_task_to_chm_task_ids(self):
+        """Walks through CHM task configuration and builds a
+           hash table where key is merge task id and value is
+           a list of chm task ids
+        """
+    def can_task_be_run(self, taskid):
+        """Checks if `taskid` merge task can be run
+           :returns: tuple of (True|False, Reason|None) where
+                     True in first element means yes it can be
+                     run and False no. Second element will be None
+                     or contain a string with reason job cannot be
+                     run
+        """
+        raise NotImplementedError('Not implemented silly')
 
 
 class BatchedTasksListGenerator(object):
