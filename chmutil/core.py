@@ -4,6 +4,7 @@
 import os
 import logging
 import configparser
+from configparser import NoOptionError
 import shlex
 import subprocess
 import time
@@ -469,8 +470,8 @@ class CHMConfig(object):
         self._overlap_size = overlap_size
         self._parse_and_set_tile_width_height(tile_size)
         self._parse_and_set_overlap_width_height(overlap_size)
-        self._number_tiles_per_job = number_tiles_per_task
-        self._jobs_per_node = tasks_per_node
+        self._number_tiles_per_task = number_tiles_per_task
+        self._tasks_per_node = tasks_per_node
         self._disablehisteq = disablehisteq
         self._chmbin = chmbin
         self._scriptbin = scriptbin
@@ -688,12 +689,12 @@ class CHMConfig(object):
     def get_number_tiles_per_task(self):
         """returns number of tiles per job
         """
-        return self._number_tiles_per_job
+        return self._number_tiles_per_task
 
     def get_number_tasks_per_node(self):
         """gets desired number jobs per node
         """
-        return self._jobs_per_node
+        return self._tasks_per_node
 
     def get_chm_binary(self):
         """gets path to chm binary
@@ -723,6 +724,16 @@ class CHMConfigFromConfigFactory(object):
 
         config.read(cfile)
         return config
+
+    def _get_chmutil_version(self, config):
+        """Attempts to get chmutil version from config
+           :returns: version as a string or unknown if not found
+        """
+        try:
+            return config.get(CHMJobCreator.CONFIG_DEFAULT,
+                              CHMJobCreator.CHMUTIL_VERSION)
+        except NoOptionError:
+            return 'unknown'
 
     def get_chmconfig(self, skip_loading_config=False,
                       skip_loading_mergeconfig=True):
@@ -769,8 +780,10 @@ class CHMConfigFromConfigFactory(object):
         disablehisteq = config.getboolean(default,
                                           CHMJobCreator.
                                           CONFIG_DISABLE_HISTEQ_IMAGES)
+
         cluster = config.get(default,
                              CHMJobCreator.CONFIG_CLUSTER)
+
         opts = CHMConfig(config.get(default, CHMJobCreator.CONFIG_IMAGES),
                          config.get(default, CHMJobCreator.CONFIG_MODEL),
                          self._job_dir,
@@ -785,6 +798,7 @@ class CHMConfigFromConfigFactory(object):
                          disablehisteq=disablehisteq,
                          chmbin=config.get(default, CHMJobCreator.
                                            CONFIG_CHM_BIN),
+                         version=self._get_chmutil_version(config),
                          cluster=cluster,
                          config=config,
                          mergeconfig=mergecon)
