@@ -92,9 +92,8 @@ def _run_single_chm_job(jobdir, scratchdir, taskid, config):
     # TODO REFACTOR THIS INTO CLASS TO GENERATE CHM JOB COMMAND
     out_dir = None
     try:
-        # TODO try using JOB_ID and TASK_ID environment variables first and
-        # TODO then fallback to uuid for directory name
-        out_dir = os.path.join(scratchdir, uuid.uuid4().hex)
+        out_dir = os.path.join(scratchdir, str(taskid) + '.' +
+                               uuid.uuid4().hex)
         input_image = config.get(taskid,
                                  CHMJobCreator.CONFIG_INPUT_IMAGE)
         if not input_image.startswith('/'):
@@ -169,15 +168,47 @@ def main(arglist):
     desc = """
               Version {version}
 
-              Runs CHM for <taskid> specified on command
-              line.
+              Runs CHM for batched <taskid> specified on command.
 
+              Normally this tool is invoked by a scheduler (SGE, SLURM, etc..)
+              but can be run directly.
+
+              The batched task that is run is determined by
+              looking for the [<taskid>] entry in
+              {batchchm} configuration
+              file in the <jobdir>.
+
+              The actual CHM tasks that will be run are in a comma
+              delimited list in the {taskid} field under the
+              [<taskid>] entry which correspond to tasks in
+              {basechm} configuration file.
+
+              The exit code of this tool will be 0 upon success or a value
+              greater then 0 if any of the CHM tasks fails.
+
+              Example of {batchchm} configuration:
+
+              [1]
+              taskids = 2
+
+              [2]
+              taskids = 3
+
+              Example of task in {basechm}:
+
+              [1]
+              inputimage = foo.png
+              args = -t 1,1 -t 1,2 -t 1,3
+              outputimage = tiles/foo.png/001.foo.png
 
               Example Usage:
 
               chmrunner.py 1 /foo/chmjob --scratchdir /scratch
 
-              """.format(version=chmutil.__version__)
+              """.format(version=chmutil.__version__,
+                         taskid=CHMJobCreator.BCONFIG_TASK_ID,
+                         batchchm=CHMJobCreator.CONFIG_BATCHED_TASKS_FILE_NAME,
+                         basechm=CHMJobCreator.CONFIG_FILE_NAME)
 
     theargs = _parse_arguments(desc, arglist[1:])
     theargs.program = arglist[0]
