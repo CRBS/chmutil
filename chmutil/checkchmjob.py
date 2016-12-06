@@ -13,6 +13,7 @@ from chmutil.core import Parameters
 from chmutil.cluster import CHMTaskChecker
 from chmutil.cluster import MergeTaskChecker
 from chmutil.core import CHMJobCreator
+from chmutil.cluster import TaskSummaryFactory
 from chmutil import core
 
 
@@ -132,6 +133,8 @@ def _submit(chmconfig, chm_task_list, merge_task_list):
 
     num_merge_tasks = len(merge_task_list)
     if num_merge_tasks > 0:
+        # TODO modify code to write these out even on incomplete job
+        # TODO with any merge jobs that CAN be safely run
         logger.info('Found ' + str(num_merge_tasks) +
                     ' Merge tasks that need submission')
         mer_con_file = chmconfig.get_batched_mergejob_config_file_path()
@@ -145,12 +148,23 @@ def _submit(chmconfig, chm_task_list, merge_task_list):
 def _check_chm_job(theargs):
     """Runs all jobs for task
     """
+    sys.stdout.write('\nAnalyzing job. This may take a minute...\n\n')
+
     chmconfig = _get_chmconfig(theargs.jobdir)
     chm_task_list = _get_incompleted_chm_task_list(chmconfig.get_config())
     merge_task_list = _get_incompleted_merge_task_list(chmconfig.
                                                        get_merge_config())
 
-    sys.stdout.write('\n\n\nSummary should go here!!!!\n\n')
+    tsf = TaskSummaryFactory(chmconfig,chm_incomplete_tasks=chm_task_list,
+                             merge_incomplete_tasks=merge_task_list)
+    ts = tsf.get_task_summary()
+
+    sys.stdout.write(ts.get_summary() + '\n')
+
+    if theargs.detailed is True:
+        logger.info(DETAILED_FLAG + ' set')
+        sys.stdout.write('\nUnfortunately detailed report has '
+                         'not yet been implemented\n\n')
 
     if theargs.submit is True:
         logger.info(SUBMIT_FLAG + ' set')
