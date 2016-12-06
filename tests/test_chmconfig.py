@@ -34,15 +34,15 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_tile_width(), '')
         self.assertEqual(opts.get_overlap_height(), '')
         self.assertEqual(opts.get_overlap_width(), '')
-        self.assertEqual(opts.get_number_jobs_per_node(), 1)
-        self.assertEqual(opts.get_number_tiles_per_job(), 1)
+        self.assertEqual(opts.get_number_tasks_per_node(), 1)
+        self.assertEqual(opts.get_number_tiles_per_task(), 1)
         self.assertEqual(opts.get_disable_histogram_eq_val(), True)
         self.assertEqual(opts.get_config(), None)
         self.assertEqual(opts.get_job_config(), CHMJobCreator.CONFIG_FILE_NAME)
         self.assertEqual(opts.get_batchedjob_config_file_path(),
-                         CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME)
+                         CHMJobCreator.CONFIG_BATCHED_TASKS_FILE_NAME)
         self.assertEqual(opts.get_batched_mergejob_config_file_path(),
-                         CHMJobCreator.MERGE_CONFIG_BATCHED_JOBS_FILE_NAME)
+                         CHMJobCreator.MERGE_CONFIG_BATCHED_TASKS_FILE_NAME)
         self.assertEqual(opts.get_run_dir(),
                          CHMJobCreator.RUN_DIR)
         self.assertEqual(opts.get_script_bin(), '')
@@ -55,8 +55,8 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_max_merge_memory_in_gb(), 10)
 
         opts = CHMConfig('images', 'model', 'out', '500x600', '20x30',
-                         number_tiles_per_job=122,
-                         jobs_per_node=12,
+                         number_tiles_per_task=122,
+                         tasks_per_node=12,
                          disablehisteq=False,
                          config='hi',
                          scriptbin='/foo',
@@ -76,8 +76,8 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_tile_width(), 500)
         self.assertEqual(opts.get_overlap_height(), 30)
         self.assertEqual(opts.get_overlap_width(), 20)
-        self.assertEqual(opts.get_number_jobs_per_node(), 12)
-        self.assertEqual(opts.get_number_tiles_per_job(), 122)
+        self.assertEqual(opts.get_number_tasks_per_node(), 12)
+        self.assertEqual(opts.get_number_tiles_per_task(), 122)
         self.assertEqual(opts.get_disable_histogram_eq_val(), False)
         self.assertEqual(opts.get_config(), 'hi')
         self.assertEqual(opts.get_job_config(),
@@ -85,11 +85,11 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_batchedjob_config_file_path(),
                          os.path.join('out',
                                       CHMJobCreator.
-                                      CONFIG_BATCHED_JOBS_FILE_NAME))
+                                      CONFIG_BATCHED_TASKS_FILE_NAME))
         self.assertEqual(opts.get_batched_mergejob_config_file_path(),
                          os.path.join('out',
                                       CHMJobCreator.
-                                      MERGE_CONFIG_BATCHED_JOBS_FILE_NAME))
+                                      MERGE_CONFIG_BATCHED_TASKS_FILE_NAME))
         self.assertEqual(opts.get_run_dir(),
                          os.path.join(opts.get_out_dir(),
                                       CHMJobCreator.RUN_DIR))

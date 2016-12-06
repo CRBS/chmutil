@@ -52,13 +52,13 @@ def _parse_arguments(desc, args):
                         help='If set tells CHM NOT to do internal histogram '
                              'equalization')
 
-    parser.add_argument('--tilesperjob', default='50', type=int,
-                        help='Number of tiles to run per job. Lower numbers '
-                             'mean each job runs faster, but results in '
-                             'more jobs. (default 50)')
-
-    parser.add_argument('--jobspernode', default=0, type=int,
-                        help='Overrides number of jobs to run concurrently '
+    parser.add_argument('--tilespertask', '--jobspertask', dest='tilespertask',
+                        default='50', type=int,
+                        help='Number of tiles to run per task. Lower numbers '
+                             'mean each task runs faster, but results in '
+                             'more task. (default 50)')
+    parser.add_argument('--taskspernode', '--jobspernode', default=0, type=int,
+                        help='Overrides number of tasks to run concurrently '
                              'on a single compute node. (default is 0 '
                              'which tells script to set this value to a '
                              'number appropriate for cluster set '
@@ -88,7 +88,7 @@ def _create_chm_job(theargs):
     try:
         cluster_fac = ClusterFactory()
         cluster = cluster_fac.get_cluster_by_name(theargs.cluster)
-        jobspernode = cluster.get_suggested_jobs_per_node(theargs.jobspernode)
+        taskspernode = cluster.get_suggested_tasks_per_node(theargs.taskspernode)
 
         con = CHMConfig(os.path.abspath(theargs.images),
                         os.path.abspath(theargs.model),
@@ -96,14 +96,15 @@ def _create_chm_job(theargs):
                         theargs.tilesize,
                         theargs.overlapsize,
                         disablehisteq=theargs.disablechmhisteq,
-                        number_tiles_per_job=theargs.tilesperjob,
-                        jobs_per_node=jobspernode,
+                        number_tiles_per_task=theargs.tilespertask,
+                        tasks_per_node=taskspernode,
                         chmbin=os.path.abspath(theargs.chmbin),
                         scriptbin=os.path.dirname(theargs.program),
                         walltime=theargs.walltime,
                         jobname=theargs.jobname,
                         mergejobname='merge' + theargs.jobname,
-                        version=chmutil.__version__)
+                        version=chmutil.__version__,
+                        cluster=theargs.cluster)
 
         creator = CHMJobCreator(con)
         creator.create_job()
@@ -138,7 +139,7 @@ def main(arglist):
               as well as reduce the memory footprint of CHM which gets huge on
               tiles larger then 1000x1000. For example tiles of 500x500 easily
               use 4 to 6 gigabytes of ram. These tiles are stored on the
-              filesystem under <outdir>/{rundir}/<image.png> directories
+              filesystem under <outdir>/{rundir}/{tiles}/<image.png> directories
               desribed below.
 
               In the SECOND phase merge tasks are run which combine the tiles
@@ -175,6 +176,7 @@ def main(arglist):
                     overlapsize = 0x0
                     disablehisteqimages = False
                     jobspernode = 1
+                    cluster = rocce
 
                     Example task:
 
@@ -193,11 +195,16 @@ def main(arglist):
               {rundir}/
                   -- Directory containing output of job
 
+              {rundir}/{tiles}
+                  -- Directory containing a directory for every
+                     image where the intermediate tile images can
+                     be written
+
               {rundir}/{stdout}
-                  -- Directory containing output from CHM jobs
+                  -- Directory containing output from CHM tasks
 
               {rundir}/{mergestdout}
-                 -- Directory containing output from merge jobs
+                 -- Directory containing output from merge tasks
 
               {rundir}/{tmp}
                  -- Directory used to hold temporary CHM outputs
@@ -220,6 +227,7 @@ def main(arglist):
 
               createchmjob.py ./images ./model ./mychmjob
 
+              Once job is created invoke checkchmjob.py for job submission.
               """.format(version=chmutil.__version__,
                          config=CHMJobCreator.CONFIG_FILE_NAME,
                          mergeconfig=CHMJobCreator.MERGE_CONFIG_FILE_NAME,
@@ -228,7 +236,8 @@ def main(arglist):
                          mergestdout=CHMJobCreator.MERGE_STDOUT_DIR,
                          tmp=CHMJobCreator.TMP_DIR,
                          probmaps=CHMJobCreator.PROBMAPS_DIR,
-                         overlaymaps=CHMJobCreator.OVERLAYMAPS_DIR)
+                         overlaymaps=CHMJobCreator.OVERLAYMAPS_DIR,
+                         tiles=CHMJobCreator.TILES_DIR)
 
     theargs = _parse_arguments(desc, arglist[1:])
     theargs.program = arglist[0]

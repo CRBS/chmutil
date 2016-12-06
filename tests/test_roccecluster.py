@@ -15,6 +15,7 @@ import shutil
 
 from chmutil.core import CHMConfig
 from chmutil.cluster import RocceCluster
+from chmutil.core import CHMJobCreator
 
 
 class TestRocceCluster(unittest.TestCase):
@@ -42,14 +43,14 @@ class TestRocceCluster(unittest.TestCase):
     def test_get_merge_runner_path(self):
         rc = RocceCluster(None)
         self.assertEqual(rc._get_merge_runner_path(),
-                         RocceCluster.MERGERUNNER)
+                         CHMJobCreator.MERGERUNNER)
 
         opts = CHMConfig('images', 'model', 'out',
                          '500x500', '20x20',scriptbin='foo')
         rc = RocceCluster(opts)
         self.assertEqual(rc._get_merge_runner_path(),
                          os.path.join('foo',
-                                      RocceCluster.MERGERUNNER))
+                                      CHMJobCreator.MERGERUNNER))
 
     def test_get_submit_script_path(self):
         opts = CHMConfig('images', 'model', 'out',
@@ -68,20 +69,20 @@ class TestRocceCluster(unittest.TestCase):
     def test_get_chm_runner_path(self):
         gen = RocceCluster(None)
         self.assertEqual(gen._get_chm_runner_path(),
-                         RocceCluster.CHMRUNNER)
+                         CHMJobCreator.CHMRUNNER)
 
         opts = CHMConfig('images', 'model', 'out',
                          '500x500', '20x20')
         gen = RocceCluster(opts)
         self.assertEqual(gen._get_chm_runner_path(),
-                         RocceCluster.CHMRUNNER)
+                         CHMJobCreator.CHMRUNNER)
 
         opts = CHMConfig('images', 'model', 'out',
                          '500x500', '20x20',
                          scriptbin='/home/foo/.local/bin')
         gen = RocceCluster(opts)
         spath = os.path.join('/home/foo/.local/bin',
-                             RocceCluster.CHMRUNNER)
+                             CHMJobCreator.CHMRUNNER)
         self.assertEqual(gen._get_chm_runner_path(),
                          spath)
 

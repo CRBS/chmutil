@@ -63,10 +63,11 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             config.set('', CHMJobCreator.CONFIG_MODEL, 'model')
             config.set('', CHMJobCreator.CONFIG_TILE_SIZE, '500x600')
             config.set('', CHMJobCreator.CONFIG_OVERLAP_SIZE, '10x20')
-            config.set('', CHMJobCreator.CONFIG_TILES_PER_JOB, 'tilesperjob')
-            config.set('', CHMJobCreator.CONFIG_JOBS_PER_NODE, 'jobspernode')
+            config.set('', CHMJobCreator.CONFIG_TILES_PER_TASK, 'tilesperjob')
+            config.set('', CHMJobCreator.CONFIG_TASKS_PER_NODE, 'jobspernode')
             config.set('', CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES, 'True')
             config.set('', CHMJobCreator.CONFIG_CHM_BIN, 'chmbin')
+            config.set('', CHMJobCreator.CONFIG_CLUSTER, 'mycluster')
             f = open(cfile, 'w')
             config.write(f)
             f.flush()
@@ -80,9 +81,9 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             self.assertEqual(chmconfig.get_disable_histogram_eq_val(), True)
             self.assertEqual(chmconfig.get_images(), 'images')
             self.assertEqual(chmconfig.get_model(), 'model')
-            self.assertEqual(chmconfig.get_number_jobs_per_node(),
+            self.assertEqual(chmconfig.get_number_tasks_per_node(),
                              'jobspernode')
-            self.assertEqual(chmconfig.get_number_tiles_per_job(),
+            self.assertEqual(chmconfig.get_number_tiles_per_task(),
                              'tilesperjob')
             self.assertEqual(chmconfig.get_tile_height(), 600)
             self.assertEqual(chmconfig.get_tile_width(), 500)
@@ -90,6 +91,7 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             self.assertEqual(chmconfig.get_overlap_height(), 20)
             self.assertEqual(chmconfig.get_overlap_width(), 10)
             self.assertEqual(chmconfig.get_overlap_size(), '10x20')
+            self.assertEqual(chmconfig.get_cluster(), 'mycluster')
 
             config.set('', CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES, 'False')
             f = open(cfile, 'w')
@@ -109,6 +111,7 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
                                  CHMJobCreator.MERGE_CONFIG_FILE_NAME)
             config = configparser.ConfigParser()
             config.set('', CHMJobCreator.CONFIG_IMAGES, 'images')
+            config.set('', CHMJobCreator.CONFIG_CLUSTER, 'yocluster')
             f = open(cfile, 'w')
             config.write(f)
             f.flush()
@@ -123,6 +126,11 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             self.assertEqual(mcon.get(CHMJobCreator.CONFIG_DEFAULT,
                                       CHMJobCreator.CONFIG_IMAGES),
                              'images')
+            self.assertEqual(mcon.get(CHMJobCreator.CONFIG_DEFAULT,
+                                      CHMJobCreator.CONFIG_CLUSTER),
+                             'yocluster')
+            self.assertEqual(chmconfig.get_cluster(), 'yocluster')
+
         finally:
             shutil.rmtree(temp_dir)
 

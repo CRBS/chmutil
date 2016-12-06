@@ -213,16 +213,17 @@ class CHMJobCreator(object):
     """Creates CHM Job to run on cluster
     """
     JOB_DIR = 'jobdir'
-    CONFIG_FILE_NAME = 'base.chm.jobs.list'
-    CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.chm.jobs.list'
-    MERGE_CONFIG_FILE_NAME = 'base.merge.jobs.list'
-    MERGE_CONFIG_BATCHED_JOBS_FILE_NAME = 'batched.merge.jobs.list'
+    CONFIG_FILE_NAME = 'base.chm.tasks.list'
+    CONFIG_BATCHED_TASKS_FILE_NAME = 'batched.chm.tasks.list'
+    MERGE_CONFIG_FILE_NAME = 'base.merge.tasks.list'
+    MERGE_CONFIG_BATCHED_TASKS_FILE_NAME = 'batched.merge.tasks.list'
     MERGE_INPUT_IMAGE_DIR = 'inputimagedir'
     MERGE_OUTPUT_IMAGE = 'outputimage'
     MERGE_OUTPUT_OVERLAY_IMAGE = 'overlayoutputimage'
     MERGE_MERGETILES_BIN = 'mergetilesbin'
     RUN_DIR = 'chmrun'
     STDOUT_DIR = 'stdout'
+    TILES_DIR = 'tiles'
     MERGE_STDOUT_DIR = 'mergestdout'
     PROBMAPS_DIR = 'probmaps'
     OVERLAYMAPS_DIR = 'overlaymaps'
@@ -235,12 +236,17 @@ class CHMJobCreator(object):
     CONFIG_IMAGES = 'images'
     CONFIG_MODEL = 'model'
     BCONFIG_TASK_ID = 'taskids'
-    CONFIG_TILES_PER_JOB = 'tilesperjob'
+    CONFIG_TILES_PER_TASK = 'tilespertask'
     CONFIG_TILE_SIZE = 'tilesize'
     CONFIG_OVERLAP_SIZE = 'overlapsize'
     CONFIG_DISABLE_HISTEQ_IMAGES = 'disablehisteqimages'
-    CONFIG_JOBS_PER_NODE = 'jobspernode'
+    CONFIG_TASKS_PER_NODE = 'taskspernode'
     CHMUTIL_VERSION = 'chmutilversion'
+    CONFIG_CLUSTER = 'cluster'
+    CHMRUNNER = 'chmrunner.py'
+    MERGERUNNER = 'mergetilerunner.py'
+    CHECKCHMJOB = 'checkchmjob.py'
+
 
     def __init__(self, chmopts):
         """Constructor
@@ -261,16 +267,18 @@ class CHMJobCreator(object):
         config.set('', CHMJobCreator.CONFIG_CHM_BIN,
                    self._chmopts.get_chm_binary())
         config.set('', CHMJobCreator.CONFIG_MODEL, self._chmopts.get_model())
-        config.set('', CHMJobCreator.CONFIG_TILES_PER_JOB,
-                   str(self._chmopts.get_number_tiles_per_job()))
+        config.set('', CHMJobCreator.CONFIG_TILES_PER_TASK,
+                   str(self._chmopts.get_number_tiles_per_task()))
         config.set('', CHMJobCreator.CONFIG_TILE_SIZE,
                    str(self._chmopts.get_tile_size()))
         config.set('', CHMJobCreator.CONFIG_OVERLAP_SIZE,
                    str(self._chmopts.get_overlap_size()))
         config.set('', CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES,
                    str(self._chmopts.get_disable_histogram_eq_val()))
-        config.set('', CHMJobCreator.CONFIG_JOBS_PER_NODE,
-                   str(self._chmopts.get_number_jobs_per_node()))
+        config.set('', CHMJobCreator.CONFIG_TASKS_PER_NODE,
+                   str(self._chmopts.get_number_tasks_per_node()))
+        config.set('', CHMJobCreator.CONFIG_CLUSTER,
+                   str(self._chmopts.get_cluster()))
         return config
 
     def _write_config(self, config):
@@ -300,6 +308,8 @@ class CHMJobCreator(object):
                    self._chmopts.get_images())
         config.set('', CHMJobCreator.JOB_DIR,
                    self._chmopts.get_out_dir())
+        config.set('', CHMJobCreator.CONFIG_CLUSTER,
+                   str(self._chmopts.get_cluster()))
         return config
 
     def _write_merge_config(self, config):
@@ -349,11 +359,13 @@ class CHMJobCreator(object):
                         mode=0o775)
             os.makedirs(os.path.join(run_dir, CHMJobCreator.OVERLAYMAPS_DIR),
                         mode=0o775)
+            os.makedirs(os.path.join(run_dir, CHMJobCreator.TILES_DIR),
+                        mode=0o775)
 
         return run_dir
 
-    def _add_job_for_image_to_config(self, config, counter_as_str,
-                                     i_name, img_cntr, theargs):
+    def _add_task_for_image_to_config(self, config, counter_as_str,
+                                      i_name, img_cntr, theargs):
         """Adds job to config object
         :param config: configparser config object to add job to
         :param counter_as_str: Counter used in string form
@@ -369,10 +381,11 @@ class CHMJobCreator(object):
         config.set(counter_as_str, CHMJobCreator.CONFIG_ARGS,
                    ' '.join(theargs))
         config.set(counter_as_str, CHMJobCreator.CONFIG_OUTPUT_IMAGE,
-                   os.path.join(i_name, str(img_cntr).zfill(3) + '.' + i_name))
+                   os.path.join(CHMJobCreator.TILES_DIR, i_name,
+                                str(img_cntr).zfill(3) + '.' + i_name))
 
-    def _add_mergejob_for_image_to_config(self, config, counter_as_str,
-                                          run_dir, image_tile_dir, image_name):
+    def _add_mergetask_for_image_to_config(self, config, counter_as_str,
+                                           run_dir, image_tile_dir, image_name):
         """Adds merge job to config object
         :param config: configparser config object to add merge job to
         :param counter_as_str: Counter used in string form
@@ -381,7 +394,7 @@ class CHMJobCreator(object):
         """
         config.add_section(counter_as_str)
         config.set(counter_as_str, CHMJobCreator.MERGE_INPUT_IMAGE_DIR,
-                   image_name)
+                   os.path.join(CHMJobCreator.TILES_DIR,image_name))
         config.set(counter_as_str, CHMJobCreator.MERGE_OUTPUT_IMAGE,
                    os.path.join(CHMJobCreator.PROBMAPS_DIR,
                                 image_name))
@@ -408,13 +421,13 @@ class CHMJobCreator(object):
         for iis in imagestats:
             i_dir, i_name = self._create_output_image_dir(iis, run_dir)
             img_cntr = 1
-            self._add_mergejob_for_image_to_config(mergeconfig,
-                                                   str(mergecounter), run_dir,
-                                                   i_dir, i_name)
+            self._add_mergetask_for_image_to_config(mergeconfig,
+                                                    str(mergecounter), run_dir,
+                                                    i_dir, i_name)
             for a in arg_gen.get_args(iis):
                 counter_as_str = str(counter)
-                self._add_job_for_image_to_config(config, counter_as_str,
-                                                  i_name, img_cntr, a)
+                self._add_task_for_image_to_config(config, counter_as_str,
+                                                   i_name, img_cntr, a)
                 counter += 1
                 img_cntr += 1
             mergecounter += 1
@@ -432,8 +445,8 @@ class CHMConfig(object):
     def __init__(self, images, model, outdir,
                  tile_size,
                  overlap_size,
-                 number_tiles_per_job=1,
-                 jobs_per_node=1,
+                 number_tiles_per_task=1,
+                 tasks_per_node=1,
                  disablehisteq=True,
                  chmbin='./chm-0.1.0.img',
                  scriptbin='',
@@ -445,6 +458,7 @@ class CHMConfig(object):
                  max_chm_memory_in_gb=10,
                  max_merge_memory_in_gb=10,
                  version='unknown',
+                 cluster='rocce',
                  config=None,
                  mergeconfig=None):
         """Constructor
@@ -456,8 +470,8 @@ class CHMConfig(object):
         self._overlap_size = overlap_size
         self._parse_and_set_tile_width_height(tile_size)
         self._parse_and_set_overlap_width_height(overlap_size)
-        self._number_tiles_per_job = number_tiles_per_job
-        self._jobs_per_node = jobs_per_node
+        self._number_tiles_per_job = number_tiles_per_task
+        self._jobs_per_node = tasks_per_node
         self._disablehisteq = disablehisteq
         self._chmbin = chmbin
         self._scriptbin = scriptbin
@@ -471,6 +485,7 @@ class CHMConfig(object):
         self._version = version
         self._config = config
         self._mergeconfig = mergeconfig
+        self._cluster = cluster
 
     def _extract_width_and_height(self, val):
         """parses WxH value into tuple
@@ -498,6 +513,11 @@ class CHMConfig(object):
         self._overlap_width = w
         self._overlap_height = h
         return
+
+    def get_cluster(self):
+        """Gets the cluster the CHM job is running on
+        """
+        return self._cluster
 
     def get_max_chm_memory_in_gb(self):
         """Gets maximum memory a CHM job will use
@@ -579,17 +599,17 @@ class CHMConfig(object):
         """Gets path to batched job config
         """
         if self.get_out_dir() is None:
-            return CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME
+            return CHMJobCreator.CONFIG_BATCHED_TASKS_FILE_NAME
         return os.path.join(self.get_out_dir(),
-                            CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME)
+                            CHMJobCreator.CONFIG_BATCHED_TASKS_FILE_NAME)
 
     def get_batched_mergejob_config_file_path(self):
         """Gets path to batched merge job config
         """
         if self.get_out_dir() is None:
-            return CHMJobCreator.MERGE_CONFIG_BATCHED_JOBS_FILE_NAME
+            return CHMJobCreator.MERGE_CONFIG_BATCHED_TASKS_FILE_NAME
         return os.path.join(self.get_out_dir(),
-                            CHMJobCreator.MERGE_CONFIG_BATCHED_JOBS_FILE_NAME)
+                            CHMJobCreator.MERGE_CONFIG_BATCHED_TASKS_FILE_NAME)
 
     def get_disable_histogram_eq_val(self):
         """gets boolean to indicate whether chm should
@@ -666,12 +686,12 @@ class CHMConfig(object):
         """
         return self._overlap_height
 
-    def get_number_tiles_per_job(self):
+    def get_number_tiles_per_task(self):
         """returns number of tiles per job
         """
         return self._number_tiles_per_job
 
-    def get_number_jobs_per_node(self):
+    def get_number_tasks_per_node(self):
         """gets desired number jobs per node
         """
         return self._jobs_per_node
@@ -733,26 +753,40 @@ class CHMConfigFromConfigFactory(object):
 
         if config is None:
             logger.debug('Config is None')
+
+            if mergecon is not None:
+
+                cluster = mergecon.get(default,
+                                       CHMJobCreator.CONFIG_CLUSTER)
+                logger.debug('Setting cluster to ' + str(cluster))
+                return CHMConfig(None, None, self._job_dir,
+                                 None, None, cluster=cluster,
+                                 mergeconfig=mergecon)
+
+            logger.error('Mergeconfig is None')
             return CHMConfig(None, None, self._job_dir,
                              None, None, mergeconfig=mergecon)
 
         disablehisteq = config.getboolean(default,
                                           CHMJobCreator.
                                           CONFIG_DISABLE_HISTEQ_IMAGES)
+        cluster = config.get(default,
+                             CHMJobCreator.CONFIG_CLUSTER)
         opts = CHMConfig(config.get(default, CHMJobCreator.CONFIG_IMAGES),
                          config.get(default, CHMJobCreator.CONFIG_MODEL),
                          self._job_dir,
                          config.get(default, CHMJobCreator.CONFIG_TILE_SIZE),
                          config.get(default, CHMJobCreator.
                                     CONFIG_OVERLAP_SIZE),
-                         number_tiles_per_job=config.get(default,
-                                                         CHMJobCreator.
-                                                         CONFIG_TILES_PER_JOB),
-                         jobs_per_node=config.get(default, CHMJobCreator.
-                                                  CONFIG_JOBS_PER_NODE),
+                         number_tiles_per_task=config.get(default,
+                                                          CHMJobCreator.
+                                                          CONFIG_TILES_PER_TASK),
+                         tasks_per_node=config.get(default, CHMJobCreator.
+                                                   CONFIG_TASKS_PER_NODE),
                          disablehisteq=disablehisteq,
                          chmbin=config.get(default, CHMJobCreator.
                                            CONFIG_CHM_BIN),
+                         cluster=cluster,
                          config=config,
                          mergeconfig=mergecon)
         return opts
@@ -861,7 +895,7 @@ class CHMArgGenerator(object):
                 tile_list.append('-t ' + str(c) + ',' + str(r))
         total = tiles_w * tiles_h
         split_list = []
-        t_per_job = self._chmopts.get_number_tiles_per_job()
+        t_per_job = self._chmopts.get_number_tiles_per_task()
 
         for ts in range(0, total, t_per_job):
             split_list.append(tile_list[ts:ts+t_per_job])

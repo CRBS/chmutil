@@ -8,7 +8,6 @@ import shutil
 import configparser
 from configparser import NoOptionError
 
-
 from chmutil.core import CHMJobCreator
 
 logger = logging.getLogger(__name__)
@@ -20,17 +19,117 @@ class InvalidConfigFileError(Exception):
     pass
 
 
-class CHMJobChecker(object):
+class InvalidTaskListError(Exception):
+    """Raised if invalid task list is used
+    """
+    pass
+
+
+class TaskStats(object):
+    """Container object that holds information about
+       runtime performance of a set of tasks
+    """
+    def __init__(self):
+        """Constructor
+        """
+        self._completed_task_count = 0
+        self._total_task_count = 0
+
+    def set_completed_task_count(self, count):
+        """sets number of completed tasks
+        :param count: number of completed tasks
+        """
+        self._completed_task_count = count
+
+    def get_completed_task_count(self):
+        """gets number of completed tasks
+        :returns: number of completed tasks
+        """
+        return self._completed_task_count
+
+    def set_total_task_count(self, count):
+        """sets total number of tasks
+        :param count: total number of tasks
+        """
+        self._completed_task_count = count
+
+    def get_total_task_count(self):
+        """returns total tasks count
+        """
+        return self._total_task_count
+
+
+class TaskSummary(object):
+    """Summary of a CHM job
+    """
+
+    def __init__(self, chmconfig, chm_task_stats=None,
+                 merge_task_stats=None):
+        """Constructor
+        """
+        self._chmconfig = chmconfig
+        self._chm_task_summary = self.\
+            _get_summary_from_task_stats(chm_task_stats)
+        self._merge_task_summary = self.\
+            _get_summary_from_task_stats(merge_task_stats)
+
+    def _get_summary_from_task_stats(self, task_stats):
+        """Creates a summary string from `task_stats` object
+        :param task_stats: TaskStats object
+        :returns For valid `TaskStats` object this method will return a
+                 string of form #% complete (# of # completed) otherwise
+                 a string containing NA will be returned
+        """
+        if task_stats is None:
+            return 'NA'
+
+        total = task_stats.get_total_task_count()
+        if total <= 0:
+            return 'Total number of tasks is >= 0'
+
+        completed = task_stats.get_completed_task_count()
+        pc_complete_str = '{:.2%}'.format(completed/total)
+        completed_str = '{:,}'.format(completed)
+        total_str = '{:,}'.format(total)
+        return (pc_complete_str + ' complete (' + completed_str + ' of ' +
+                total_str + ' completed)')
+
+    def get_summary(self):
+        """Gets the summary of CHM job in human readable form
+        """
+        val = ('chmutil version: ' + self._chmconfig.get_version() + '\n' +
+               'Tiles: ' + self._chmconfig.get_tile_size() + ' with ' +
+               self._chmconfig.get_overlap_size() + ' overlap\n' +
+               'Disable histogram equalization in CHM: ' +
+               str(self._chmconfig.get_disable_histogram_eq_val()) + '\n' +
+               'Tasks: ' + str(self._chmconfig.get_number_tiles_per_task()) +
+               ' tiles per task, ' + str(self._chmconfig.get_jobs_per_node()) +
+               ' tasks(s) per node\nTrained CHM model: ' +
+               self._chmconfig.get_model() + '\nCHM binary: ' +
+               self._chmconfig.get_chm_binary() + '\n\n' + 'CHM tasks: ' +
+               self._chm_task_summary + '\nMerge tasks: ' +
+               self._merge_task_summary + '\n')
+
+
+class TaskSummaryFactory(object):
+    """Examines CHM Job and creates JobSummary object
+       which contains summary information about the
+       job.
+    """
+    pass
+
+
+class CHMTaskChecker(object):
     """Checks and returns incomplete CHM Jobs
     """
     def __init__(self, config):
         self._config = config
 
-    def get_incomplete_jobs_list(self):
+    def get_incomplete_tasks_list(self):
         """gets list of incomplete jobs
         """
         config = self._config
-        job_list = []
+        task_list = []
 
         try:
             jobdir = config.get(CHMJobCreator.CONFIG_DEFAULT,
@@ -46,24 +145,29 @@ class CHMJobChecker(object):
                 out_file = os.path.join(jobdir, CHMJobCreator.RUN_DIR,
                                         out_file)
             if not os.path.isfile(out_file):
-                job_list.append(s)
+                task_list.append(s)
 
-        logger.info('Found ' + str(len(job_list)) + ' of ' +
-                    str(len(config.sections())) + ' to be incomplete jobs')
-        return job_list
+        logger.info('Found ' + str(len(task_list)) + ' of ' +
+                    str(len(config.sections())) + ' to be incomplete tasks')
+        return task_list
 
 
-class MergeJobChecker(object):
+class MergeTaskChecker(object):
     """Checks and returns incomplete Merge Jobs
     """
     def __init__(self, config):
+        """Constructor
+        :param config: Should be `configparser.ConfigParser` object
+                       loaded from Merge task configuration file
+                       as obtained from `CHMConfig.get_merge_config()
+        """
         self._config = config
 
-    def get_incomplete_jobs_list(self):
+    def get_incomplete_tasks_list(self):
         """gets list of incomplete jobs
         """
         config = self._config
-        job_list = []
+        task_list = []
 
         try:
             jobdir = config.get(CHMJobCreator.CONFIG_DEFAULT,
@@ -79,25 +183,24 @@ class MergeJobChecker(object):
                 out_file = os.path.join(jobdir, CHMJobCreator.RUN_DIR,
                                         out_file)
             if not os.path.isfile(out_file):
-                job_list.append(s)
+                task_list.append(s)
 
-        logger.info('Found ' + str(len(job_list)) + ' of ' +
-                    str(len(config.sections())) + ' to be incomplete jobs')
-        return job_list
+        logger.info('Found ' + str(len(task_list)) + ' of ' +
+                    str(len(config.sections())) + ' to be incomplete tasks')
+        return task_list
 
 
-class BatchedJobsListGenerator(object):
+class BatchedTasksListGenerator(object):
     """Creates Batched Jobs List file used by chmrunner.py
     """
     OLD_SUFFIX = '.old'
 
-    def __init__(self, job_checker, jobs_per_node):
+    def __init__(self, tasks_per_node):
         """Constructor
         """
-        self._jobchecker = job_checker
-        self._jobs_per_node = int(jobs_per_node)
+        self._tasks_per_node = int(tasks_per_node)
 
-    def _write_batched_job_config(self, bconfig, configfile):
+    def _write_batched_task_config(self, bconfig, configfile):
         """Writes out batched job config
         """
 
@@ -105,7 +208,7 @@ class BatchedJobsListGenerator(object):
             logger.debug('Previous batched job config file found. '
                          'Appending .old suffix')
             shutil.move(configfile, configfile +
-                        BatchedJobsListGenerator.OLD_SUFFIX)
+                        BatchedTasksListGenerator.OLD_SUFFIX)
 
         logger.debug('Writing batched job config file to ' + configfile)
         f = open(configfile, 'w')
@@ -113,33 +216,38 @@ class BatchedJobsListGenerator(object):
         f.flush()
         f.close()
 
-    def generate_batched_jobs_list(self, configfile):
+    def write_batched_config(self, configfile, task_list):
         """Examines chm jobs list and looks for
         incomplete jobs. The incomplete jobs are written
         into `CHMJobCreator.CONFIG_BATCHED_JOBS_FILE_NAME` batched by number
         of jobs per node set in `CHMJobCreator.CONFIG_FILE_NAME`
+        :param configfile: file path to write configuration file to
+        :raises InvalidConfigFileError: if configfile parameter is None
+        :raises InvalidTaskListError: if task_list parameter is None
         :returns: Number of jobs that need to be run
         """
         if configfile is None:
             raise InvalidConfigFileError('configfile passed in cannot be null')
 
-        job_list = self._jobchecker.get_incomplete_jobs_list()
-        if len(job_list) is 0:
-            logger.debug('All jobs complete')
+        if task_list is None:
+            raise InvalidTaskListError('task list cannot be None')
+
+        if len(task_list) is 0:
+            logger.debug('All tasks complete')
             return 0
 
         bconfig = configparser.ConfigParser()
 
-        total = len(job_list)
-        job_counter = 1
-        for j in range(0, total, self._jobs_per_node):
-            bconfig.add_section(str(job_counter))
-            bconfig.set(str(job_counter), CHMJobCreator.BCONFIG_TASK_ID,
-                        ','.join(job_list[j:j+self._jobs_per_node]))
-            job_counter += 1
+        total = len(task_list)
+        task_counter = 1
+        for j in range(0, total, self._tasks_per_node):
+            bconfig.add_section(str(task_counter))
+            bconfig.set(str(task_counter), CHMJobCreator.BCONFIG_TASK_ID,
+                        ','.join(task_list[j:j+self._tasks_per_node]))
+            task_counter += 1
 
-        self._write_batched_job_config(bconfig, configfile)
-        return job_counter-1
+        self._write_batched_task_config(bconfig, configfile)
+        return task_counter-1
 
 
 class RocceCluster(object):
@@ -147,10 +255,7 @@ class RocceCluster(object):
     """
     CLUSTER = 'rocce'
     SUBMIT_SCRIPT_NAME = 'runjobs.' + CLUSTER
-    MERGE_SUBMIT_SCRIPT_NAME = 'runmerge' + CLUSTER
-    CHMRUNNER = 'chmrunner.py'
-    MERGERUNNER = 'mergetilerunner.py'
-    RUNCHMJOB = 'runchmjob.py'
+    MERGE_SUBMIT_SCRIPT_NAME = 'runmerge.' + CLUSTER
     DEFAULT_JOBS_PER_NODE = 1
 
     def __init__(self, chmconfig):
@@ -165,21 +270,21 @@ class RocceCluster(object):
         """
         self._chmconfig = chmconfig
 
-    def get_suggested_jobs_per_node(self, jobs_per_node):
-        """Returns suggested jobs per node for cluster
+    def get_suggested_tasks_per_node(self, jobs_per_node):
+        """Returns suggested tasks per node for cluster
         :returns: 1 as int
         """
         if jobs_per_node is None:
-            logger.debug('Using default since jobs per node is None')
+            logger.debug('Using default since tasks per node is None')
             return RocceCluster.DEFAULT_JOBS_PER_NODE
 
         if jobs_per_node <= 0:
-            logger.debug('Using default since jobs per node is 0 or less')
+            logger.debug('Using default since tasks per node is 0 or less')
             return RocceCluster.DEFAULT_JOBS_PER_NODE
         try:
             return int(jobs_per_node)
         except ValueError:
-            logger.debug('Using default since jobs per int conversion failed')
+            logger.debug('Using default since tasks per int conversion failed')
             return RocceCluster.DEFAULT_JOBS_PER_NODE
 
     def get_cluster(self):
@@ -213,17 +318,17 @@ class RocceCluster(object):
         :return: path to chmrunner.py
         """
         if self._chmconfig is None:
-            return RocceCluster.CHMRUNNER
+            return CHMJobCreator.CHMRUNNER
         return os.path.join(self._chmconfig.get_script_bin(),
-                            RocceCluster.CHMRUNNER)
+                            CHMJobCreator.CHMRUNNER)
 
     def _get_merge_runner_path(self):
         """gets path to mergetilerunner.py
         """
         if self._chmconfig is None:
-            return RocceCluster.MERGERUNNER
+            return CHMJobCreator.MERGERUNNER
         return os.path.join(self._chmconfig.get_script_bin(),
-                            RocceCluster.MERGERUNNER)
+                            CHMJobCreator.MERGERUNNER)
 
     def generate_submit_script(self):
         """Creates submit script and instructions for invocation
@@ -281,6 +386,8 @@ class RocceCluster(object):
         f.write('#$ -q all.q\n#$ -m n\n\n')
         f.write('echo "HOST: $HOSTNAME"\n')
         f.write('echo "DATE: `date`"\n\n')
+        f.write('echo "JOBID: $JOB_ID"\n')
+        f.write('echo "TASKID: $SGE_TASK_ID"\n')
         f.write('/usr/bin/time -p ' + run_script_path +
                 ' $SGE_TASK_ID ' + working_dir + ' --scratchdir ' +
                 tmp_dir + ' --log DEBUG\n')
@@ -294,14 +401,12 @@ class RocceCluster(object):
         return script
 
     def get_runchmjob_submit_command(self):
-        """Returns runchmjob.py command the user should run
-        :returns: string containing runchmjob.py the user should invoke
+        """Returns checkchmjob.py command the user should run
+        :returns: string containing checkchmjob.py the user should invoke
         """
         runchm =  os.path.join(self._chmconfig.get_script_bin(),
-                               RocceCluster.RUNCHMJOB)
-        val = (runchm + ' "' + self._chmconfig.get_out_dir() +
-               '" --cluster ' + self.get_cluster())
-        return val
+                               CHMJobCreator.CHECKCHMJOB)
+        return runchm + ' "' + self._chmconfig.get_out_dir()
 
     def get_chm_submit_command(self, number_jobs):
         """Returns submit command user should invoke

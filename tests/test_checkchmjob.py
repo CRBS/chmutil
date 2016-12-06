@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-test_runchmjob.py
+test_checkchmjob.py
 ----------------------------------
 
-Tests for `runchmjob.py`
+Tests for `checkchmjob.py`
 """
 
 import unittest
@@ -14,7 +14,7 @@ import tempfile
 import shutil
 from PIL import Image
 
-from chmutil import runchmjob
+from chmutil import checkchmjob
 from chmutil import createchmjob
 from chmutil.core import LoadConfigError
 from chmutil.core import CHMJobCreator
@@ -50,7 +50,7 @@ def create_successful_job(a_tmp_dir):
     return out
 
 
-class TestRunCHMJob(unittest.TestCase):
+class TestCheckCHMJob(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -62,7 +62,7 @@ class TestRunCHMJob(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             # test with bad args which should fail
-            val = runchmjob.main(['createchmjob.py', temp_dir])
+            val = checkchmjob.main(['createchmjob.py', temp_dir])
             self.fail('expected LoadConfigError')
         except LoadConfigError as e:
             config = os.path.join(temp_dir, CHMJobCreator.CONFIG_FILE_NAME)
@@ -73,18 +73,17 @@ class TestRunCHMJob(unittest.TestCase):
             shutil.rmtree(temp_dir)
 
     def test_parse_arguments(self):
-        pargs = runchmjob._parse_arguments('hi', ['1'])
+        pargs = checkchmjob._parse_arguments('hi', ['1'])
         self.assertEqual(pargs.jobdir, '1')
-        self.assertEqual(pargs.cluster, 'rocce')
 
     def test_run_chm_job_success(self):
         temp_dir = tempfile.mkdtemp()
         try:
             out = create_successful_job(temp_dir)
-            pargs = runchmjob._parse_arguments('hi', [out])
+            pargs = checkchmjob._parse_arguments('hi', [out])
             pargs.program = 'foo'
             pargs.version = '1.0.0'
-            val = runchmjob._run_chm_job(pargs)
+            val = checkchmjob._check_chm_job(pargs)
             self.assertEqual(val, 0)
         finally:
             shutil.rmtree(temp_dir)
@@ -93,7 +92,7 @@ class TestRunCHMJob(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             out = create_successful_job(temp_dir)
-            pargs = runchmjob._parse_arguments('hi', [out])
+            pargs = checkchmjob._parse_arguments('hi', [out])
             pargs.program = 'foo'
             pargs.version = '1.0.0'
             img_tile = os.path.join(out, CHMJobCreator.RUN_DIR,
@@ -101,21 +100,8 @@ class TestRunCHMJob(unittest.TestCase):
             size = 800, 800
             myimg = Image.new('L', size)
             myimg.save(img_tile, 'PNG')
-            val = runchmjob._run_chm_job(pargs)
+            val = checkchmjob._check_chm_job(pargs)
             self.assertEqual(val, 0)
-        finally:
-            shutil.rmtree(temp_dir)
-
-    def test_run_chm_job_invalid_cluster(self):
-        temp_dir = tempfile.mkdtemp()
-        try:
-            out = create_successful_job(temp_dir)
-            pargs = runchmjob._parse_arguments('hi', [out])
-            pargs.program = 'foo'
-            pargs.version = '1.0.0'
-            pargs.cluster = 'foo'
-            val = runchmjob._run_chm_job(pargs)
-            self.assertEqual(val, 2)
         finally:
             shutil.rmtree(temp_dir)
 

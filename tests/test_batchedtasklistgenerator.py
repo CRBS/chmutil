@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-test_batchedjoblistgenerator.py
+test_batchedtasklistgenerator.py
 ----------------------------------
 
-Tests for `BatchedJobsListGenerator` class
+Tests for `BatchedTasksListGenerator` class
 """
 
 import os
@@ -16,11 +16,12 @@ import configparser
 from mock import Mock
 
 from chmutil.cluster import CHMJobCreator
-from chmutil.cluster import BatchedJobsListGenerator
+from chmutil.cluster import BatchedTasksListGenerator
 from chmutil.cluster import InvalidConfigFileError
+from chmutil.cluster import InvalidTaskListError
 
 
-class TestBatchedJobsListGenerator(unittest.TestCase):
+class TestBatchedTasksListGenerator(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -28,34 +29,32 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_write_batched_job_config_no_preexisting_config(self):
+    def test_write_batched_task_config_no_preexisting_config(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            checker = Mock()
-            gen = BatchedJobsListGenerator(checker, 1)
+            gen = BatchedTasksListGenerator(1)
             cfile = os.path.join(temp_dir, 'foo.config')
             bconfig = configparser.ConfigParser()
             bconfig.set('', 'somekey', 'val')
 
-            gen._write_batched_job_config(bconfig, cfile)
+            gen._write_batched_task_config(bconfig, cfile)
             self.assertTrue(os.path.isfile(cfile))
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_write_batched_job_config_with_preexisting_config(self):
+    def test_write_batched_task_config_with_preexisting_config(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            checker = Mock()
-            gen = BatchedJobsListGenerator(checker, 1)
+            gen = BatchedTasksListGenerator(1)
             cfile = os.path.join(temp_dir, 'foo.config')
             bconfig = configparser.ConfigParser()
             bconfig.set('', 'somekey', 'val')
 
-            gen._write_batched_job_config(bconfig, cfile)
+            gen._write_batched_task_config(bconfig, cfile)
             self.assertTrue(os.path.isfile(cfile))
             bconfig.set('', 'somekey', 'anotherval')
-            gen._write_batched_job_config(bconfig, cfile)
-            ocfile = cfile + BatchedJobsListGenerator.OLD_SUFFIX
+            gen._write_batched_task_config(bconfig, cfile)
+            ocfile = cfile + BatchedTasksListGenerator.OLD_SUFFIX
             self.assertTrue(os.path.isfile(ocfile))
             bconfig.read(ocfile)
             self.assertEqual(bconfig.get('DEFAULT', 'somekey'), 'val')
@@ -65,36 +64,43 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_generate_batched_jobs_list_none_for_configfile(self):
-            checker = Mock()
-            gen = BatchedJobsListGenerator(checker, 1)
+    def test_generate_batched_tasks_list_none_for_configfile(self):
+            gen = BatchedTasksListGenerator(1)
             try:
-                gen.generate_batched_jobs_list(None)
+                gen.write_batched_config(None, None)
                 self.fail('Expected InvalidConfigFileError')
             except InvalidConfigFileError as e:
                 self.assertEqual(str(e), 'configfile passed in cannot be null')
 
-    def test_generate_batched_jobs_list_no_jobs(self):
+    def test_generate_batched_tasks_list_no_tasks(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            checker = Mock()
-            checker.get_incomplete_jobs_list = Mock(return_value=[])
-            gen = BatchedJobsListGenerator(checker, 1)
+            gen = BatchedTasksListGenerator(1)
             cfile = os.path.join(temp_dir, 'foo.config')
-            self.assertEqual(gen.generate_batched_jobs_list(cfile),
+            self.assertEqual(gen.write_batched_config(cfile, []),
                              0)
-
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_generate_batched_jobs_list_one_job_one_job_per_node(self):
+    def test_generate_batched_tasks_list_none_for_task_lists(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            checker = Mock()
-            checker.get_incomplete_jobs_list = Mock(return_value=['1'])
-            gen = BatchedJobsListGenerator(checker, 1)
+            gen = BatchedTasksListGenerator(1)
             cfile = os.path.join(temp_dir, 'foo.config')
-            self.assertEqual(gen.generate_batched_jobs_list(cfile), 1)
+            try:
+                gen.write_batched_config(cfile, None)
+                self.fail("Expected InvalidTaskListError")
+            except InvalidTaskListError as e:
+                self.assertEqual(str(e), 'task list cannot be None')
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_generate_batched_tasks_list_one_task_one_task_per_node(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            gen = BatchedTasksListGenerator(1)
+            cfile = os.path.join(temp_dir, 'foo.config')
+            self.assertEqual(gen.write_batched_config(cfile, ['1']), 1)
             self.assertTrue(os.path.isfile(cfile))
             bconfig = configparser.ConfigParser()
             bconfig.read(cfile)
@@ -104,14 +110,12 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_generate_batched_jobs_list_one_job_five_job_per_node(self):
+    def test_generate_batched_tasks_list_one_task_five_task_per_node(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            checker = Mock()
-            checker.get_incomplete_jobs_list = Mock(return_value=['1'])
-            gen = BatchedJobsListGenerator(checker, 5)
+            gen = BatchedTasksListGenerator(5)
             cfile = os.path.join(temp_dir, 'foo.config')
-            self.assertEqual(gen.generate_batched_jobs_list(cfile), 1)
+            self.assertEqual(gen.write_batched_config(cfile, ['1']), 1)
             self.assertTrue(os.path.isfile(cfile))
             bconfig = configparser.ConfigParser()
             bconfig.read(cfile)
@@ -121,14 +125,13 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_generate_batched_jobs_list_two_jobs_one_job_per_node(self):
+    def test_generate_batched_tasks_list_two_tasks_one_task_per_node(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            checker = Mock()
-            checker.get_incomplete_jobs_list = Mock(return_value=['1', '2'])
-            gen = BatchedJobsListGenerator(checker, 1)
+            gen = BatchedTasksListGenerator(1)
             cfile = os.path.join(temp_dir, 'foo.config')
-            self.assertEqual(gen.generate_batched_jobs_list(cfile), 2)
+            self.assertEqual(gen.write_batched_config(cfile,
+                                                      ['1', '2']), 2)
             self.assertTrue(os.path.isfile(cfile))
             bconfig = configparser.ConfigParser()
             bconfig.read(cfile)
@@ -142,14 +145,13 @@ class TestBatchedJobsListGenerator(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_generate_batched_jobs_list_two_jobs_two_job_per_node(self):
+    def test_generate_batched_tasks_list_two_tasks_two_task_per_node(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            checker = Mock()
-            checker.get_incomplete_jobs_list = Mock(return_value=['1', '2'])
-            gen = BatchedJobsListGenerator(checker, 2)
+            gen = BatchedTasksListGenerator(2)
             cfile = os.path.join(temp_dir, 'foo.config')
-            self.assertEqual(gen.generate_batched_jobs_list(cfile), 1)
+            self.assertEqual(gen.write_batched_config(cfile,
+                                                      ['1', '2']), 1)
             self.assertTrue(os.path.isfile(cfile))
             bconfig = configparser.ConfigParser()
             bconfig.read(cfile)

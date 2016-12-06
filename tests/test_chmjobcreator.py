@@ -38,16 +38,19 @@ class TestCHMJobCreator(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             opts = CHMConfig('/foo', 'model', temp_dir, '200x100',
-                             '20x20', jobs_per_node=20)
+                             '20x20', tasks_per_node=20)
             creator = CHMJobCreator(opts)
             con = creator._create_config()
 
             self.assertEqual(con.get('DEFAULT', 'model'), 'model')
-            self.assertEqual(con.get('DEFAULT', 'tilesperjob'), '1')
+            self.assertEqual(con.get('DEFAULT',
+                                     CHMJobCreator.CONFIG_TILES_PER_TASK), '1')
             self.assertEqual(con.get('DEFAULT', 'tilesize'), '200x100')
             self.assertEqual(con.get('DEFAULT', 'overlapsize'), '20x20')
             self.assertEqual(con.get('DEFAULT', 'disablehisteqimages'), 'True')
-            self.assertEqual(con.get('DEFAULT', 'jobspernode'), '20')
+            self.assertEqual(con.get('DEFAULT',
+                                     CHMJobCreator.CONFIG_TASKS_PER_NODE),
+                             '20')
             cfile = creator._write_config(con)
             self.assertEqual(os.path.isfile(cfile), True)
 
@@ -103,8 +106,8 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertEqual(i_dir, expected_i_dir)
             self.assertEqual(i_name, 'foo123.png')
 
-            creator._add_job_for_image_to_config(config, '12', i_name,
-                                                 2, ['-t 1,1'])
+            creator._add_task_for_image_to_config(config, '12', i_name,
+                                                  2, ['-t 1,1'])
             self.assertEqual(config.get('12',
                                         CHMJobCreator.CONFIG_INPUT_IMAGE),
                              'foo123.png')
@@ -113,7 +116,8 @@ class TestCHMJobCreator(unittest.TestCase):
                              '-t 1,1')
             self.assertEqual(config.get('12',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(i_name, '002.' + i_name))
+                             os.path.join(CHMJobCreator.TILES_DIR,
+                                          i_name, '002.' + i_name))
         finally:
             shutil.rmtree(temp_dir)
 
@@ -146,7 +150,8 @@ class TestCHMJobCreator(unittest.TestCase):
                              '-t 1,1')
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join('foo1.png', '001.foo1.png'))
+                             os.path.join(CHMJobCreator.TILES_DIR,
+                                          'foo1.png', '001.foo1.png'))
 
             self.assertEqual(config.get('1', CHMJobCreator.CONFIG_MODEL),
                              'model')
@@ -155,7 +160,7 @@ class TestCHMJobCreator(unittest.TestCase):
                                         CONFIG_DISABLE_HISTEQ_IMAGES),
                              'True')
             self.assertEqual(config.get('1',
-                                        CHMJobCreator.CONFIG_JOBS_PER_NODE),
+                                        CHMJobCreator.CONFIG_TASKS_PER_NODE),
                              '1')
 
         finally:
@@ -171,7 +176,7 @@ class TestCHMJobCreator(unittest.TestCase):
 
             opts = CHMConfig(image_dir, 'model',
                              temp_dir, '200x100', '0x0',
-                             number_tiles_per_job=5)
+                             number_tiles_per_task=5)
             creator = CHMJobCreator(opts)
             opts = creator.create_job()
             self.assertEqual(opts.get_out_dir(), temp_dir)
@@ -193,7 +198,8 @@ class TestCHMJobCreator(unittest.TestCase):
 
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join('foo1.png', '001.foo1.png'))
+                             os.path.join(CHMJobCreator.TILES_DIR,
+                                          'foo1.png', '001.foo1.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        'foo1.png')))
@@ -205,7 +211,8 @@ class TestCHMJobCreator(unittest.TestCase):
                              '-t 2,3')
             self.assertEqual(config.get('2',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join('foo1.png', '002.foo1.png'))
+                             os.path.join(CHMJobCreator.TILES_DIR,
+                                          'foo1.png', '002.foo1.png'))
 
             self.assertEqual(config.get('2', CHMJobCreator.CONFIG_MODEL),
                              'model')
@@ -214,7 +221,7 @@ class TestCHMJobCreator(unittest.TestCase):
                                         CONFIG_DISABLE_HISTEQ_IMAGES),
                              'True')
             self.assertEqual(config.get('2',
-                                        CHMJobCreator.CONFIG_JOBS_PER_NODE),
+                                        CHMJobCreator.CONFIG_TASKS_PER_NODE),
                              '1')
         finally:
             shutil.rmtree(temp_dir)
@@ -235,7 +242,7 @@ class TestCHMJobCreator(unittest.TestCase):
 
             opts = CHMConfig(image_dir, 'model',
                              temp_dir, '200x100', '0x0',
-                             number_tiles_per_job=5)
+                             number_tiles_per_task=5)
             creator = CHMJobCreator(opts)
             opts = creator.create_job()
             self.assertEqual(opts.get_out_dir(), temp_dir)
@@ -250,20 +257,23 @@ class TestCHMJobCreator(unittest.TestCase):
 
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join('foo1.png', '001.foo1.png'))
+                             os.path.join(CHMJobCreator.TILES_DIR,
+                                          'foo1.png', '001.foo1.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        'foo1.png')))
             self.assertEqual(config.get('3',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join('foo2.png', '001.foo2.png'))
+                             os.path.join(CHMJobCreator.TILES_DIR,
+                                          'foo2.png', '001.foo2.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        'foo2.png')))
 
             self.assertEqual(config.get('7',
                                         CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join('foo3.png', '004.foo3.png'))
+                             os.path.join(CHMJobCreator.TILES_DIR,
+                                          'foo3.png', '004.foo3.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        'foo3.png')))

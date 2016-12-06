@@ -51,14 +51,14 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-    scripts=['chmutil/createchmjob.py', 'chmutil/chmrunner.py',
-             'chmutil/runchmjob.py',
+    scripts=['chmutil/createchmjob.py',
+             'chmutil/checkchmjob.py',
              'chmutil/mergetiles.py',
              'chmutil/createchmimage.py',
              'chmutil/createprobmapoverlay.py',
              'chmutil/createtrainingmrcstack.py',
-             'chmutil/runmergejob.py',
-             'chmutil/mergetilerunner.py'],
+             'chmutil/mergetilerunner.py',
+             'chmutil/chmrunner.py'],
     test_suite='tests',
     tests_require=test_requirements
 )
