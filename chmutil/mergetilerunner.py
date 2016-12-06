@@ -79,7 +79,8 @@ def _run_single_merge_job(theargs, taskid):
     # TODO REFACTOR THIS INTO CLASS TO GENERATE CHM JOB COMMAND
     out_dir = None
     try:
-        out_dir = os.path.join(theargs.scratchdir, uuid.uuid4().hex)
+        out_dir = os.path.join(theargs.scratchdir, str(taskid) +
+                               '.' + uuid.uuid4().hex)
         config = configparser.ConfigParser()
         config.read(os.path.join(theargs.jobdir,
                     CHMJobCreator.MERGE_CONFIG_FILE_NAME))
