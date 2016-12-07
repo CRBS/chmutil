@@ -530,11 +530,193 @@ class RocceCluster(object):
         return val
 
 
+class GordonCluster(object):
+    """Generates submit script for CHM job on Gordon cluster
+    """
+    CLUSTER = 'gordon'
+    SUBMIT_SCRIPT_NAME = 'runjobs.' + CLUSTER
+    MERGE_SUBMIT_SCRIPT_NAME = 'runmerge.' + CLUSTER
+    DEFAULT_JOBS_PER_NODE = 8
+
+    def __init__(self, chmconfig):
+        """Constructor
+        :param chmconfig: CHMConfig object for the job
+        """
+        self._chmconfig = chmconfig
+
+    def set_chmconfig(self, chmconfig):
+        """Sets CHMConfig object
+        :param chmconfig: CHMConfig object
+        """
+        self._chmconfig = chmconfig
+
+    def get_suggested_tasks_per_node(self, jobs_per_node):
+        """Returns suggested tasks per node for cluster
+        :returns: 1 as int
+        """
+        if jobs_per_node is None:
+            logger.debug('Using default since tasks per node is None')
+            return GordonCluster.DEFAULT_JOBS_PER_NODE
+
+        if jobs_per_node <= 0:
+            logger.debug('Using default since tasks per node is 0 or less')
+            return GordonCluster.DEFAULT_JOBS_PER_NODE
+        try:
+            return int(jobs_per_node)
+        except ValueError:
+            logger.debug('Using default since tasks per int conversion failed')
+            return GordonCluster.DEFAULT_JOBS_PER_NODE
+
+    def get_cluster(self):
+        """Returns cluster name which is rocce
+        :returns: name of cluster as string in this case rocce
+        """
+        return GordonCluster.CLUSTER
+
+    def _get_submit_script_path(self):
+        """Gets path to submit script
+        """
+        if self._chmconfig is None:
+            return GordonCluster.SUBMIT_SCRIPT_NAME
+
+        return os.path.join(self._chmconfig.get_out_dir(),
+                            GordonCluster.SUBMIT_SCRIPT_NAME)
+
+    def _get_merge_submit_script_path(self):
+        """Gets path to submit script
+        """
+        if self._chmconfig is None:
+            return GordonCluster.MERGE_SUBMIT_SCRIPT_NAME
+
+        return os.path.join(self._chmconfig.get_out_dir(),
+                            GordonCluster.
+                            MERGE_SUBMIT_SCRIPT_NAME)
+
+    def _get_chm_runner_path(self):
+        """gets path to chmrunner.py
+
+        :return: path to chmrunner.py
+        """
+        if self._chmconfig is None:
+            return CHMJobCreator.CHMRUNNER
+        return os.path.join(self._chmconfig.get_script_bin(),
+                            CHMJobCreator.CHMRUNNER)
+
+    def _get_merge_runner_path(self):
+        """gets path to mergetilerunner.py
+        """
+        if self._chmconfig is None:
+            return CHMJobCreator.MERGERUNNER
+        return os.path.join(self._chmconfig.get_script_bin(),
+                            CHMJobCreator.MERGERUNNER)
+
+    def generate_submit_script(self):
+        """Creates submit script and instructions for invocation
+        :returns: path to submit script
+        """
+        script = self._get_submit_script_path()
+        out_dir = self._chmconfig.get_out_dir()
+        max_mem = str(self._chmconfig.get_max_chm_memory_in_gb())
+
+        stdout_path = os.path.join(self._chmconfig.get_stdout_dir(),
+                                   '$PBS_JOBID.$PBS_ARRAYID.out')
+        return self._write_submit_script(script, out_dir, stdout_path,
+                                         self._chmconfig.get_job_name(),
+                                         self._chmconfig.get_walltime(),
+                                         self._get_chm_runner_path(),
+                                         'PUTACCOUNTHERE',
+                                         self._chmconfig.get_shared_tmp_dir())
+
+    def generate_merge_submit_script(self):
+        """Creates merge submit script and instructions for invocation
+        :returns: path to submit script
+        """
+        script = self._get_merge_submit_script_path()
+        out_dir = self._chmconfig.get_out_dir()
+        max_mem = str(self._chmconfig.get_max_merge_memory_in_gb())
+        stdout_path = os.path.join(self._chmconfig.get_merge_stdout_dir(),
+                                   '$PBS_JOBID.$PBS_ARRAYID.out')
+        return self._write_submit_script(script, out_dir, stdout_path,
+                                         self._chmconfig.get_mergejob_name(),
+                                         self._chmconfig.get_merge_walltime(),
+                                         self._get_merge_runner_path(),
+                                         'PUTACCOUNTHERE',
+                                         self._chmconfig.get_shared_tmp_dir())
+
+    def _write_submit_script(self, script, working_dir, stdout_path, job_name,
+                             walltime, run_script_path,
+                             account, tmp_dir):
+        """Generates submit script content suitable for rocce cluster
+        :param working_dir: Working directory
+        :param stdout_path: Standard out file path for jobs.
+                            ie ./$JOB_ID.$TASKID
+        :param job_name: Job name ie foojob
+        :param walltime: Maximum time job is allowed to run ie 12:00:00
+        :param run_script_path: full path to run script
+        :return: string of submit job
+        """
+        f = open(script, 'w')
+        f.write('#!/bin/sh\n#\n')
+        f.write('#PBS -m n\n')
+        f.write('#PBS -V\n')
+        f.write('#PBS -A ' + account + '\n')
+
+        f.write('#PBS -w ' + working_dir + '\n')
+        f.write('#PBS -q normal\n')
+        f.write('#PBS -l nodes=1:ppn=16:native:noflash\n')
+        f.write('#PBS -o ' + stdout_path + '\n')
+        f.write('#PBS -j y\n')
+        f.write('#PBS -N ' + job_name + '\n')
+        f.write('#PBS -l walltime=' + walltime + '\n\n')
+
+        f.write('echo "HOST: $HOSTNAME"\n')
+        f.write('echo "DATE: `date`"\n\n')
+        f.write('echo "JOBID: $PBS_JOBID"\n')
+        f.write('echo "TASKID: $PBS_ARRAYID"\n')
+        f.write('/usr/bin/time -p ' + run_script_path +
+                ' $PBS_ARRAYID ' + working_dir + ' --scratchdir ' +
+                tmp_dir + ' --log DEBUG\n')
+        f.write('\nexitcode=$?\n')
+        f.write('echo "' + os.path.basename(run_script_path) +
+                ' exited with code: $exitcode"\n')
+        f.write('exit $exitcode\n')
+        f.flush()
+        f.close()
+        os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+        return script
+
+    def get_runchmjob_submit_command(self):
+        """Returns checkchmjob.py command the user should run
+        :returns: string containing checkchmjob.py the user should invoke
+        """
+        runchm =  os.path.join(self._chmconfig.get_script_bin(),
+                               CHMJobCreator.CHECKCHMJOB)
+        return runchm + ' "' + self._chmconfig.get_out_dir()
+
+    def get_chm_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler
+        """
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub -t 1-' + str(number_jobs) + ' ' +
+               GordonCluster.SUBMIT_SCRIPT_NAME)
+        return val
+
+    def get_merge_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler
+        """
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub -t 1-' + str(number_jobs) + ' ' +
+               GordonCluster.MERGE_SUBMIT_SCRIPT_NAME)
+        return val
+
 class ClusterFactory(object):
     """Factory that produces cluster objects based on cluster name
     """
     # WARNING
-    VALID_CLUSTERS = [RocceCluster.CLUSTER]
+    VALID_CLUSTERS = [RocceCluster.CLUSTER,
+                      GordonCluster.CLUSTER]
 
     def __init__(self):
         """Constructor
@@ -555,6 +737,10 @@ class ClusterFactory(object):
         if lc_cluster == RocceCluster.CLUSTER:
             logger.debug('returning RocceCluster')
             return RocceCluster(None)
+
+        if lc_cluster == GordonCluster.CLUSTER:
+            logger.debug('returning GordonCluster')
+            return GordonCluster(None)
 
         logger.error('No cluster class supporting ' + lc_cluster + ' found')
         return None
