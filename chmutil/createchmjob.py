@@ -67,6 +67,9 @@ def _parse_arguments(desc, args):
                         choices=ClusterFactory.VALID_CLUSTERS,
                         help='Sets which cluster to generate job script for'
                              ' (default rocce)')
+    parser.add_argument('--account', default='',
+                        help='Sets account to charge processing to. Needed'
+                             'for jobs run on Gordon & Comet (default \'\')')
     parser.add_argument('--jobname', default='chmjob',
                         help='Name for job given to scheduler, must not '
                              'contain any non alphanumeric characters and '
@@ -102,6 +105,7 @@ def _create_chm_job(theargs):
                         scriptbin=os.path.dirname(theargs.program),
                         walltime=theargs.walltime,
                         jobname=theargs.jobname,
+                        account=theargs.account,
                         mergejobname='merge' + theargs.jobname,
                         version=chmutil.__version__,
                         cluster=theargs.cluster)
@@ -112,7 +116,7 @@ def _create_chm_job(theargs):
         cluster.generate_submit_script()
         cluster.generate_merge_submit_script()
         sys.stdout.write('Run this to submit job\n' +
-                         cluster.get_runchmjob_submit_command() + '\n')
+                         cluster.get_checkchmjob_command() + '\n')
         return 0
     except Exception:
         logger.exception("Error caught exception")

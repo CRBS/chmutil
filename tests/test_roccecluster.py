@@ -26,6 +26,25 @@ class TestRocceCluster(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_get_suggested_tasks_per_node(self):
+        rc = RocceCluster(None)
+        self.assertEqual(rc.get_suggested_tasks_per_node(None),
+                         RocceCluster.DEFAULT_JOBS_PER_NODE)
+
+        self.assertEqual(rc.get_suggested_tasks_per_node(0),
+                         RocceCluster.DEFAULT_JOBS_PER_NODE)
+
+        self.assertEqual(rc.get_suggested_tasks_per_node('foo'),
+                         RocceCluster.DEFAULT_JOBS_PER_NODE)
+
+        self.assertEqual(rc.get_suggested_tasks_per_node(5), 5)
+
+        self.assertEqual(rc.get_suggested_tasks_per_node(5.5), 5)
+
+    def test_get_cluster(self):
+        rc = RocceCluster(None)
+        self.assertEqual(rc.get_cluster(), RocceCluster.CLUSTER)
+
     def test_get_merge_submit_script_path(self):
         opts = CHMConfig('images', 'model', 'out',
                          '500x500', '20x20')

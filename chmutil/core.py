@@ -459,6 +459,7 @@ class CHMConfig(object):
                  max_merge_memory_in_gb=10,
                  version='unknown',
                  cluster='rocce',
+                 account='',
                  config=None,
                  mergeconfig=None):
         """Constructor
@@ -482,6 +483,7 @@ class CHMConfig(object):
         self._max_image_pixels = max_image_pixels
         self._max_chm_memory_in_gb = max_chm_memory_in_gb
         self._max_merge_memory_in_gb = max_merge_memory_in_gb
+        self._account = account
         self._version = version
         self._config = config
         self._mergeconfig = mergeconfig
@@ -513,6 +515,11 @@ class CHMConfig(object):
         self._overlap_width = w
         self._overlap_height = h
         return
+
+    def get_account(self):
+        """Gets account to charge processing to
+        """
+        return self._account
 
     def get_cluster(self):
         """Gets the cluster the CHM job is running on

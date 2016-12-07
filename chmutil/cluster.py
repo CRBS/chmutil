@@ -353,19 +353,18 @@ class BatchedTasksListGenerator(object):
         return task_counter-1
 
 
-class RocceCluster(object):
-    """Generates submit script for CHM job on Rocce cluster
+class Cluster(object):
+    """Base class for all Cluster objects
     """
-    CLUSTER = 'rocce'
-    SUBMIT_SCRIPT_NAME = 'runjobs.' + CLUSTER
-    MERGE_SUBMIT_SCRIPT_NAME = 'runmerge.' + CLUSTER
-    DEFAULT_JOBS_PER_NODE = 1
-
     def __init__(self, chmconfig):
         """Constructor
-        :param chmconfig: CHMConfig object for the job
+           :param chmconfig: CHMConfig object for the job
         """
         self._chmconfig = chmconfig
+        self._cluster = 'notset'
+        self._submit_script_name = 'notset'
+        self._merge_submit_script_name = 'notset'
+        self._default_jobs_per_node = 1
 
     def set_chmconfig(self, chmconfig):
         """Sets CHMConfig object
@@ -379,41 +378,30 @@ class RocceCluster(object):
         """
         if jobs_per_node is None:
             logger.debug('Using default since tasks per node is None')
-            return RocceCluster.DEFAULT_JOBS_PER_NODE
+            return self._default_jobs_per_node
 
         if jobs_per_node <= 0:
             logger.debug('Using default since tasks per node is 0 or less')
-            return RocceCluster.DEFAULT_JOBS_PER_NODE
+            return self._default_jobs_per_node
         try:
             return int(jobs_per_node)
         except ValueError:
             logger.debug('Using default since tasks per int conversion failed')
-            return RocceCluster.DEFAULT_JOBS_PER_NODE
+            return self._default_jobs_per_node
+
+    def get_checkchmjob_command(self):
+        """Returns checkchmjob.py command the user should run
+        :returns: string containing checkchmjob.py the user should invoke
+        """
+        runchm =  os.path.join(self._chmconfig.get_script_bin(),
+                               CHMJobCreator.CHECKCHMJOB)
+        return runchm + ' "' + self._chmconfig.get_out_dir() + '"'
 
     def get_cluster(self):
         """Returns cluster name which is rocce
         :returns: name of cluster as string in this case rocce
         """
-        return RocceCluster.CLUSTER
-
-    def _get_submit_script_path(self):
-        """Gets path to submit script
-        """
-        if self._chmconfig is None:
-            return RocceCluster.SUBMIT_SCRIPT_NAME
-
-        return os.path.join(self._chmconfig.get_out_dir(),
-                            RocceCluster.SUBMIT_SCRIPT_NAME)
-
-    def _get_merge_submit_script_path(self):
-        """Gets path to submit script
-        """
-        if self._chmconfig is None:
-            return RocceCluster.MERGE_SUBMIT_SCRIPT_NAME
-
-        return os.path.join(self._chmconfig.get_out_dir(),
-                            RocceCluster.
-                            MERGE_SUBMIT_SCRIPT_NAME)
+        return self._cluster
 
     def _get_chm_runner_path(self):
         """gets path to chmrunner.py
@@ -432,6 +420,62 @@ class RocceCluster(object):
             return CHMJobCreator.MERGERUNNER
         return os.path.join(self._chmconfig.get_script_bin(),
                             CHMJobCreator.MERGERUNNER)
+
+    def _get_submit_script_path(self):
+        """Gets path to submit script
+        """
+        if self._chmconfig is None:
+            return self._submit_script_name
+
+        return os.path.join(self._chmconfig.get_out_dir(),
+                            self._submit_script_name)
+
+    def _get_merge_submit_script_path(self):
+        """Gets path to submit script
+        """
+        if self._chmconfig is None:
+            return self._merge_submit_script_name
+
+        return os.path.join(self._chmconfig.get_out_dir(),
+                            self._merge_submit_script_name)
+
+
+class RocceCluster(Cluster):
+    """Generates submit script for CHM job on Rocce cluster
+    """
+    CLUSTER = 'rocce'
+    SUBMIT_SCRIPT_NAME = 'runjobs.' + CLUSTER
+    MERGE_SUBMIT_SCRIPT_NAME = 'runmerge.' + CLUSTER
+    DEFAULT_JOBS_PER_NODE = 1
+
+    def __init__(self, chmconfig):
+        """Constructor
+        :param chmconfig: CHMConfig object for the job
+        """
+        super(RocceCluster, self).__init__(chmconfig)
+
+        self._cluster = RocceCluster.CLUSTER
+        self._submit_script_name = RocceCluster.SUBMIT_SCRIPT_NAME
+        self._merge_submit_script_name = RocceCluster.MERGE_SUBMIT_SCRIPT_NAME
+        self._default_jobs_per_node = RocceCluster.DEFAULT_JOBS_PER_NODE
+
+    def get_chm_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler
+        """
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub -t 1-' + str(number_jobs) + ' ' +
+               self._submit_script_name)
+        return val
+
+    def get_merge_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler
+        """
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub -t 1-' + str(number_jobs) + ' ' +
+               self._merge_submit_script_name)
+        return val
 
     def generate_submit_script(self):
         """Creates submit script and instructions for invocation
@@ -503,34 +547,8 @@ class RocceCluster(object):
         os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
         return script
 
-    def get_runchmjob_submit_command(self):
-        """Returns checkchmjob.py command the user should run
-        :returns: string containing checkchmjob.py the user should invoke
-        """
-        runchm =  os.path.join(self._chmconfig.get_script_bin(),
-                               CHMJobCreator.CHECKCHMJOB)
-        return runchm + ' "' + self._chmconfig.get_out_dir()
 
-    def get_chm_submit_command(self, number_jobs):
-        """Returns submit command user should invoke
-           to run jobs on scheduler
-        """
-        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
-               'qsub -t 1-' + str(number_jobs) + ' ' +
-               RocceCluster.SUBMIT_SCRIPT_NAME)
-        return val
-
-    def get_merge_submit_command(self, number_jobs):
-        """Returns submit command user should invoke
-           to run jobs on scheduler
-        """
-        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
-               'qsub -t 1-' + str(number_jobs) + ' ' +
-               RocceCluster.MERGE_SUBMIT_SCRIPT_NAME)
-        return val
-
-
-class GordonCluster(object):
+class GordonCluster(Cluster):
     """Generates submit script for CHM job on Gordon cluster
     """
     CLUSTER = 'gordon'
@@ -542,73 +560,35 @@ class GordonCluster(object):
         """Constructor
         :param chmconfig: CHMConfig object for the job
         """
-        self._chmconfig = chmconfig
+        super(GordonCluster, self).__init__(chmconfig)
 
-    def set_chmconfig(self, chmconfig):
-        """Sets CHMConfig object
-        :param chmconfig: CHMConfig object
+        self._cluster = GordonCluster.CLUSTER
+        self._submit_script_name = GordonCluster.SUBMIT_SCRIPT_NAME
+        self._merge_submit_script_name = GordonCluster.MERGE_SUBMIT_SCRIPT_NAME
+        self._default_jobs_per_node = GordonCluster.DEFAULT_JOBS_PER_NODE
+
+    def get_chm_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler
         """
-        self._chmconfig = chmconfig
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub -t 1-' + str(number_jobs) + ' ' +
+               GordonCluster.SUBMIT_SCRIPT_NAME)
+        return val
 
-    def get_suggested_tasks_per_node(self, jobs_per_node):
-        """Returns suggested tasks per node for cluster
-        :returns: 1 as int
+    def get_merge_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler
         """
-        if jobs_per_node is None:
-            logger.debug('Using default since tasks per node is None')
-            return GordonCluster.DEFAULT_JOBS_PER_NODE
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub -t 1-' + str(number_jobs) + ' ' +
+               GordonCluster.MERGE_SUBMIT_SCRIPT_NAME)
+        return val
 
-        if jobs_per_node <= 0:
-            logger.debug('Using default since tasks per node is 0 or less')
-            return GordonCluster.DEFAULT_JOBS_PER_NODE
-        try:
-            return int(jobs_per_node)
-        except ValueError:
-            logger.debug('Using default since tasks per int conversion failed')
-            return GordonCluster.DEFAULT_JOBS_PER_NODE
-
-    def get_cluster(self):
-        """Returns cluster name which is rocce
-        :returns: name of cluster as string in this case rocce
+    def _get_standard_out_filename(self):
+        """Gets standard out file name for jobs
         """
-        return GordonCluster.CLUSTER
-
-    def _get_submit_script_path(self):
-        """Gets path to submit script
-        """
-        if self._chmconfig is None:
-            return GordonCluster.SUBMIT_SCRIPT_NAME
-
-        return os.path.join(self._chmconfig.get_out_dir(),
-                            GordonCluster.SUBMIT_SCRIPT_NAME)
-
-    def _get_merge_submit_script_path(self):
-        """Gets path to submit script
-        """
-        if self._chmconfig is None:
-            return GordonCluster.MERGE_SUBMIT_SCRIPT_NAME
-
-        return os.path.join(self._chmconfig.get_out_dir(),
-                            GordonCluster.
-                            MERGE_SUBMIT_SCRIPT_NAME)
-
-    def _get_chm_runner_path(self):
-        """gets path to chmrunner.py
-
-        :return: path to chmrunner.py
-        """
-        if self._chmconfig is None:
-            return CHMJobCreator.CHMRUNNER
-        return os.path.join(self._chmconfig.get_script_bin(),
-                            CHMJobCreator.CHMRUNNER)
-
-    def _get_merge_runner_path(self):
-        """gets path to mergetilerunner.py
-        """
-        if self._chmconfig is None:
-            return CHMJobCreator.MERGERUNNER
-        return os.path.join(self._chmconfig.get_script_bin(),
-                            CHMJobCreator.MERGERUNNER)
+        return '$PBS_JOBID.$PBS_ARRAYID.out'
 
     def generate_submit_script(self):
         """Creates submit script and instructions for invocation
@@ -619,12 +599,12 @@ class GordonCluster(object):
         max_mem = str(self._chmconfig.get_max_chm_memory_in_gb())
 
         stdout_path = os.path.join(self._chmconfig.get_stdout_dir(),
-                                   '$PBS_JOBID.$PBS_ARRAYID.out')
+                                   self._get_standard_out_filename())
         return self._write_submit_script(script, out_dir, stdout_path,
                                          self._chmconfig.get_job_name(),
                                          self._chmconfig.get_walltime(),
                                          self._get_chm_runner_path(),
-                                         'PUTACCOUNTHERE',
+                                         self._chmconfig.get_account(),
                                          self._chmconfig.get_shared_tmp_dir())
 
     def generate_merge_submit_script(self):
@@ -635,12 +615,12 @@ class GordonCluster(object):
         out_dir = self._chmconfig.get_out_dir()
         max_mem = str(self._chmconfig.get_max_merge_memory_in_gb())
         stdout_path = os.path.join(self._chmconfig.get_merge_stdout_dir(),
-                                   '$PBS_JOBID.$PBS_ARRAYID.out')
+                                   self._get_standard_out_filename())
         return self._write_submit_script(script, out_dir, stdout_path,
                                          self._chmconfig.get_mergejob_name(),
                                          self._chmconfig.get_merge_walltime(),
                                          self._get_merge_runner_path(),
-                                         'PUTACCOUNTHERE',
+                                         self._chmconfig.get_account(),
                                          self._chmconfig.get_shared_tmp_dir())
 
     def _write_submit_script(self, script, working_dir, stdout_path, job_name,
@@ -685,31 +665,6 @@ class GordonCluster(object):
         os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
         return script
 
-    def get_runchmjob_submit_command(self):
-        """Returns checkchmjob.py command the user should run
-        :returns: string containing checkchmjob.py the user should invoke
-        """
-        runchm =  os.path.join(self._chmconfig.get_script_bin(),
-                               CHMJobCreator.CHECKCHMJOB)
-        return runchm + ' "' + self._chmconfig.get_out_dir()
-
-    def get_chm_submit_command(self, number_jobs):
-        """Returns submit command user should invoke
-           to run jobs on scheduler
-        """
-        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
-               'qsub -t 1-' + str(number_jobs) + ' ' +
-               GordonCluster.SUBMIT_SCRIPT_NAME)
-        return val
-
-    def get_merge_submit_command(self, number_jobs):
-        """Returns submit command user should invoke
-           to run jobs on scheduler
-        """
-        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
-               'qsub -t 1-' + str(number_jobs) + ' ' +
-               GordonCluster.MERGE_SUBMIT_SCRIPT_NAME)
-        return val
 
 class ClusterFactory(object):
     """Factory that produces cluster objects based on cluster name
