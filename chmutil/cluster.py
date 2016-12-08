@@ -640,7 +640,6 @@ class GordonCluster(Cluster):
         f.write('#PBS -m n\n')
         f.write('#PBS -V\n')
         f.write('#PBS -A ' + account + '\n')
-
         f.write('#PBS -w ' + working_dir + '\n')
         f.write('#PBS -q normal\n')
         f.write('#PBS -l nodes=1:ppn=16:native:noflash\n')
