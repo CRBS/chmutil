@@ -2,6 +2,7 @@
 
 
 import os
+import sys
 import stat
 import logging
 import shutil
@@ -101,8 +102,16 @@ class TaskSummary(object):
 
         completed = task_stats.get_completed_task_count()
         pc_complete_str = '{0:.0%}'.format((float(completed)/float(total)))
-        completed_str = '{0:,}'.format(completed)
-        total_str = '{0:,}'.format(total)
+
+        # {:,} logic to add thosands separator was introduced in
+        # python 2.7 so we are basically not doing it for 2.6 and
+        # i dont want to waste time on adding it for old version of python
+        if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
+            completed_str = str(completed)
+            total_str = str(total)
+        else:
+            completed_str = '{0:,}'.format(completed)
+            total_str = '{0:,}'.format(total)
         return (pc_complete_str + ' complete (' + completed_str + ' of ' +
                 total_str + ' completed)')
 

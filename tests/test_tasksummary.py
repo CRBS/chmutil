@@ -9,6 +9,7 @@ Tests for `TaskSummary in cluster`
 """
 
 import unittest
+import sys
 
 from chmutil.cluster import TaskStats
 from chmutil.cluster import TaskSummary
@@ -47,8 +48,12 @@ class TestCore(unittest.TestCase):
 
         ts.set_completed_task_count(3490)
         ts.set_total_task_count(10000)
-        self.assertEqual(tsum._get_summary_from_task_stats(ts),
-                         '35% complete (3,490 of 10,000 completed)')
+        if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
+            self.assertEqual(tsum._get_summary_from_task_stats(ts),
+                             '35% complete (3490 of 10000 completed)')
+        else:
+            self.assertEqual(tsum._get_summary_from_task_stats(ts),
+                             '35% complete (3,490 of 10,000 completed)')
 
     def test_get_summary(self):
         tsum = TaskSummary(None)
