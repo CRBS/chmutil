@@ -100,9 +100,9 @@ class TaskSummary(object):
             return 'Total number of tasks is <= 0'
 
         completed = task_stats.get_completed_task_count()
-        pc_complete_str = '{:.0%}'.format((float(completed)/float(total)))
-        completed_str = '{:,}'.format(completed)
-        total_str = '{:,}'.format(total)
+        pc_complete_str = '{0:.0%}'.format((float(completed)/float(total)))
+        completed_str = '{0:,}'.format(completed)
+        total_str = '{0:,}'.format(total)
         return (pc_complete_str + ' complete (' + completed_str + ' of ' +
                 total_str + ' completed)')
 
@@ -380,11 +380,12 @@ class Cluster(object):
             logger.debug('Using default since tasks per node is None')
             return self._default_jobs_per_node
 
-        if jobs_per_node <= 0:
-            logger.debug('Using default since tasks per node is 0 or less')
-            return self._default_jobs_per_node
         try:
-            return int(jobs_per_node)
+            jpn = int(jobs_per_node)
+            if jpn <= 0:
+                logger.debug('Using default since tasks per node is 0 or less')
+                return self._default_jobs_per_node
+            return jpn
         except ValueError:
             logger.debug('Using default since tasks per int conversion failed')
             return self._default_jobs_per_node
@@ -569,7 +570,7 @@ class GordonCluster(Cluster):
 
     def get_chm_submit_command(self, number_jobs):
         """Returns submit command user should invoke
-           to run jobs on scheduler
+           to run jobs on scheduler. Do
         """
         val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
                'qsub -t 1-' + str(number_jobs) + ' ' +
@@ -596,7 +597,6 @@ class GordonCluster(Cluster):
         """
         script = self._get_submit_script_path()
         out_dir = self._chmconfig.get_out_dir()
-        max_mem = str(self._chmconfig.get_max_chm_memory_in_gb())
 
         stdout_path = os.path.join(self._chmconfig.get_stdout_dir(),
                                    self._get_standard_out_filename())
@@ -644,7 +644,7 @@ class GordonCluster(Cluster):
         f.write('#PBS -q normal\n')
         f.write('#PBS -l nodes=1:ppn=16:native:noflash\n')
         f.write('#PBS -o ' + stdout_path + '\n')
-        f.write('#PBS -j y\n')
+        f.write('#PBS -j oe\n')
         f.write('#PBS -N ' + job_name + '\n')
         f.write('#PBS -l walltime=' + walltime + '\n\n')
 
@@ -665,12 +665,128 @@ class GordonCluster(Cluster):
         return script
 
 
+# -----------------------
+class CometCluster(Cluster):
+    """Generates submit script for CHM job on Comet cluster
+    """
+    CLUSTER = 'comet'
+    SUBMIT_SCRIPT_NAME = 'runjobs.' + CLUSTER
+    MERGE_SUBMIT_SCRIPT_NAME = 'runmerge.' + CLUSTER
+    DEFAULT_JOBS_PER_NODE = 16
+
+    def __init__(self, chmconfig):
+        """Constructor
+        :param chmconfig: CHMConfig object for the job
+        """
+        super(CometCluster, self).__init__(chmconfig)
+
+        self._cluster = CometCluster.CLUSTER
+        self._submit_script_name = CometCluster.SUBMIT_SCRIPT_NAME
+        self._merge_submit_script_name = CometCluster.MERGE_SUBMIT_SCRIPT_NAME
+        self._default_jobs_per_node = CometCluster.DEFAULT_JOBS_PER_NODE
+
+    def get_chm_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler. Do
+        """
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'sbatch -a 1-' + str(number_jobs) + ' ' +
+               CometCluster.SUBMIT_SCRIPT_NAME)
+        return val
+
+    def get_merge_submit_command(self, number_jobs):
+        """Returns submit command user should invoke
+           to run jobs on scheduler
+        """
+        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
+               'sbatch -a 1-' + str(number_jobs) + ' ' +
+               CometCluster.MERGE_SUBMIT_SCRIPT_NAME)
+        return val
+
+    def _get_standard_out_filename(self):
+        """Gets standard out file name for jobs
+        """
+        return '$SLURM_ARRAY_JOB_ID.$SLURM_ARRAY_TASK_ID.out'
+
+    def generate_submit_script(self):
+        """Creates submit script and instructions for invocation
+        :returns: path to submit script
+        """
+        script = self._get_submit_script_path()
+        out_dir = self._chmconfig.get_out_dir()
+
+        stdout_path = os.path.join(self._chmconfig.get_stdout_dir(),
+                                   self._get_standard_out_filename())
+        return self._write_submit_script(script, out_dir, stdout_path,
+                                         self._chmconfig.get_job_name(),
+                                         self._chmconfig.get_walltime(),
+                                         self._get_chm_runner_path(),
+                                         self._chmconfig.get_account(),
+                                         self._chmconfig.get_shared_tmp_dir())
+
+    def generate_merge_submit_script(self):
+        """Creates merge submit script and instructions for invocation
+        :returns: path to submit script
+        """
+        script = self._get_merge_submit_script_path()
+        out_dir = self._chmconfig.get_out_dir()
+        max_mem = str(self._chmconfig.get_max_merge_memory_in_gb())
+        stdout_path = os.path.join(self._chmconfig.get_merge_stdout_dir(),
+                                   self._get_standard_out_filename())
+        return self._write_submit_script(script, out_dir, stdout_path,
+                                         self._chmconfig.get_mergejob_name(),
+                                         self._chmconfig.get_merge_walltime(),
+                                         self._get_merge_runner_path(),
+                                         self._chmconfig.get_account(),
+                                         self._chmconfig.get_shared_tmp_dir())
+
+    def _write_submit_script(self, script, working_dir, stdout_path, job_name,
+                             walltime, run_script_path,
+                             account, tmp_dir):
+        """Generates submit script content suitable for rocce cluster
+        :param working_dir: Working directory
+        :param stdout_path: Standard out file path for jobs.
+                            ie ./$JOB_ID.$TASKID
+        :param job_name: Job name ie foojob
+        :param walltime: Maximum time job is allowed to run ie 12:00:00
+        :param run_script_path: full path to run script
+        :return: string of submit job
+        """
+        f = open(script, 'w')
+        f.write('#!/bin/sh\n#\n')
+        f.write('#SBATCH --nodes=1\n')
+        f.write('#SBATCH -A ' + account + '\n')
+        f.write('#SBATCH -D ' + working_dir + '\n')
+        f.write('#SBATCH -p compute\n')
+        f.write('#SBATCH --export=SLURM_UMASK=0022\n')
+        f.write('#SBATCH -o ' + stdout_path + '\n')
+        f.write('#SBATCH -J ' + job_name + '\n')
+        f.write('#SBATCH -t ' + walltime + '\n\n')
+
+        f.write('echo "HOST: $HOSTNAME"\n')
+        f.write('echo "DATE: `date`"\n\n')
+        f.write('echo "JOBID: $SLURM_ARRAY_JOB_ID"\n')
+        f.write('echo "TASKID: $SLURM_ARRAY_TASK_ID"\n')
+        f.write('/usr/bin/time -p ' + run_script_path +
+                ' $SLURM_ARRAY_TASK_ID ' + working_dir + ' --scratchdir ' +
+                tmp_dir + ' --log DEBUG\n')
+        f.write('\nexitcode=$?\n')
+        f.write('echo "' + os.path.basename(run_script_path) +
+                ' exited with code: $exitcode"\n')
+        f.write('exit $exitcode\n')
+        f.flush()
+        f.close()
+        os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+        return script
+
+
 class ClusterFactory(object):
     """Factory that produces cluster objects based on cluster name
     """
     # WARNING
     VALID_CLUSTERS = [RocceCluster.CLUSTER,
-                      GordonCluster.CLUSTER]
+                      GordonCluster.CLUSTER,
+                      CometCluster.CLUSTER]
 
     def __init__(self):
         """Constructor
@@ -695,6 +811,11 @@ class ClusterFactory(object):
         if lc_cluster == GordonCluster.CLUSTER:
             logger.debug('returning GordonCluster')
             return GordonCluster(None)
+
+        if lc_cluster == CometCluster.CLUSTER:
+            logger.debug('returning CometCluster')
+            return CometCluster(None)
+
 
         logger.error('No cluster class supporting ' + lc_cluster + ' found')
         return None
