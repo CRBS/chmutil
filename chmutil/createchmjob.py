@@ -144,7 +144,7 @@ def main(arglist):
               tiles larger then 1000x1000. For example tiles of 500x500 easily
               use 4 to 6 gigabytes of ram. These tiles are stored on the
               filesystem under <outdir>/{rundir}/{tiles}/<image.png> directories
-              desribed below.
+              described below.
 
               In the SECOND phase merge tasks are run which combine the tiles
               into what are known as probability maps. Probability maps are
