@@ -14,7 +14,13 @@ chmutil
 .. image:: https://coveralls.io/repos/github/CRBS/chmutil/badge.svg?branch=master
    :target: https://coveralls.io/github/CRBS/chmutil?branch=master
 
-Utility package to run CHM jobs on clusters
+Utility package to run `Cascaded Hierarchical Model (CHM) <https://www.sci.utah.edu/software/chm.html>`_ jobs on clusters.
+
+Overview of how jobs are broken up:
+
+.. image:: https://github.com/CRBS/chmutil/blob/images/chmutil.png
+
+
 
 
 Tools
