@@ -29,7 +29,7 @@ Tools
 
 * **createchmjob.py** -- Creates a set of CHM jobs to process a set of images
 
-* **runchmjob.py** -- Generates script that can be used to run CHM jobs created by **createchmjob.py** on various compute clusters (Gordon, Comet, & Rocce)
+* **checkchmjob.py** -- Generates script that can be used to run CHM jobs created by **createchmjob.py** on various compute clusters (Gordon, Comet, & Rocce)
 
 
 Dependencies
