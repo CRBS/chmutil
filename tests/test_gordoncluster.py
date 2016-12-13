@@ -120,7 +120,7 @@ class TestGordonCluster(unittest.TestCase):
 
         rc = GordonCluster(opts)
         self.assertEqual(rc.get_checkchmjob_command(),
-                         CHMJobCreator.CHECKCHMJOB + ' "out"')
+                         CHMJobCreator.CHECKCHMJOB + ' "out" --submit')
 
     def test_get_merge_submit_command(self):
         opts = CHMConfig('images', 'model', 'out',

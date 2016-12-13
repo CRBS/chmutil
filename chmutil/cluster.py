@@ -405,7 +405,7 @@ class Cluster(object):
         """
         runchm =  os.path.join(self._chmconfig.get_script_bin(),
                                CHMJobCreator.CHECKCHMJOB)
-        return runchm + ' "' + self._chmconfig.get_out_dir() + '"'
+        return runchm + ' "' + self._chmconfig.get_out_dir() + '" --submit'
 
     def get_cluster(self):
         """Returns cluster name which is rocce

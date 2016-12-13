@@ -54,6 +54,9 @@ def _parse_arguments(desc, args):
     parser.add_argument(DETAILED_FLAG, action="store_true",
                         help='Output detailed summary '
                              'information for job')
+    parser.add_argument("--skipchm", action="store_true",
+                        help='Skips examination of CHM jobs. This will'
+                             'mean stats on CHM jobs will be invalid')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level (default WARNING)",
@@ -151,7 +154,12 @@ def _check_chm_job(theargs):
     sys.stdout.write('\nAnalyzing job. This may take a minute...\n\n')
 
     chmconfig = _get_chmconfig(theargs.jobdir)
-    chm_task_list = _get_incompleted_chm_task_list(chmconfig.get_config())
+    if theargs.skipchm is True:
+        chm_task_list = _get_incompleted_chm_task_list(chmconfig.get_config())
+    else:
+        logger.info("--skipchm set to True. Skipping examination of CHM jobs.")
+        chm_task_list = []
+
     merge_task_list = _get_incompleted_merge_task_list(chmconfig.
                                                        get_merge_config())
 
