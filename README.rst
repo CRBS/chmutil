@@ -18,9 +18,8 @@ Utility package to run `Cascaded Hierarchical Model (CHM) <https://www.sci.utah.
 
 Overview of how jobs are broken up:
 
-.. image:: https://github.com/CRBS/chmutil/blob/images/chmutil.png
 
-
+.. image:: https://github.com/CRBS/chmutil/blob/master/images/chmutil.png
 
 
 Tools
