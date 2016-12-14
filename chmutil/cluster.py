@@ -715,7 +715,7 @@ class CometCluster(Cluster):
     def _get_standard_out_filename(self):
         """Gets standard out file name for jobs
         """
-        return '$SLURM_ARRAY_JOB_ID.$SLURM_ARRAY_TASK_ID.out'
+        return '%A.%a.out'
 
     def generate_submit_script(self):
         """Creates submit script and instructions for invocation
