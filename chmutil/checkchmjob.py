@@ -163,7 +163,7 @@ def _check_chm_job(theargs):
     merge_task_list = _get_incompleted_merge_task_list(chmconfig.
                                                        get_merge_config())
 
-    tsf = TaskSummaryFactory(chmconfig,chm_incomplete_tasks=chm_task_list,
+    tsf = TaskSummaryFactory(chmconfig, chm_incomplete_tasks=chm_task_list,
                              merge_incomplete_tasks=merge_task_list)
     ts = tsf.get_task_summary()
 

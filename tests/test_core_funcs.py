@@ -175,6 +175,40 @@ class TestCoreFunctions(unittest.TestCase):
         self.assertEqual(core.wait_for_children_to_exit([]), 0)
         self.assertEqual(core.wait_for_children_to_exit([123, 456]), 0)
 
+    def test_get_longest_sequence_of_numbers_in_string(self):
+        self.assertEqual(core.get_longest_sequence_of_numbers_in_string(None),
+                         0)
+        self.assertEqual(core.get_longest_sequence_of_numbers_in_string(''),
+                         0)
+        self.assertEqual(core.get_longest_sequence_of_numbers_in_string('1'),
+                         1)
+
+        val = 'bin1-3view-final.0.png'
+        self.assertEqual(core.get_longest_sequence_of_numbers_in_string(val),
+                         1)
+
+        val = 'bin1-3view-final.0635.png'
+        self.assertEqual(core.get_longest_sequence_of_numbers_in_string(val),
+                         635)
+
+    def test_get_first_sequence_of_numbers_in_string(self):
+        self.assertEqual(core.get_first_sequence_of_numbers_in_string(None),
+                         0)
+
+        self.assertEqual(core.get_first_sequence_of_numbers_in_string(''),
+                         0)
+
+        self.assertEqual(core.get_first_sequence_of_numbers_in_string('4'),
+                         4)
+
+        val = 'bin1-3view-final.0635.png'
+        self.assertEqual(core.get_first_sequence_of_numbers_in_string(val),
+                         1)
+
+        val = '023.bin1-3view-final.123132.png'
+        self.assertEqual(core.get_first_sequence_of_numbers_in_string(val),
+                         23)
+
 
 if __name__ == '__main__':
     unittest.main()

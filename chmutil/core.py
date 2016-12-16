@@ -177,7 +177,8 @@ def wait_for_children_to_exit(process_list):
     return exit_code
 
 
-def get_image_path_list(image_dir, suffix):
+def get_image_path_list(image_dir, suffix,
+                        keysortfunc=None):
     """Gets list of images with suffix from dir
     :param image_dir: Path to directory with images
     :param suffix: Only include files ending with suffix.
@@ -207,7 +208,79 @@ def get_image_path_list(image_dir, suffix):
             continue
         if entry.endswith(adjusted_suffix):
             img_list.append(fp)
+
+    if keysortfunc is not None:
+        logger.debug('Sort function passed in sorting data')
+        return img_list.sort(key=keysortfunc)
+
     return img_list
+
+
+def get_longest_sequence_of_numbers_in_string(val):
+    """Given a string of characters return the
+       longest string of numbers in that string as an int.
+
+       Example:
+       >> get_longest_sequene_of_numbers_in_string('bin1-3view-final.0254.png')
+       >> 254
+
+       :param val: string to examine
+       :returns int: int of longest sequence of numbers in string.
+                     If tie, then first encountered number is used.
+                     If none or val is None return 0
+    """
+    if val is None:
+        return 0
+
+    max_digit_sequence = ''
+    cur_val = ''
+    for element in val:
+        if element.isdigit():
+            cur_val += element
+            continue
+
+        if cur_val != '':
+            if len(cur_val) > len(max_digit_sequence):
+                max_digit_sequence = cur_val
+        cur_val = ''
+
+    if len(cur_val) > len(max_digit_sequence):
+        max_digit_sequence = cur_val
+
+    if max_digit_sequence == '':
+        return 0
+
+    return int(max_digit_sequence)
+
+
+def get_first_sequence_of_numbers_in_string(val):
+    """Given a string of characters return the
+       first string of numbers in that string as an int.
+
+       Example:
+       >> get_first_sequence_of_numbers_in_string('bin1-3view-final.0254.png')
+       >> 1
+
+       :param val: string to examine
+       :returns int: int of first sequence of numbers in string.
+                     If none or val is None return 0
+    """
+    if val is None:
+        return 0
+
+    cur_val = ''
+    for element in val:
+        if element.isdigit():
+            cur_val += element
+            continue
+
+        if cur_val != '':
+            break
+
+    if cur_val == '':
+        return 0
+
+    return int(cur_val)
 
 
 class CHMJobCreator(object):
@@ -856,30 +929,30 @@ class ImageStatsFromDirectoryFactory(object):
         logger.debug('Setting MAX_IMAGE_PIXELS to ' + str(max_image_pixels))
         Image.MAX_IMAGE_PIXELS = max_image_pixels
 
-    def get_input_image_stats(self):
+    def get_input_image_stats(self,
+                              keysortfunc=None):
         """Gets InputImageStats objects as list
         """
         image_stats_list = []
         if os.path.isfile(self._directory):
             return []
-
-        for entry in os.listdir(self._directory):
-            fp = os.path.join(self._directory, entry)
-            if os.path.isfile(fp):
-                im = None
+        file_list = get_image_path_list(self._directory,
+                                        None)
+        for fp in file_list:
+            im = None
+            try:
+                im = Image.open(fp)
+                iis = ImageStats(fp, im.size[0],
+                                 im.size[1], im.format)
+                image_stats_list.append(iis)
+            except Exception:
+                logger.exception('Skipping file unable to open ' + fp)
+            finally:
                 try:
-                    im = Image.open(fp)
-                    iis = ImageStats(fp, im.size[0],
-                                     im.size[1], im.format)
-                    image_stats_list.append(iis)
+                    im.close()
                 except Exception:
-                    logger.exception('Skipping file unable to open ' + fp)
-                finally:
-                    try:
-                        im.close()
-                    except Exception:
-                        logger.exception('Caught exception attempting '
-                                         'to close image')
+                    logger.exception('Caught exception attempting '
+                                     'to close image')
 
         return image_stats_list
 
