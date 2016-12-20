@@ -195,9 +195,13 @@ def _create_mrc_stack(image_dir, num_tiles, dest_file, theargs):
         logger.error('No images found in ' + image_dir)
         return 1
 
-    parse_config = True
+
     try:
-        logger.debug('--useconfig set to ' + theargs.useconfig)
+        logger.debug('--useconfig set to ' + str(theargs.useconfig))
+        if theargs.useconfig is None:
+            parse_config = False
+        else:
+            parse_config = True
     except AttributeError:
         parse_config = False
 
