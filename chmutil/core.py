@@ -211,7 +211,7 @@ def get_image_path_list(image_dir, suffix,
 
     if keysortfunc is not None:
         logger.debug('Sort function passed in sorting data')
-        return img_list.sort(key=keysortfunc)
+        img_list.sort(key=keysortfunc)
 
     return img_list
 
@@ -219,6 +219,8 @@ def get_image_path_list(image_dir, suffix,
 def get_longest_sequence_of_numbers_in_string(val):
     """Given a string of characters return the
        longest string of numbers in that string as an int.
+       Before search os.path.basename is applied to val
+       to remove the path.
 
        Example:
        >> get_longest_sequene_of_numbers_in_string('bin1-3view-final.0254.png')
@@ -234,7 +236,7 @@ def get_longest_sequence_of_numbers_in_string(val):
 
     max_digit_sequence = ''
     cur_val = ''
-    for element in val:
+    for element in os.path.basename(val):
         if element.isdigit():
             cur_val += element
             continue

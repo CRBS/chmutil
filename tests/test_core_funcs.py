@@ -111,7 +111,7 @@ class TestCoreFunctions(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_get_image_path(self):
+    def test_get_image_path_no_keysort_func(self):
         temp_dir = tempfile.mkdtemp()
         try:
             try:
@@ -170,6 +170,60 @@ class TestCoreFunctions(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
+    def test_get_image_path_with_longest_number_keysort(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            func = core.get_longest_sequence_of_numbers_in_string
+            # no files
+            res = core.get_image_path_list(temp_dir, None,
+                                           keysortfunc=func)
+            self.assertEqual(len(res), 0)
+
+            # one file
+            onefile = os.path.join(temp_dir, 'foo.2345.txt')
+            open(onefile, 'a').close()
+            res = core.get_image_path_list(temp_dir, None,
+                                           keysortfunc=func)
+            self.assertEqual(len(res), 1)
+            self.assertTrue(onefile in res)
+
+            # two files and a directory
+            twofile = os.path.join(temp_dir, 'foo.1234.png')
+            open(twofile, 'a').close()
+
+            adir = os.path.join(temp_dir, 'somedir.png')
+            os.makedirs(adir, mode=0o775)
+            res = core.get_image_path_list(temp_dir, None,
+                                           keysortfunc=func)
+            self.assertEqual(len(res), 2)
+            self.assertTrue(onefile in res)
+            self.assertTrue(twofile in res)
+            self.assertEqual(res[0], twofile)
+
+            # suffix set to .png
+            res = core.get_image_path_list(temp_dir, '.png',
+                                           keysortfunc=func)
+            self.assertEqual(len(res), 1)
+            self.assertTrue(twofile in res)
+
+            # verify case DOES matter
+            threefile = os.path.join(temp_dir, '.PNG')
+            open(threefile, 'a').close()
+            res = core.get_image_path_list(temp_dir, '.png')
+            self.assertEqual(len(res), 1)
+            self.assertTrue(twofile in res)
+
+            # try a 1,000 files for fun
+            for v in range(0, 999):
+                af = os.path.join(temp_dir, str(v) + '.png')
+                open(af, 'a').close()
+
+            res = core.get_image_path_list(temp_dir, '.png',
+                                           keysortfunc=func)
+            self.assertEqual(len(res), 1000)
+        finally:
+            shutil.rmtree(temp_dir)
+
     def test_wait_for_children_to_exit(self):
         self.assertEqual(core.wait_for_children_to_exit(None), 0)
         self.assertEqual(core.wait_for_children_to_exit([]), 0)
@@ -190,6 +244,10 @@ class TestCoreFunctions(unittest.TestCase):
         val = 'bin1-3view-final.0635.png'
         self.assertEqual(core.get_longest_sequence_of_numbers_in_string(val),
                          635)
+
+        val = '/foo/345643/bin1-3view-final.1635.png'
+        self.assertEqual(core.get_longest_sequence_of_numbers_in_string(val),
+                         1635)
 
     def test_get_first_sequence_of_numbers_in_string(self):
         self.assertEqual(core.get_first_sequence_of_numbers_in_string(None),
