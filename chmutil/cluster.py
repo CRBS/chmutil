@@ -545,7 +545,7 @@ class RocceCluster(Cluster):
         f.write('echo "DATE: `date`"\n\n')
         f.write('echo "JOBID: $JOB_ID"\n')
         f.write('echo "TASKID: $SGE_TASK_ID"\n')
-        f.write('/usr/bin/time -p ' + run_script_path +
+        f.write('/usr/bin/time -v ' + run_script_path +
                 ' $SGE_TASK_ID ' + working_dir + ' --scratchdir ' +
                 tmp_dir + ' --log DEBUG\n')
         f.write('\nexitcode=$?\n')
@@ -662,7 +662,7 @@ class GordonCluster(Cluster):
         f.write('echo "JOBID: $PBS_JOBID"\n')
         f.write('echo "TASKID: $PBS_ARRAYID"\n\n')
         f.write('module load singularity/2.1.2\n\n')
-        f.write('/usr/bin/time -p ' + run_script_path +
+        f.write('/usr/bin/time -v ' + run_script_path +
                 ' $PBS_ARRAYID ' + working_dir + ' --scratchdir ' +
                 tmp_dir + ' --log DEBUG\n')
         f.write('\nexitcode=$?\n')
@@ -778,7 +778,7 @@ class CometCluster(Cluster):
         f.write('echo "JOBID: $SLURM_ARRAY_JOB_ID"\n')
         f.write('echo "TASKID: $SLURM_ARRAY_TASK_ID"\n\n')
         f.write('module load singularity/2.2\n\n')
-        f.write('/usr/bin/time -p ' + run_script_path +
+        f.write('/usr/bin/time -v ' + run_script_path +
                 ' $SLURM_ARRAY_TASK_ID ' + working_dir + ' --scratchdir ' +
                 tmp_dir + ' --log DEBUG\n')
         f.write('\nexitcode=$?\n')
