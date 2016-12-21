@@ -112,6 +112,7 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             config = configparser.ConfigParser()
             config.set('', CHMJobCreator.CONFIG_IMAGES, 'images')
             config.set('', CHMJobCreator.CONFIG_CLUSTER, 'yocluster')
+            config.set('', CHMJobCreator.MERGE_TASKS_PER_NODE, '4')
             f = open(cfile, 'w')
             config.write(f)
             f.flush()
@@ -129,6 +130,10 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             self.assertEqual(mcon.get(CHMJobCreator.CONFIG_DEFAULT,
                                       CHMJobCreator.CONFIG_CLUSTER),
                              'yocluster')
+            self.assertEqual(mcon.getint(CHMJobCreator.CONFIG_DEFAULT,
+                                         CHMJobCreator.MERGE_TASKS_PER_NODE),
+                                         4)
+
             self.assertEqual(chmconfig.get_cluster(), 'yocluster')
 
         finally:

@@ -58,11 +58,18 @@ def _parse_arguments(desc, args):
                              'mean each task runs faster, but results in '
                              'more task. (default 50)')
     parser.add_argument('--taskspernode', '--jobspernode', default=0, type=int,
-                        help='Overrides number of tasks to run concurrently '
+                        help='Overrides number of CHM tasks to run '
+                             'concurrently '
                              'on a single compute node. (default is 0 '
                              'which tells script to set this value to a '
                              'number appropriate for cluster set '
                              'in --cluster option)')
+    parser.add_argument('--mergetaskspernode', default=0, type=int,
+                        help='Overrides number of merge tasks to run '
+                             'concurrently on a single compute node. '
+                             '(default 0 which tellls script to se this value '
+                             'to a number appropriate for cluster set in '
+                             '--cluster option)')
     parser.add_argument('--cluster', default='rocce',
                         choices=ClusterFactory.VALID_CLUSTERS,
                         help='Sets which cluster to generate job script for'
@@ -107,6 +114,7 @@ def _create_chm_job(theargs):
                         jobname=theargs.jobname,
                         account=theargs.account,
                         mergejobname='merge' + theargs.jobname,
+                        merge_tasks_per_node=theargs.mergetaskspernode,
                         version=chmutil.__version__,
                         cluster=theargs.cluster)
 

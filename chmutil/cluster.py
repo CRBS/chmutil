@@ -374,6 +374,7 @@ class Cluster(object):
         self._submit_script_name = 'notset'
         self._merge_submit_script_name = 'notset'
         self._default_jobs_per_node = 1
+        self._default_merge_tasks_per_node = 1
 
     def set_chmconfig(self, chmconfig):
         """Sets CHMConfig object
@@ -381,23 +382,45 @@ class Cluster(object):
         """
         self._chmconfig = chmconfig
 
-    def get_suggested_tasks_per_node(self, jobs_per_node):
+    def get_suggested_tasks_per_node(self, tasks_per_node):
         """Returns suggested tasks per node for cluster
         :returns: 1 as int
         """
-        if jobs_per_node is None:
+        if tasks_per_node is None:
             logger.debug('Using default since tasks per node is None')
             return self._default_jobs_per_node
 
         try:
-            jpn = int(jobs_per_node)
+            jpn = int(tasks_per_node)
             if jpn <= 0:
-                logger.debug('Using default since tasks per node is 0 or less')
+                logger.debug('Using default since '
+                             'tasks per node is 0 or less')
                 return self._default_jobs_per_node
             return jpn
         except ValueError:
-            logger.debug('Using default since tasks per int conversion failed')
+            logger.debug('Using default since tasks per int '
+                         'conversion failed')
             return self._default_jobs_per_node
+
+    def get_suggested_merge_tasks_per_node(self, tasks_per_node):
+        """Returns suggested tasks per node for cluster
+        :returns: 1 as int
+        """
+        if tasks_per_node is None:
+            logger.debug('Using default since merge tasks per node is None')
+            return self._default_merge_tasks_per_node
+
+        try:
+            jpn = int(tasks_per_node)
+            if jpn <= 0:
+                logger.debug('Using default since merge '
+                             'tasks per node is 0 or less')
+                return self._default_merge_tasks_per_node
+            return jpn
+        except ValueError:
+            logger.debug('Using default since merge '
+                         'tasks per int conversion failed')
+            return self._default_merge_tasks_per_node
 
     def get_checkchmjob_command(self):
         """Returns checkchmjob.py command the user should run
@@ -468,6 +491,7 @@ class RocceCluster(Cluster):
         self._submit_script_name = RocceCluster.SUBMIT_SCRIPT_NAME
         self._merge_submit_script_name = RocceCluster.MERGE_SUBMIT_SCRIPT_NAME
         self._default_jobs_per_node = RocceCluster.DEFAULT_JOBS_PER_NODE
+        self._default_merge_tasks_per_node = RocceCluster.DEFAULT_JOBS_PER_NODE
 
     def get_chm_submit_command(self, number_jobs):
         """Returns submit command user should invoke
@@ -565,6 +589,7 @@ class GordonCluster(Cluster):
     SUBMIT_SCRIPT_NAME = 'runjobs.' + CLUSTER
     MERGE_SUBMIT_SCRIPT_NAME = 'runmerge.' + CLUSTER
     DEFAULT_JOBS_PER_NODE = 8
+    MERGE_TASKS_PER_NODE = 6
 
     def __init__(self, chmconfig):
         """Constructor
@@ -576,6 +601,7 @@ class GordonCluster(Cluster):
         self._submit_script_name = GordonCluster.SUBMIT_SCRIPT_NAME
         self._merge_submit_script_name = GordonCluster.MERGE_SUBMIT_SCRIPT_NAME
         self._default_jobs_per_node = GordonCluster.DEFAULT_JOBS_PER_NODE
+        self._default_merge_tasks_per_node = GordonCluster.MERGE_TASKS_PER_NODE
 
     def get_chm_submit_command(self, number_jobs):
         """Returns submit command user should invoke
@@ -683,6 +709,7 @@ class CometCluster(Cluster):
     SUBMIT_SCRIPT_NAME = 'runjobs.' + CLUSTER
     MERGE_SUBMIT_SCRIPT_NAME = 'runmerge.' + CLUSTER
     DEFAULT_JOBS_PER_NODE = 16
+    MERGE_TASKS_PER_NODE = 10
 
     def __init__(self, chmconfig):
         """Constructor
@@ -694,6 +721,7 @@ class CometCluster(Cluster):
         self._submit_script_name = CometCluster.SUBMIT_SCRIPT_NAME
         self._merge_submit_script_name = CometCluster.MERGE_SUBMIT_SCRIPT_NAME
         self._default_jobs_per_node = CometCluster.DEFAULT_JOBS_PER_NODE
+        self._default_merge_tasks_per_node = CometCluster.MERGE_TASKS_PER_NODE
 
     def get_chm_submit_command(self, number_jobs):
         """Returns submit command user should invoke

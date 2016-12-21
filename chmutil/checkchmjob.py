@@ -124,10 +124,12 @@ def _submit(chmconfig, chm_task_list, merge_task_list):
         logger.error('Cluster not supported: ' + chmconfig.get_cluster())
         return 2
 
-    batcher = BatchedTasksListGenerator(chmconfig.get_number_tasks_per_node())
+
 
     num_chm_tasks = len(chm_task_list)
     if num_chm_tasks > 0:
+        batcher = BatchedTasksListGenerator(chmconfig.
+                                            get_number_tasks_per_node())
         logger.info('Found ' + str(num_chm_tasks) +
                     ' CHM tasks that need submission')
         chm_con_file = chmconfig.get_batchedjob_config_file_path()
@@ -138,6 +140,8 @@ def _submit(chmconfig, chm_task_list, merge_task_list):
     if num_merge_tasks > 0:
         # TODO modify code to write these out even on incomplete job
         # TODO with any merge jobs that CAN be safely run
+        batcher = BatchedTasksListGenerator(chmconfig.
+                                            get_number_merge_tasks_per_node())
         logger.info('Found ' + str(num_merge_tasks) +
                     ' Merge tasks that need submission')
         mer_con_file = chmconfig.get_batched_mergejob_config_file_path()

@@ -297,6 +297,7 @@ class CHMJobCreator(object):
     MERGE_OUTPUT_IMAGE = 'outputimage'
     MERGE_OUTPUT_OVERLAY_IMAGE = 'overlayoutputimage'
     MERGE_MERGETILES_BIN = 'mergetilesbin'
+    MERGE_TASKS_PER_NODE = 'mergetaskspernode'
     RUN_DIR = 'chmrun'
     STDOUT_DIR = 'stdout'
     TILES_DIR = 'tiles'
@@ -384,6 +385,8 @@ class CHMJobCreator(object):
                    self._chmopts.get_images())
         config.set('', CHMJobCreator.JOB_DIR,
                    self._chmopts.get_out_dir())
+        config.set('', CHMJobCreator.MERGE_TASKS_PER_NODE,
+                   str(self._chmopts.get_number_merge_tasks_per_node()))
         config.set('', CHMJobCreator.CONFIG_CLUSTER,
                    str(self._chmopts.get_cluster()))
         return config
@@ -522,6 +525,7 @@ class CHMConfig(object):
                  overlap_size,
                  number_tiles_per_task=1,
                  tasks_per_node=1,
+                 merge_tasks_per_node=1,
                  disablehisteq=True,
                  chmbin='./chm-0.1.0.img',
                  scriptbin='',
@@ -562,6 +566,7 @@ class CHMConfig(object):
         self._version = version
         self._config = config
         self._mergeconfig = mergeconfig
+        self._merge_tasks_per_node = merge_tasks_per_node
         self._cluster = cluster
 
     def _extract_width_and_height(self, val):
@@ -774,9 +779,14 @@ class CHMConfig(object):
         return self._number_tiles_per_task
 
     def get_number_tasks_per_node(self):
-        """gets desired number jobs per node
+        """gets desired number tasks per node
         """
         return self._tasks_per_node
+
+    def get_number_merge_tasks_per_node(self):
+        """gets desired number merge tasks per node
+        """
+        return self._merge_tasks_per_node
 
     def get_chm_binary(self):
         """gets path to chm binary
@@ -833,15 +843,18 @@ class CHMConfigFromConfigFactory(object):
             logger.debug('Skipping load of job configuration')
             config = None
 
+        default = CHMJobCreator.CONFIG_DEFAULT
+
         if skip_loading_mergeconfig is False:
             mergecon = self._get_config(os.path.join(self._job_dir,
                                                      CHMJobCreator.
                                                      MERGE_CONFIG_FILE_NAME))
+            merge_t_node = mergecon.getint(default,
+                                           CHMJobCreator.MERGE_TASKS_PER_NODE)
         else:
             logger.debug('Skipping load of merge job configuration')
             mergecon = None
-
-        default = CHMJobCreator.CONFIG_DEFAULT
+            merge_t_node = 1
 
         if config is None:
             logger.debug('Config is None')
@@ -881,6 +894,7 @@ class CHMConfigFromConfigFactory(object):
                          chmbin=config.get(default, CHMJobCreator.
                                            CONFIG_CHM_BIN),
                          version=self._get_chmutil_version(config),
+                         merge_tasks_per_node=merge_t_node,
                          cluster=cluster,
                          config=config,
                          mergeconfig=mergecon)
