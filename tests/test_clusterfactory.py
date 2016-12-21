@@ -13,6 +13,7 @@ import unittest
 from chmutil.cluster import ClusterFactory
 from chmutil.cluster import RocceCluster
 from chmutil.cluster import GordonCluster
+from chmutil.cluster import CometCluster
 
 
 class TestClusterFactory(unittest.TestCase):
@@ -40,6 +41,10 @@ class TestClusterFactory(unittest.TestCase):
         # verify case insensitive
         c = cfac.get_cluster_by_name(GordonCluster.CLUSTER.upper())
         self.assertEqual(c.get_cluster(), GordonCluster.CLUSTER)
+
+        # verify comet is returned
+        c = cfac.get_cluster_by_name(CometCluster.CLUSTER)
+        self.assertEqual(c.get_cluster(), CometCluster.CLUSTER)
 
 if __name__ == '__main__':
     unittest.main()
