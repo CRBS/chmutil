@@ -124,8 +124,6 @@ def _submit(chmconfig, chm_task_list, merge_task_list):
         logger.error('Cluster not supported: ' + chmconfig.get_cluster())
         return 2
 
-
-
     num_chm_tasks = len(chm_task_list)
     if num_chm_tasks > 0:
         batcher = BatchedTasksListGenerator(chmconfig.
