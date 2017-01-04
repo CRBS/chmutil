@@ -118,11 +118,12 @@ def _submit(chmconfig, chm_task_list, merge_task_list):
     """
     cfac = ClusterFactory()
     clust = cfac.get_cluster_by_name(chmconfig.get_cluster())
-    clust.set_chmconfig(chmconfig)
 
     if clust is None:
         logger.error('Cluster not supported: ' + chmconfig.get_cluster())
         return 2
+
+    clust.set_chmconfig(chmconfig)
 
     num_chm_tasks = len(chm_task_list)
     if num_chm_tasks > 0:
@@ -156,7 +157,7 @@ def _check_chm_job(theargs):
     sys.stdout.write('\nAnalyzing job. This may take a minute...\n\n')
 
     chmconfig = _get_chmconfig(theargs.jobdir)
-    if theargs.skipchm is True:
+    if theargs.skipchm is False:
         chm_task_list = _get_incompleted_chm_task_list(chmconfig.get_config())
     else:
         logger.info("--skipchm set to True. Skipping examination of CHM jobs.")
