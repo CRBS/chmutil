@@ -99,7 +99,7 @@ def _create_chm_job(theargs):
         cluster_fac = ClusterFactory()
         cluster = cluster_fac.get_cluster_by_name(theargs.cluster)
         taskspernode = cluster.get_suggested_tasks_per_node(theargs.taskspernode)
-
+        mergetaskspernode = cluster.get_suggested_merge_tasks_per_node(theargs.mergetaskspernode)
         con = CHMConfig(os.path.abspath(theargs.images),
                         os.path.abspath(theargs.model),
                         os.path.abspath(theargs.outdir),
@@ -114,7 +114,7 @@ def _create_chm_job(theargs):
                         jobname=theargs.jobname,
                         account=theargs.account,
                         mergejobname='merge' + theargs.jobname,
-                        merge_tasks_per_node=theargs.mergetaskspernode,
+                        merge_tasks_per_node=mergetaskspernode,
                         version=chmutil.__version__,
                         cluster=theargs.cluster)
 
