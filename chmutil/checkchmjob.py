@@ -149,6 +149,7 @@ def _submit(chmconfig, chm_task_list, merge_task_list):
                                    clust)
 
     sys.stdout.write('\nAll jobs completed. Have a nice day!\n\n')
+    return 0
 
 
 def _check_chm_job(theargs):

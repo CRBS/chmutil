@@ -80,7 +80,7 @@ class TestCheckCHMJob(unittest.TestCase):
         pargs = checkchmjob._parse_arguments('hi', ['1'])
         self.assertEqual(pargs.jobdir, '1')
 
-    def test_run_chm_job_success(self):
+    def test_check_chm_job_success(self):
         temp_dir = tempfile.mkdtemp()
         try:
             out = create_successful_job(temp_dir)
@@ -92,7 +92,7 @@ class TestCheckCHMJob(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_run_chm_job_no_jobs_to_run(self):
+    def test_check_chm_job_no_jobs_to_run(self):
         temp_dir = tempfile.mkdtemp()
         try:
             out = create_successful_job(temp_dir)
@@ -110,7 +110,7 @@ class TestCheckCHMJob(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_run_chm_job_no_jobs_to_run_and_skipchm_true(self):
+    def test_check_chm_job_no_jobs_to_run_and_skipchm_true(self):
         temp_dir = tempfile.mkdtemp()
         try:
             out = create_successful_job(temp_dir)
@@ -128,7 +128,7 @@ class TestCheckCHMJob(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_run_chm_job_no_jobs_to_run_and_detailed_true(self):
+    def test_check_chm_job_no_jobs_to_run_and_detailed_true(self):
         temp_dir = tempfile.mkdtemp()
         try:
             out = create_successful_job(temp_dir)
@@ -146,7 +146,7 @@ class TestCheckCHMJob(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_run_chm_job_no_jobs_to_run_and_submit_true(self):
+    def test_check_chm_job_no_jobs_to_run_and_submit_true(self):
         temp_dir = tempfile.mkdtemp()
         try:
             out = create_successful_job(temp_dir)
@@ -165,7 +165,7 @@ class TestCheckCHMJob(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_run_chm_job_invalid_cluster(self):
+    def test_check_chm_job_invalid_cluster(self):
         temp_dir = tempfile.mkdtemp()
         try:
             out = create_successful_job(temp_dir)
@@ -196,6 +196,64 @@ class TestCheckCHMJob(unittest.TestCase):
             val = checkchmjob._check_chm_job(pargs)
 
             self.assertEqual(val, 2)
+        finally:
+            shutil.rmtree(temp_dir)
+
+
+    def test_check_chm_job_one_chm_job_to_run(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            out = create_successful_job(temp_dir)
+            pargs = checkchmjob._parse_arguments('hi', [out, '--submit'])
+            pargs.program = 'foo'
+            pargs.version = '1.0.0'
+            img_tile = os.path.join(out, CHMJobCreator.RUN_DIR,
+                                    CHMJobCreator.TILES_DIR,
+                                    'foo.png', '001.foo.png')
+
+            val = checkchmjob._check_chm_job(pargs)
+            self.assertEqual(val, 0)
+
+            cfac = CHMConfigFromConfigFactory(out)
+            chmconfig = cfac.get_chmconfig()
+
+            path = chmconfig.get_batchedjob_config_file_path()
+            self.assertTrue(os.path.isfile(path))
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_check_chm_job_no_jobs_to_run(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            out = create_successful_job(temp_dir)
+            pargs = checkchmjob._parse_arguments('hi', [out, '--submit'])
+            pargs.program = 'foo'
+            pargs.version = '1.0.0'
+            img_tile = os.path.join(out, CHMJobCreator.RUN_DIR,
+                                    CHMJobCreator.TILES_DIR,
+                                    'foo.png', '001.foo.png')
+            size = 800, 800
+            myimg = Image.new('L', size)
+            myimg.save(img_tile, 'PNG')
+
+            probmap = os.path.join(out, CHMJobCreator.RUN_DIR,
+                                   CHMJobCreator.PROBMAPS_DIR,
+                                   'foo.png')
+            myimg.save(probmap, 'PNG')
+
+            val = checkchmjob._check_chm_job(pargs)
+            self.assertEqual(val, 0)
+
+            cfac = CHMConfigFromConfigFactory(out)
+            chmconfig = cfac.get_chmconfig()
+
+            path = chmconfig.get_batchedjob_config_file_path()
+            self.assertEqual(os.path.isfile(path), False)
+
+            mpath = chmconfig.get_batched_mergejob_config_file_path()
+            self.assertEqual(os.path.isfile(mpath), False)
+
         finally:
             shutil.rmtree(temp_dir)
 
