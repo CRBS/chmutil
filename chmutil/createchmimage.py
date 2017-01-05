@@ -34,7 +34,7 @@ def _parse_arguments(desc, args):
                                      formatter_class=help_formatter)
     parser.add_argument("image", help='Image to convert')
     parser.add_argument("output", help='Output image path, should have .png'
-                                       'extension, if not .png will be '
+                                       ' extension, if not .png will be '
                                        'appended')
     parser.add_argument("--equalize", action='store_true',
                         help='Run ImageOps.equalize on image'
@@ -45,7 +45,7 @@ def _parse_arguments(desc, args):
     parser.add_argument("--gaussianblur", action='store_true')
     parser.add_argument("--downsample", help='Amount of downsampling to '
                                              'perform ie 2 means make '
-                                             'image 50% of original size'
+                                             'image 50%% of original size'
                                              '(default 0)',
                         default=0, type=int)
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
@@ -101,9 +101,20 @@ def main(arglist):
     desc = """
               Version {version}
 
-              Given an image code will convert that image to grayscale,
-              then autolevel, blur, and downsample the image.
+              Given an image, code will convert that image to grayscale,
+              then optionally autolevel, blur, and downsample the image.
 
+              By default only the conversion ot grayscale is performed.
+
+              Please note, regardless of order of optional flags the
+              operations are performed in this order:
+
+              1. Grayscale
+              2. Equalize
+              3. AutoContrast
+              4. GaussianBlur
+              5. Downsample
+              
               Example Usage:
 
               createchmimage.py someimage.tif someimage.png
