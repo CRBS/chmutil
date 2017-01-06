@@ -114,7 +114,7 @@ def main(arglist):
               3. AutoContrast
               4. GaussianBlur
               5. Downsample
-              
+
               Example Usage:
 
               createchmimage.py someimage.tif someimage.png
