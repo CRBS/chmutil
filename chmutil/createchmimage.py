@@ -60,9 +60,10 @@ def _parse_arguments(desc, args):
 
 def _convert_image(image_file, dest_file, theargs):
     """Convert image
+    :raises NoInputImageFoundError: if input image file does not exist
     """
     if not os.path.isfile(image_file):
-        raise('Image ' + image_file + ' not found')
+        raise NoInputImageFoundError('Image ' + image_file + ' not found')
     logger.debug('Opening file ' + image_file)
 
     img = Image.open(image_file)
@@ -90,6 +91,7 @@ def _convert_image(image_file, dest_file, theargs):
     if not dest_file.endswith('.png'):
         dest_file += '.png'
     img.save(dest_file, "PNG")
+    return 0
 
 
 def main(arglist):
@@ -102,7 +104,8 @@ def main(arglist):
               Version {version}
 
               Given an image, code will convert that image to grayscale,
-              then optionally autolevel, blur, and downsample the image.
+              then optionally autolevel, blur, and downsample the image
+              saving it in png format.
 
               By default only the conversion ot grayscale is performed.
 
