@@ -9,11 +9,13 @@ from PIL import Image
 
 from chmutil.core import Parameters
 from chmutil import core
+from chmutil.image import ImageThresholder
+from chmutil.image import ColorizeGrayscaleImage
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s (%(process)d) %(name)s %(message)s"
 
 # create logger
-logger = logging.getLogger('chmutil.createchmimage')
+logger = logging.getLogger('chmutil.createprobmapoverlay')
 
 
 class NoInputImageFoundError(Exception):
@@ -48,8 +50,11 @@ def _parse_arguments(desc, args):
                              ' For example,'
                              'a value of 30 means to set all pixels with '
                              'intensity'
-                             'less then 30% of 255 to 0 and the rest to 255',
+                             'less then 30%% of 255 to 0 and the rest to 255',
                         default=30)
+    parser.add_argument("--opacity", type=int, default=70,
+                        help='Sets level of opacity of overlay. 0 is transparent '
+                             'and 255 is opaque. (default 70)')
     parser.add_argument("--blend", type=float, default=0.3,
                         help='Blend value used to blend probability'
                              'map with base image. (default 0.3')
@@ -88,6 +93,30 @@ def _get_pixel_coloring_tuple(thecolor):
     return 0, 0, 1
 
 
+def _get_thresholded_probmap(probmap_file, threshpc):
+    """Reads probability map and thresholds it according to
+    value of `threshpc`
+    :param probmap_file:
+    :param threshpc: threshold percent ie 30 means to threshold
+           all pixels below 30% max intensity to 0 and the rest
+           to 255
+    :return: Pillow Image that is grayscale thresholded to be
+             values of 0 or 255
+    """
+    probimg = None
+    try:
+        probimg = Image.open(probmap_file).convert(mode='L')
+
+        # threshold image anything belowtheargs.threshpc percentage
+        #  set to zero, rest to 255
+        logger.info('Thresholding probability map')
+        thresh = ImageThresholder(threshold_percent=int(threshpc))
+        return thresh.threshold_image(probimg)
+    finally:
+        if probimg is not None:
+            probimg.close()
+
+
 def _convert_image(image_file, probmap_file, dest_file, theargs):
     """Convert image
     """
@@ -97,31 +126,22 @@ def _convert_image(image_file, probmap_file, dest_file, theargs):
     if not os.path.isfile(probmap_file):
         raise Exception('Image ' + probmap_file + ' not found')
 
-    logger.debug('Opening file ' + image_file)
+    thresh_image = _get_thresholded_probmap(probmap_file,
+                                            theargs.threshpc)
 
-    probimg = Image.open(probmap_file)
+    logger.info('Colorizing probability map')
+    colortuple = _get_pixel_coloring_tuple(theargs.overlaycolor)
+    colorizer = ColorizeGrayscaleImage(color=colortuple,
+                                       opacity=theargs.opacity)
 
-    # threshold image anything belowtheargs.threshpc percentage
-    #  set to zero, rest to 255
-    rawpx = int((float(theargs.threshpc)*0.01)*255)
-    probimg = Image.eval(probimg, lambda px: 0 if px < rawpx else 255)
-    rgbimg = probimg.convert('RGB')
-    probimg.close()
+    col_img = colorizer.colorize_image(thresh_image)
+    thresh_image.close()
 
-
-    pixels = list(rgbimg.getdata())
-    blue_pixels = []
-    ctuple = _get_pixel_coloring_tuple(theargs.overlaycolor)
-    for r, g, b in pixels:
-        blue_pixels.append((int(r*ctuple[0]), int(g*ctuple[1]),
-                            int(b*ctuple[2])))
-
-    blueprobmap = Image.new('RGBA', rgbimg.size)
-    blueprobmap.putdata(blue_pixels)
-
+    logger.info('Loading base image')
     img = Image.open(image_file).convert(mode='RGBA')
 
-    res = Image.blend(img, blueprobmap, theargs.blend)
+    logger.info('Combining base image with probability map')
+    res = Image.alpha_composite(img, col_img)
 
     if not dest_file.endswith('.png'):
         dest_file += '.png'
