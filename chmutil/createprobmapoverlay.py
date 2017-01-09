@@ -42,6 +42,14 @@ def _parse_arguments(desc, args):
                         choices=['red', 'blue', 'green', 'yellow',
                                  'cyan', 'magenta', 'purple'],
                         default='blue')
+    parser.add_argument("--threshpc", type=int,
+                        help='Percent cut off for thresholding with '
+                             'valid range 0-100.'
+                             ' For example,'
+                             'a value of 30 means to set all pixels with '
+                             'intensity'
+                             'less then 30% of 255 to 0 and the rest to 255',
+                        default=30)
     parser.add_argument("--blend", type=float, default=0.3,
                         help='Blend value used to blend probability'
                              'map with base image. (default 0.3')
@@ -93,19 +101,22 @@ def _convert_image(image_file, probmap_file, dest_file, theargs):
 
     probimg = Image.open(probmap_file)
 
-    # threshold image anything below %30 set to zero, rest to 255
-    # also means value of 77 pixel
-    probimg = Image.eval(probimg, lambda px: 0 if px < 77 else 255)
-    probimg = probimg.convert('RGB')
+    # threshold image anything belowtheargs.threshpc percentage
+    #  set to zero, rest to 255
+    rawpx = int((float(theargs.threshpc)*0.01)*255)
+    probimg = Image.eval(probimg, lambda px: 0 if px < rawpx else 255)
+    rgbimg = probimg.convert('RGB')
+    probimg.close()
 
-    pixels = list(probimg.getdata())
+
+    pixels = list(rgbimg.getdata())
     blue_pixels = []
     ctuple = _get_pixel_coloring_tuple(theargs.overlaycolor)
     for r, g, b in pixels:
         blue_pixels.append((int(r*ctuple[0]), int(g*ctuple[1]),
                             int(b*ctuple[2])))
 
-    blueprobmap = Image.new('RGBA', probimg.size)
+    blueprobmap = Image.new('RGBA', rgbimg.size)
     blueprobmap.putdata(blue_pixels)
 
     img = Image.open(image_file).convert(mode='RGBA')
