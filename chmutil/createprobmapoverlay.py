@@ -55,9 +55,6 @@ def _parse_arguments(desc, args):
     parser.add_argument("--opacity", type=int, default=70,
                         help='Sets level of opacity of overlay. 0 is transparent '
                              'and 255 is opaque. (default 70)')
-    parser.add_argument("--blend", type=float, default=0.3,
-                        help='Blend value used to blend probability'
-                             'map with base image. (default 0.3')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level (default WARNING)",
@@ -121,10 +118,10 @@ def _convert_image(image_file, probmap_file, dest_file, theargs):
     """Convert image
     """
     if not os.path.isfile(image_file):
-        raise Exception('Image ' + image_file + ' not found')
+        raise NoInputImageFoundError('Image ' + image_file + ' not found')
 
     if not os.path.isfile(probmap_file):
-        raise Exception('Image ' + probmap_file + ' not found')
+        raise NoInputImageFoundError('Image ' + probmap_file + ' not found')
 
     thresh_image = _get_thresholded_probmap(probmap_file,
                                             theargs.threshpc)
@@ -146,6 +143,7 @@ def _convert_image(image_file, probmap_file, dest_file, theargs):
     if not dest_file.endswith('.png'):
         dest_file += '.png'
     res.save(dest_file, "PNG")
+    return 0
 
 
 def main(arglist):
