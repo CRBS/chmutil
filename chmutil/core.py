@@ -76,6 +76,7 @@ def setup_logging(thelogger,
     logging.basicConfig(format=log_format)
     logging.getLogger('chmutil.core').setLevel(numericloglevel)
     logging.getLogger('chmutil.cluster').setLevel(numericloglevel)
+    logging.getLogger('chmutil.image').setLevel(numericloglevel)
 
 
 def add_standard_parameters(parser):
