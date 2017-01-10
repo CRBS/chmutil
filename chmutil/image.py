@@ -27,21 +27,24 @@ class SimpleImageMerger(object):
         :param image_list: List of full path to image files to merge
         :return: Pillow Image containing merge of all images
         """
+        if image_list is None:
+            logger.error('No images to merge')
+            return None
+        logger.info('Found ' + str(len(image_list)) + ' images to merge')
         merged = None
         for entry in image_list:
             if merged is None:
                 merged = Image.open(entry)
                 continue
-            merged = self._merge_images(merged, entry)
+            logger.debug('Merging image ' + entry)
+            merged = self._merge_two_images(merged, entry)
         return merged
 
-    def _merge_images(self, image1, image_file2,
-                     skip_close=False):
+    def _merge_two_images(self, image1, image_file2):
         """Merges two images together by taking max value of each
         pixel.
         :param image1: Pillow Image
         :param image_file2: Path to image
-        :param skip_close: If True method will NOT invoke close() on image1
         :returns: Pillow image which is merge of image1 and image2 where
                   each pixel is max value found.
         """
@@ -54,7 +57,7 @@ class SimpleImageMerger(object):
             if image2 is not None:
                 image2.close()
 
-            if skip_close is False and image1 is not None:
+            if image1 is not None:
                 image1.close()
 
 
