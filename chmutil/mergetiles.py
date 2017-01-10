@@ -9,6 +9,7 @@ from PIL import Image
 from PIL import ImageMath
 from chmutil.core import Parameters
 from chmutil import core
+from chmutil.image import SimpleImageMerger
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s (%(process)d) %(name)s %(message)s"
 
@@ -48,17 +49,9 @@ def _merge_image_tiles(img_dir, dest_file, suffix):
     """Merges image tiles
     """
     logger.info('Merging images in ' + img_dir)
-    merged = None
-    for entry in core.get_image_path_list(img_dir, suffix):
-
-        if merged is None:
-            merged = Image.open(entry)
-            continue
-        tile = Image.open(entry)
-        logger.debug('Merging ' + entry)
-
-        merged = ImageMath.eval("convert(max(a, b), 'L')", a=merged, b=tile)
-        tile.close()
+    sim = SimpleImageMerger()
+    im_list = core.get_image_path_list(img_dir, suffix)
+    merged = sim.merge_images(im_list)
 
     if merged is None:
         logger.error('No images were merged')
