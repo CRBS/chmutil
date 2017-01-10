@@ -116,7 +116,8 @@ def _create_chm_job(theargs):
                         mergejobname='merge' + theargs.jobname,
                         merge_tasks_per_node=mergetaskspernode,
                         version=chmutil.__version__,
-                        cluster=theargs.cluster)
+                        cluster=theargs.cluster,
+                        rawargs=theargs.rawargs)
 
         creator = CHMJobCreator(con)
         creator.create_job()
@@ -256,6 +257,7 @@ def main(arglist):
     theargs.version = chmutil.__version__
     core.setup_logging(logger, loglevel=theargs.loglevel)
     try:
+        theargs.rawargs = ' '.join(arglist)
         return _create_chm_job(theargs)
     finally:
         logging.shutdown()

@@ -2,6 +2,7 @@
 
 
 import os
+import datetime
 import logging
 import configparser
 from configparser import NoOptionError
@@ -324,7 +325,113 @@ class CHMJobCreator(object):
     CHMRUNNER = 'chmrunner.py'
     MERGERUNNER = 'mergetilerunner.py'
     CHECKCHMJOB = 'checkchmjob.py'
+    README_TXT_FILE = 'readme.txt'
+    README_BODY = """chmutil job to run CHM jobs on cluster of computers
+===========================================================
 
+Chmutil version: {version}
+Date: {date}
+
+Contents of this directory were created by invocation of createchmjob.py with
+the following command line:
+
+{commandline}
+
+To check job status invoke the following cluster specific command:
+
+On Gordon and Rocce:
+
+qstat -u '$USER'
+
+On Comet:
+
+squeue -u '$USER'
+
+If all jobs have completed invoke the following to see if any more tasks
+need to be run
+
+checkjobstatus.py {jobdir}
+
+If there are more tasks to run be sure to rerun above command with
+'--submit' flag to update the batched.* configuration files and the
+runjobs.CLUSTER/runmerge.CLUSTER files like so:
+
+checkjobstatus.py {jobdir} --submit
+
+
+For more help please visit wiki here:
+
+https://github.com/CRBS/chmutil/wiki
+
+For bugs/issues feel free to open a ticket here:
+
+https://github.com/CRBS/chmutil/issues
+
+
+Below is a description of data in this directory
+================================================
+
+base.chm.tasks.list
+  -- Main configuration file for CHM job. Created when createchmjob.py is
+     run and contains CHM tasks to run.
+
+batched.chm.tasks.list
+  -- Batched CHM task configuration file. This defines how the CHM
+     tasks in base.chm.tasks.list are batched on individual compute nodes
+     in the cluster. Created when checkchmjob.py --submitted is run.
+
+base.merge.tasks.list
+  -- Configuration of merge tasks. Created when createchmjob.py is run.
+
+batched.merge.tasks.list
+  -- Batched merge task configuration file. This defines how the merge
+     tasks in base.merge.tasks.list  are batched on individual compute
+     nodes in the cluster. Created when checkchmjob.py --submitted is run.
+
+chmrun/
+  -- Base directory where all job output is written. This directory will
+     always be named this.
+
+chmrun/mergestdout/
+  -- Directory containing output from merge tasks. Merge tasks are directed
+     to write to this path via runmerge.CLUSTER queue submit script file.
+
+chmrun/overlaymaps/
+  -- Directory containing output images that are an overlay of the merged
+     probability maps on top of the original input images. These images are
+     created when the merge tasks are run.
+
+chmrun/overlaymaps/
+  -- Directory containing output merged probability maps. These images are
+     created when the merge tasks are run.
+
+chmrun/stdout/
+  -- Directory containing output from CHM tasks. CHM tasks are directed to
+     write to this path via runjobs.CLUSTER queue submit script file.
+
+chmrun/tiles/
+  -- Directory containing directories for each input image. Within each of
+     this input image directories the CHM tasks will write partial
+     probability maps which will be merged by merge tasks in the SECOND
+     phase of processing.
+
+chmrun/tmp/
+  -- Directory containing temp standard out and standard error files for
+     chmrunner.py and mergetilerunner.py script. Both of these scripts will
+     create a sub directory with format TASKID.UUID/ and under that directory
+     will be a stderr.txt and a stdout.txt containing output from the actual
+     merge and CHM tasks. Once the task completes this directory and files
+     will be removed.
+
+runjobs.CLUSTER
+  -- CHM submit script file where CLUSTER will be set to gordon, comet, rocce.
+     This file contains necessary flags for submission to the scheduler.
+
+runmerge.CLUSTER
+  -- Merge submit script file where CLUSTER will be set to gordon, comet,
+     rocce. This file contains necessary flags for submission to the
+     scheduler.
+"""
 
     def __init__(self, chmopts):
         """Constructor
@@ -372,6 +479,27 @@ class CHMJobCreator(object):
         f.flush()
         f.close()
         return cfile
+
+    def _write_readme(self, config):
+        """Writes out readme.txt file
+        """
+        readme = os.path.join(self._chmopts.get_out_dir(),
+                              CHMJobCreator.README_TXT_FILE)
+
+        rawargs = self._chmopts.get_raw_args()
+        if rawargs is None:
+            rawargs = 'Unknown'
+        else:
+            rawargs = 'cd ' + os.getcwd() + ';' + rawargs
+
+        f = open(readme, 'w')
+        f.write(CHMJobCreator.README_BODY.format(
+            version=self._chmopts.get_version(),
+            jobdir=self._chmopts.get_out_dir(),
+            date=str(datetime.datetime.today()),
+            commandline=rawargs))
+        f.flush()
+        f.close()
 
     def _create_merge_config(self):
         """Creates configparser object and populates it with CHMConfig data
@@ -514,6 +642,7 @@ class CHMJobCreator(object):
         self._write_merge_config(mergeconfig)
         self._chmopts.set_config(config)
         self._chmopts.set_merge_config(mergeconfig)
+        self._write_readme(config)
 
         return self._chmopts
 
@@ -541,7 +670,8 @@ class CHMConfig(object):
                  cluster='rocce',
                  account='',
                  config=None,
-                 mergeconfig=None):
+                 mergeconfig=None,
+                 rawargs=None):
         """Constructor
         """
         self._images = images
@@ -569,6 +699,7 @@ class CHMConfig(object):
         self._mergeconfig = mergeconfig
         self._merge_tasks_per_node = merge_tasks_per_node
         self._cluster = cluster
+        self._rawargs = rawargs
 
     def _extract_width_and_height(self, val):
         """parses WxH value into tuple
@@ -596,6 +727,11 @@ class CHMConfig(object):
         self._overlap_width = w
         self._overlap_height = h
         return
+
+    def get_raw_args(self):
+        """Gets raw arguments passed to createchmjob.py
+        """
+        return self._rawargs
 
     def get_account(self):
         """Gets account to charge processing to

@@ -34,6 +34,45 @@ class TestCHMJobCreator(unittest.TestCase):
         myimg = Image.new('L', size_tuple)
         myimg.save(path, 'PNG')
 
+    def test_write_readme_no_args(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            opts = CHMConfig('/foo', 'model', temp_dir, '200x100',
+                             '20x20', tasks_per_node=20)
+            creator = CHMJobCreator(opts)
+            con = creator._create_config()
+            creator._write_readme(con)
+            readme = os.path.join(temp_dir, CHMJobCreator.README_TXT_FILE)
+            self.assertTrue(os.path.isfile(readme))
+            f = open(readme, 'r')
+            data = f.read()
+            f.close()
+            self.assertTrue('command line:\n\nUnknown' in data)
+            self.assertTrue('Chmutil version: unknown' in data)
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+
+    def test_write_readme_with_args(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            opts = CHMConfig('/foo', 'model', temp_dir, '200x100',
+                             '20x20', tasks_per_node=20, version='2.0',
+                             rawargs='hi how are you')
+            creator = CHMJobCreator(opts)
+            con = creator._create_config()
+            creator._write_readme(con)
+            readme = os.path.join(temp_dir, CHMJobCreator.README_TXT_FILE)
+            self.assertTrue(os.path.isfile(readme))
+            f = open(readme, 'r')
+            data = f.read()
+            f.close()
+            self.assertTrue('cd ' + os.getcwd() + ';hi how are you' in data)
+            self.assertTrue('Chmutil version: 2.0' in data)
+        finally:
+            shutil.rmtree(temp_dir)
+
     def test_create_config_and_write_config(self):
         temp_dir = tempfile.mkdtemp()
         try:

@@ -86,6 +86,7 @@ class TestCreateCHMJob(unittest.TestCase):
                                                    '520x520'])
             pargs.program = 'foo'
             pargs.version = '0.1.2'
+            pargs.rawargs = 'hi how are you'
             val = createchmjob._create_chm_job(pargs)
             self.assertEqual(val, 0)
         finally:
