@@ -106,30 +106,69 @@ class TestGordonCluster(unittest.TestCase):
                          spath)
 
     def test_get_chm_submit_command(self):
-        opts = CHMConfig('images', 'model', 'out',
-                         '500x500', '20x20')
+        temp_dir = tempfile.mkdtemp()
+        try:
+            opts = CHMConfig('images', 'model', temp_dir,
+                             '500x500', '20x20')
+            rc = GordonCluster(opts)
+            self.assertEqual(rc.get_chm_submit_command(5),
+                             'cd "' + temp_dir + '";qsub ' +
+                             GordonCluster.SUBMIT_SCRIPT_NAME)
+        finally:
+            shutil.rmtree(temp_dir)
 
-        rc = GordonCluster(opts)
-        self.assertEqual(rc.get_chm_submit_command(5),
-                         'cd "out";qsub -t 1-5 ' +
-                         GordonCluster.SUBMIT_SCRIPT_NAME)
+    def test_get_chm_submit_command_too_many_jobs(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            opts = CHMConfig('images', 'model', temp_dir,
+                             '500x500', '20x20')
+            rc = GordonCluster(opts)
+            self.assertTrue(GordonCluster.WARNING_MESSAGE +
+                            'cd "' + temp_dir + '";qsub ' +
+                            GordonCluster.SUBMIT_SCRIPT_NAME
+                            in rc.get_chm_submit_command(1001))
+        finally:
+            shutil.rmtree(temp_dir)
 
     def test_get_checkchmjob_command(self):
-        opts = CHMConfig('images', 'model', 'out',
-                         '500x500', '20x20')
+        temp_dir = tempfile.mkdtemp()
+        try:
+            opts = CHMConfig('images', 'model', temp_dir,
+                             '500x500', '20x20')
 
-        rc = GordonCluster(opts)
-        self.assertEqual(rc.get_checkchmjob_command(),
-                         CHMJobCreator.CHECKCHMJOB + ' "out" --submit')
+            rc = GordonCluster(opts)
+            self.assertEqual(rc.get_checkchmjob_command(),
+                             CHMJobCreator.CHECKCHMJOB + ' "' + temp_dir +
+                             '" --submit')
+        finally:
+            shutil.rmtree(temp_dir)
 
     def test_get_merge_submit_command(self):
-        opts = CHMConfig('images', 'model', 'out',
-                         '500x500', '20x20')
+        temp_dir = tempfile.mkdtemp()
+        try:
+            opts = CHMConfig('images', 'model', temp_dir,
+                             '500x500', '20x20')
 
-        rc = GordonCluster(opts)
-        self.assertEqual(rc.get_merge_submit_command(100),
-                         'cd "out";qsub -t 1-100 ' +
-                         GordonCluster.MERGE_SUBMIT_SCRIPT_NAME)
+            rc = GordonCluster(opts)
+            self.assertEqual(rc.get_merge_submit_command(100),
+                             'cd "' + temp_dir + '";qsub ' +
+                             GordonCluster.MERGE_SUBMIT_SCRIPT_NAME)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_merge_submit_command_too_many_jobs(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            opts = CHMConfig('images', 'model', temp_dir,
+                             '500x500', '20x20')
+
+            rc = GordonCluster(opts)
+            self.assertEqual(rc.get_merge_submit_command(4000),
+                             GordonCluster.WARNING_MESSAGE +
+                             'cd "' + temp_dir + '";qsub ' +
+                             GordonCluster.MERGE_SUBMIT_SCRIPT_NAME)
+        finally:
+            shutil.rmtree(temp_dir)
 
     def test_generate_submit_script(self):
         temp_dir = tempfile.mkdtemp()

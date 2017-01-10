@@ -590,6 +590,12 @@ class GordonCluster(Cluster):
     MERGE_SUBMIT_SCRIPT_NAME = 'runmerge.' + CLUSTER
     DEFAULT_JOBS_PER_NODE = 8
     MERGE_TASKS_PER_NODE = 6
+    MAX_TASKS_PER_ARRAY_JOB = 1000
+    WARNING_MESSAGE = ('\n# Gordon is limited to ' +
+                       str(MAX_TASKS_PER_ARRAY_JOB) +
+                       ' per qsub call. Once these jobs are complete ' +
+                       'checkchmjob.py will ' +
+                       'need to be run again\n\n')
 
     def __init__(self, chmconfig):
         """Constructor
@@ -603,12 +609,29 @@ class GordonCluster(Cluster):
         self._default_jobs_per_node = GordonCluster.DEFAULT_JOBS_PER_NODE
         self._default_merge_tasks_per_node = GordonCluster.MERGE_TASKS_PER_NODE
 
+    def _get_adjusted_number_of_tasks_and_warning(self, number_tasks):
+        """Gordon only allows 1,000 tasks per array job.
+        If an array job is launced in excess of this, an error is output.
+        To bypass this issue, this method returns a tuple with a warning
+        message and an adjusted number of tasks.
+        :param number_tasks: number of tasks that need to be run
+        :return: tuple (number of tasks, warning text for user)
+        """
+        if number_tasks > GordonCluster.MAX_TASKS_PER_ARRAY_JOB:
+            return (GordonCluster.MAX_TASKS_PER_ARRAY_JOB,
+                    GordonCluster.WARNING_MESSAGE)
+        return number_tasks, ''
+
     def get_chm_submit_command(self, number_jobs):
         """Returns submit command user should invoke
            to run jobs on scheduler. Do
         """
-        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
-               'qsub -t 1-' + str(number_jobs) + ' ' +
+        (number_tasks, warn_msg) = self.\
+            _get_adjusted_number_of_tasks_and_warning(number_jobs)
+
+        self.generate_submit_script(number_tasks=number_tasks)
+        val = (warn_msg + 'cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub ' +
                GordonCluster.SUBMIT_SCRIPT_NAME)
         return val
 
@@ -616,8 +639,11 @@ class GordonCluster(Cluster):
         """Returns submit command user should invoke
            to run jobs on scheduler
         """
-        val = ('cd "' + self._chmconfig.get_out_dir() + '";' +
-               'qsub -t 1-' + str(number_jobs) + ' ' +
+        (number_tasks, warn_msg) = self. \
+            _get_adjusted_number_of_tasks_and_warning(number_jobs)
+        self.generate_merge_submit_script(number_tasks=number_tasks)
+        val = (warn_msg + 'cd "' + self._chmconfig.get_out_dir() + '";' +
+               'qsub ' +
                GordonCluster.MERGE_SUBMIT_SCRIPT_NAME)
         return val
 
@@ -626,7 +652,7 @@ class GordonCluster(Cluster):
         """
         return '$PBS_JOBID.$PBS_ARRAYID.out'
 
-    def generate_submit_script(self):
+    def generate_submit_script(self, number_tasks=1):
         """Creates submit script and instructions for invocation
         :returns: path to submit script
         """
@@ -640,9 +666,10 @@ class GordonCluster(Cluster):
                                          self._chmconfig.get_walltime(),
                                          self._get_chm_runner_path(),
                                          self._chmconfig.get_account(),
-                                         self._chmconfig.get_shared_tmp_dir())
+                                         self._chmconfig.get_shared_tmp_dir(),
+                                         number_tasks)
 
-    def generate_merge_submit_script(self):
+    def generate_merge_submit_script(self, number_tasks=1):
         """Creates merge submit script and instructions for invocation
         :returns: path to submit script
         """
@@ -656,11 +683,12 @@ class GordonCluster(Cluster):
                                          self._chmconfig.get_merge_walltime(),
                                          self._get_merge_runner_path(),
                                          self._chmconfig.get_account(),
-                                         self._chmconfig.get_shared_tmp_dir())
+                                         self._chmconfig.get_shared_tmp_dir(),
+                                         number_tasks)
 
     def _write_submit_script(self, script, working_dir, stdout_path, job_name,
                              walltime, run_script_path,
-                             account, tmp_dir):
+                             account, tmp_dir, number_tasks):
         """Generates submit script content suitable for rocce cluster
         :param working_dir: Working directory
         :param stdout_path: Standard out file path for jobs.
@@ -680,6 +708,7 @@ class GordonCluster(Cluster):
         f.write('#PBS -l nodes=1:ppn=16:native:noflash\n')
         f.write('#PBS -o ' + stdout_path + '\n')
         f.write('#PBS -j oe\n')
+        f.write('#PBS -t 1-' + str(number_tasks) + '\n')
         f.write('#PBS -N ' + job_name + '\n')
         f.write('#PBS -l walltime=' + walltime + '\n\n')
 
