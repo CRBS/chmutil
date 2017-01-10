@@ -48,7 +48,7 @@ Dependencies
 Compatibility
 -------------
 
-* Should work on Python 2.6 & 2.7 on Linux distributions
+* Should work on Python 2.7 & 3+ on Linux distributions
 
 Installation
 ------------
