@@ -253,6 +253,8 @@ def main(arglist):
     desc = """
               Version {version}
 
+              WARNING: THIS SCRIPT HAS NOT BEEN TESTED AND MAY NOT WORK
+
               Creates mrc stack (output) by extracting random
               tiles from images in (imagedir)
               Example Usage:
@@ -261,12 +263,16 @@ def main(arglist):
 
               """.format(version=chmutil.__version__)
 
+    sys.stderr.write('\nTHIS PROGRAM IS AN ALPHA IMPLEMENTATION '
+                     'AND MAY NOT WORK\n\n')
     theargs = _parse_arguments(desc, arglist[1:])
     theargs.program = arglist[0]
     theargs.version = chmutil.__version__
     core.setup_logging(logger, log_format=LOG_FORMAT,
                        loglevel=theargs.loglevel)
     try:
+        sys.stderr.write('\nTHIS PROGRAM IS AN ALPHA IMPLEMENTATION '
+                         'AND MAY NOT WORK\n\n')
         return _create_mrc_stack(os.path.abspath(theargs.imagedir),
                                  theargs.numtiles,
                                  os.path.abspath(theargs.output),
