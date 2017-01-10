@@ -6,7 +6,6 @@ import argparse
 import logging
 import chmutil
 from PIL import Image
-from PIL import ImageMath
 from chmutil.core import Parameters
 from chmutil import core
 from chmutil.image import SimpleImageMerger

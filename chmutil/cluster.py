@@ -168,8 +168,8 @@ class TaskSummaryFactory(object):
 
         completed_chm_tasks = 0
         if self._chm_incomplete_tasks is not None:
-            completed_chm_tasks = total_chm_tasks - \
-                                  len(self._chm_incomplete_tasks)
+            num_incomplete_tasks = len(self._chm_incomplete_tasks)
+            completed_chm_tasks = total_chm_tasks - num_incomplete_tasks
 
         chmts = TaskStats()
         chmts.set_completed_task_count(completed_chm_tasks)
@@ -186,8 +186,8 @@ class TaskSummaryFactory(object):
 
         completed_merge_tasks = 0
         if self._merge_incomplete_tasks is not None:
-            completed_merge_tasks = total_merge_tasks - \
-                                    len(self._merge_incomplete_tasks)
+            num_incomplete_tasks = len(self._merge_incomplete_tasks)
+            completed_merge_tasks = total_merge_tasks - num_incomplete_tasks
 
         mergets = TaskStats()
         mergets.set_completed_task_count(completed_merge_tasks)
@@ -284,7 +284,6 @@ class CanMergeTaskBeRun(object):
         """
         self._chmconfig = chmconfig
         self._incomplete_chm_tasks = incomplete_chm_tasks
-
 
     def _build_lookup_table_mapping_merge_task_to_chm_task_ids(self):
         """Walks through CHM task configuration and builds a
@@ -426,8 +425,8 @@ class Cluster(object):
         """Returns checkchmjob.py command the user should run
         :returns: string containing checkchmjob.py the user should invoke
         """
-        runchm =  os.path.join(self._chmconfig.get_script_bin(),
-                               CHMJobCreator.CHECKCHMJOB)
+        runchm = os.path.join(self._chmconfig.get_script_bin(),
+                              CHMJobCreator.CHECKCHMJOB)
         return runchm + ' "' + self._chmconfig.get_out_dir() + '" --submit'
 
     def get_cluster(self):
@@ -675,7 +674,6 @@ class GordonCluster(Cluster):
         """
         script = self._get_merge_submit_script_path()
         out_dir = self._chmconfig.get_out_dir()
-        max_mem = str(self._chmconfig.get_max_merge_memory_in_gb())
         stdout_path = os.path.join(self._chmconfig.get_merge_stdout_dir(),
                                    self._get_standard_out_filename())
         return self._write_submit_script(script, out_dir, stdout_path,
@@ -797,7 +795,6 @@ class CometCluster(Cluster):
         """
         script = self._get_merge_submit_script_path()
         out_dir = self._chmconfig.get_out_dir()
-        max_mem = str(self._chmconfig.get_max_merge_memory_in_gb())
         stdout_path = os.path.join(self._chmconfig.get_merge_stdout_dir(),
                                    self._get_standard_out_filename())
         return self._write_submit_script(script, out_dir, stdout_path,
@@ -883,7 +880,6 @@ class ClusterFactory(object):
         if lc_cluster == CometCluster.CLUSTER:
             logger.debug('returning CometCluster')
             return CometCluster(None)
-
 
         logger.error('No cluster class supporting ' + lc_cluster + ' found')
         return None

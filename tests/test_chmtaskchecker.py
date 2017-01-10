@@ -68,7 +68,6 @@ class TestCHMJobChecker(unittest.TestCase):
             # test with empty config
             self.assertEqual(checker.get_incomplete_tasks_list(), [])
 
-
             # test with config with 2 entries no files on filesystem
             config.add_section('1')
             config.set('1', CHMJobCreator.CONFIG_OUTPUT_IMAGE, 'image_one.png')

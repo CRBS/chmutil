@@ -11,8 +11,6 @@ Tests for `TaskSummaryFactory in cluster`
 import unittest
 import configparser
 
-from chmutil.cluster import TaskStats
-from chmutil.cluster import TaskSummary
 from chmutil.cluster import TaskSummaryFactory
 from chmutil.core import CHMConfig
 
@@ -57,51 +55,18 @@ class TestCore(unittest.TestCase):
         self.assertEqual(ts.get_completed_task_count(), 0)
         self.assertEqual(ts.get_total_task_count(), 4)
 
-        #try with empty lists
-        tsf = TaskSummaryFactory(con,chm_incomplete_tasks=[],
-                                 merge_incomplete_tasks=[])
-        ts = tsf._get_chm_task_stats()
-        self.assertEqual(ts.get_completed_task_count(), 4)
-        self.assertEqual(ts.get_total_task_count(), 4)
-
-        # try with lists with elements
-        tsf = TaskSummaryFactory(con, chm_incomplete_tasks=['hi'],
-                                 merge_incomplete_tasks=['a','b'])
-        ts = tsf._get_chm_task_stats()
-        self.assertEqual(ts.get_completed_task_count(), 3)
-        self.assertEqual(ts.get_total_task_count(), 4)
-
-    def test_get_chm_task_stats(self):
-        con = CHMConfig('./images', './model', './outdir', '500x500', '20x20')
-        cfig = configparser.ConfigParser()
-        cfig.add_section('1')
-        cfig.set('1', 'hi', 'val')
-        cfig.add_section('2')
-        cfig.set('2', 'hi', 'val')
-        cfig.add_section('3')
-        cfig.set('3', 'hi', 'val')
-        cfig.add_section('4')
-        cfig.set('4', 'hi', 'val')
-
-        # try with none for lists
-        con.set_merge_config(cfig)
-        tsf = TaskSummaryFactory(con)
-        ts = tsf._get_merge_task_stats()
-        self.assertEqual(ts.get_completed_task_count(), 0)
-        self.assertEqual(ts.get_total_task_count(), 4)
-
         # try with empty lists
         tsf = TaskSummaryFactory(con, chm_incomplete_tasks=[],
                                  merge_incomplete_tasks=[])
-        ts = tsf._get_merge_task_stats()
+        ts = tsf._get_chm_task_stats()
         self.assertEqual(ts.get_completed_task_count(), 4)
         self.assertEqual(ts.get_total_task_count(), 4)
 
         # try with lists with elements
         tsf = TaskSummaryFactory(con, chm_incomplete_tasks=['hi'],
                                  merge_incomplete_tasks=['a', 'b'])
-        ts = tsf._get_merge_task_stats()
-        self.assertEqual(ts.get_completed_task_count(), 2)
+        ts = tsf._get_chm_task_stats()
+        self.assertEqual(ts.get_completed_task_count(), 3)
         self.assertEqual(ts.get_total_task_count(), 4)
 
     def test_get_task_summary(self):

@@ -601,7 +601,7 @@ runmerge.CLUSTER
         """
         config.add_section(counter_as_str)
         config.set(counter_as_str, CHMJobCreator.MERGE_INPUT_IMAGE_DIR,
-                   os.path.join(CHMJobCreator.TILES_DIR,image_name))
+                   os.path.join(CHMJobCreator.TILES_DIR, image_name))
         config.set(counter_as_str, CHMJobCreator.MERGE_OUTPUT_IMAGE,
                    os.path.join(CHMJobCreator.PROBMAPS_DIR,
                                 image_name))
@@ -1016,15 +1016,16 @@ class CHMConfigFromConfigFactory(object):
         cluster = config.get(default,
                              CHMJobCreator.CONFIG_CLUSTER)
 
+        tiles_per_task = config.get(default,
+                                    CHMJobCreator.CONFIG_TILES_PER_TASK)
+
         opts = CHMConfig(config.get(default, CHMJobCreator.CONFIG_IMAGES),
                          config.get(default, CHMJobCreator.CONFIG_MODEL),
                          self._job_dir,
                          config.get(default, CHMJobCreator.CONFIG_TILE_SIZE),
                          config.get(default, CHMJobCreator.
                                     CONFIG_OVERLAP_SIZE),
-                         number_tiles_per_task=config.get(default,
-                                                          CHMJobCreator.
-                                                          CONFIG_TILES_PER_TASK),
+                         number_tiles_per_task=tiles_per_task,
                          tasks_per_node=config.get(default, CHMJobCreator.
                                                    CONFIG_TASKS_PER_NODE),
                          disablehisteq=disablehisteq,

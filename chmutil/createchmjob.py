@@ -98,8 +98,10 @@ def _create_chm_job(theargs):
     try:
         cluster_fac = ClusterFactory()
         cluster = cluster_fac.get_cluster_by_name(theargs.cluster)
-        taskspernode = cluster.get_suggested_tasks_per_node(theargs.taskspernode)
-        mergetaskspernode = cluster.get_suggested_merge_tasks_per_node(theargs.mergetaskspernode)
+        taskspernode = cluster.\
+            get_suggested_tasks_per_node(theargs.taskspernode)
+        mergetaskspernode = cluster.\
+            get_suggested_merge_tasks_per_node(theargs.mergetaskspernode)
         con = CHMConfig(os.path.abspath(theargs.images),
                         os.path.abspath(theargs.model),
                         os.path.abspath(theargs.outdir),
@@ -152,8 +154,8 @@ def main(arglist):
               as well as reduce the memory footprint of CHM which gets huge on
               tiles larger then 1000x1000. For example tiles of 500x500 easily
               use 4 to 6 gigabytes of ram. These tiles are stored on the
-              filesystem under <outdir>/{rundir}/{tiles}/<image.png> directories
-              described below.
+              filesystem under <outdir>/{rundir}/{tiles}/<image.png>
+              directories described below.
 
               In the SECOND phase merge tasks are run which combine the tiles
               into what are known as probability maps. Probability maps are

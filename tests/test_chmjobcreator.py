@@ -53,7 +53,6 @@ class TestCHMJobCreator(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-
     def test_write_readme_with_args(self):
         temp_dir = tempfile.mkdtemp()
         try:

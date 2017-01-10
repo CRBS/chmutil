@@ -132,7 +132,7 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
                              'yocluster')
             self.assertEqual(mcon.getint(CHMJobCreator.CONFIG_DEFAULT,
                                          CHMJobCreator.MERGE_TASKS_PER_NODE),
-                                         4)
+                             4)
 
             self.assertEqual(chmconfig.get_cluster(), 'yocluster')
 

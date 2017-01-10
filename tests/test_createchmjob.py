@@ -48,7 +48,7 @@ class TestCreateCHMJob(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             pargs = createchmjob._parse_arguments('hi',
-                                                  [temp_dir,temp_dir,
+                                                  [temp_dir, temp_dir,
                                                    temp_dir,
                                                    '--tilesize',
                                                    ''])

@@ -69,7 +69,6 @@ class TestSingleColumnImageTileGenerator(unittest.TestCase):
 
         self.assertEqual(counter, 2)
 
-
     def test_two_tiles_returned_last_tile_shorter(self):
         im = Image.new('L', (500, 190))
         gen = SingleColumnImageTileGenerator(tileheight=100)

@@ -81,8 +81,9 @@ class TestCreateProbmapOverlay(unittest.TestCase):
     def test_convert_image_no_image_file(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            img_file = os.path.join(temp_dir,'doesnotexist.png')
-            createprobmapoverlay._convert_image(img_file, 'foo', temp_dir, None)
+            img_file = os.path.join(temp_dir, 'doesnotexist.png')
+            createprobmapoverlay._convert_image(img_file, 'foo', temp_dir,
+                                                None)
             self.fail('Expected NoInputImageFoundError')
         except NoInputImageFoundError as e:
             self.assertEqual(str(e), 'Image ' + img_file + ' not found')

@@ -27,7 +27,7 @@ class TestCreateCHMImage(unittest.TestCase):
         pass
 
     def test_parse_arguments(self):
-        pargs = createchmimage._parse_arguments('hi',['foo.png', 'out.png'])
+        pargs = createchmimage._parse_arguments('hi', ['foo.png', 'out.png'])
         self.assertEqual(pargs.image, 'foo.png')
         self.assertEqual(pargs.output, 'out.png')
         self.assertEqual(pargs.downsample, 0)
@@ -37,10 +37,10 @@ class TestCreateCHMImage(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             # test with non existant image
-            nonexistant_img = os.path.join(temp_dir,'doesnotexist.png')
-            output = os.path.join(temp_dir,'output.png')
-            val = createchmimage.main(['createchmjob.py', nonexistant_img,
-                                    output])
+            nonexistant_img = os.path.join(temp_dir, 'doesnotexist.png')
+            output = os.path.join(temp_dir, 'output.png')
+            createchmimage.main(['createchmjob.py', nonexistant_img,
+                                 output])
             self.fail('expected LoadConfigError')
         except NoInputImageFoundError as e:
             self.assertEqual(str(e), 'Image ' + nonexistant_img + ' not found')

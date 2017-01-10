@@ -23,7 +23,7 @@ logger = logging.getLogger('chmutil.runchmjob')
 SUBMIT = 'submit'
 SUBMIT_FLAG = '--' + SUBMIT
 DETAILED = 'detailed'
-DETAILED_FLAG = '--' +DETAILED
+DETAILED_FLAG = '--' + DETAILED
 
 
 def _parse_arguments(desc, args):
@@ -39,6 +39,7 @@ def _parse_arguments(desc, args):
                                        ' file')
 
     bmerge = CHMJobCreator.MERGE_CONFIG_BATCHED_TASKS_FILE_NAME
+    batchchm = CHMJobCreator.CONFIG_BATCHED_TASKS_FILE_NAME
     parser.add_argument(SUBMIT_FLAG, action="store_true",
                         help='Rewrite {batchchm}'
                              'and {batchmerge} files with any'
@@ -47,8 +48,7 @@ def _parse_arguments(desc, args):
                              'flag if tasks are still running,'
                              'since key configuration files '
                              'will be '
-                             'rewritten.'.format(batchchm=CHMJobCreator.
-                                                 CONFIG_BATCHED_TASKS_FILE_NAME,
+                             'rewritten.'.format(batchchm=batchchm,
                                                  batchmerge=bmerge))
 
     parser.add_argument(DETAILED_FLAG, action="store_true",
@@ -87,6 +87,7 @@ def _get_incompleted_merge_task_list(mergeconfig):
     merge_checker = MergeTaskChecker(mergeconfig)
     return merge_checker.get_incomplete_tasks_list()
 
+
 def _submit_chm_tasks(batcher, config_file, task_list,
                       cluster):
     """submit CHM tasks
@@ -100,7 +101,7 @@ def _submit_chm_tasks(batcher, config_file, task_list,
 
 
 def _submit_merge_tasks(batcher, config_file, task_list,
-                      cluster):
+                        cluster):
     """submit CHM tasks
     """
     num_tasks = batcher.write_batched_config(config_file,
@@ -109,7 +110,6 @@ def _submit_merge_tasks(batcher, config_file, task_list,
                      cluster.get_merge_submit_command(num_tasks) +
                      '\n\n')
     return 0
-
 
 
 def _submit(chmconfig, chm_task_list, merge_task_list):

@@ -80,7 +80,7 @@ class TestRocceCluster(unittest.TestCase):
                          CHMJobCreator.MERGERUNNER)
 
         opts = CHMConfig('images', 'model', 'out',
-                         '500x500', '20x20',scriptbin='foo')
+                         '500x500', '20x20', scriptbin='foo')
         rc = RocceCluster(opts)
         self.assertEqual(rc._get_merge_runner_path(),
                          os.path.join('foo',

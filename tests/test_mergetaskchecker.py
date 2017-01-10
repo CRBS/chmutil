@@ -62,7 +62,6 @@ class TestMergeJobChecker(unittest.TestCase):
             config = configparser.ConfigParser()
             checker = MergeTaskChecker(config)
 
-
             # test with empty config
             self.assertEqual(checker.get_incomplete_tasks_list(), [])
 

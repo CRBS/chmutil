@@ -13,7 +13,6 @@ import tempfile
 import shutil
 import unittest
 import configparser
-from mock import Mock
 
 from chmutil.cluster import CHMJobCreator
 from chmutil.cluster import BatchedTasksListGenerator

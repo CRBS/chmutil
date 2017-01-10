@@ -53,8 +53,8 @@ def _parse_arguments(desc, args):
                              'less then 30%% of 255 to 0 and the rest to 255',
                         default=30)
     parser.add_argument("--opacity", type=int, default=70,
-                        help='Sets level of opacity of overlay. 0 is transparent '
-                             'and 255 is opaque. (default 70)')
+                        help='Sets level of opacity of overlay. 0 is '
+                             'transparent and 255 is opaque. (default 70)')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level (default WARNING)",

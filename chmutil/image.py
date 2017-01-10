@@ -52,7 +52,8 @@ class SimpleImageMerger(object):
         try:
             image2 = Image.open(image_file2)
             logger.debug('Merging ' + image_file2)
-            return ImageMath.eval("convert(max(a, b), 'L')", a=image1, b=image2)
+            return ImageMath.eval("convert(max(a, b), 'L')", a=image1,
+                                  b=image2)
         finally:
             if image2 is not None:
                 image2.close()
@@ -173,7 +174,7 @@ class SingleColumnImageTileGenerator(object):
         """Constructor
         :param tileheight: int denoting height of tile in pixels.
         """
-        self._tileheight=tileheight
+        self._tileheight = tileheight
 
     def get_image_tiles(self, image):
         """Gets generator that obtains single column of `ImageTile`

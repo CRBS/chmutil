@@ -46,6 +46,7 @@ def write_fake_cmd(fakecmd, stdout, stderr, exitcode,
     f.close()
     os.chmod(fakecmd, stat.S_IRWXU)
 
+
 class TestCHMRunner(unittest.TestCase):
 
     def setUp(self):
@@ -76,7 +77,7 @@ class TestCHMRunner(unittest.TestCase):
     def test_run_single_chm_job_success_histeq_enabled(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            scratch = os.path.join(temp_dir,'tmp')
+            scratch = os.path.join(temp_dir, 'tmp')
             os.makedirs(scratch, mode=0o755)
 
             chmrundir = os.path.join(temp_dir,
@@ -107,7 +108,8 @@ class TestCHMRunner(unittest.TestCase):
             self.assertEqual(ecode, 0)
             f = open(os.path.join(temp_dir, 'out.txt'), 'r')
             out_data = f.read()
-            self.assertTrue('-m /model -b 3x3 -o 2x2 -t 1,1 -t 1,2' in out_data)
+            self.assertTrue('-m /model -b 3x3 -o 2x2 '
+                            '-t 1,1 -t 1,2' in out_data)
             self.assertTrue(fakecmd + ' test ' +
                             os.path.join(temp_dir, 'input.1.png') +
                             ' ' in out_data)
@@ -119,7 +121,7 @@ class TestCHMRunner(unittest.TestCase):
     def test_run_single_chm_job_success_full_path_to_out_image(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            scratch = os.path.join(temp_dir,'tmp')
+            scratch = os.path.join(temp_dir, 'tmp')
             os.makedirs(scratch, mode=0o755)
 
             chmrundir = os.path.join(temp_dir,
@@ -151,7 +153,8 @@ class TestCHMRunner(unittest.TestCase):
             self.assertEqual(ecode, 0)
             f = open(os.path.join(temp_dir, 'out.txt'), 'r')
             out_data = f.read()
-            self.assertTrue('-m /model -b 3x3 -o 2x2 -t 1,1 -t 1,2' in out_data)
+            self.assertTrue('-m /model -b 3x3 -o 2x2 -t '
+                            '1,1 -t 1,2' in out_data)
             self.assertTrue(fakecmd + ' test ' +
                             os.path.join(temp_dir, 'input.1.png') +
                             ' ' in out_data)
@@ -163,7 +166,7 @@ class TestCHMRunner(unittest.TestCase):
     def test_run_single_chm_job_success_histeq_disabled(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            scratch = os.path.join(temp_dir,'tmp')
+            scratch = os.path.join(temp_dir, 'tmp')
             os.makedirs(scratch, mode=0o755)
 
             chmrundir = os.path.join(temp_dir,
@@ -182,7 +185,6 @@ class TestCHMRunner(unittest.TestCase):
             con.set('1', CHMJobCreator.CONFIG_OUTPUT_IMAGE, 'output.1.png')
 
             con.set('1', CHMJobCreator.CONFIG_ARGS, '-t 1,1 -t 1,2')
-
 
             fakecmd = os.path.join(temp_dir, 'fake.py')
             write_fake_cmd(fakecmd, '"stdout"', '"stderr"', 0)
@@ -195,7 +197,8 @@ class TestCHMRunner(unittest.TestCase):
             self.assertEqual(ecode, 0)
             f = open(os.path.join(temp_dir, 'out.txt'), 'r')
             out_data = f.read()
-            self.assertTrue('-m /model -b 3x3 -o 2x2 -h -t 1,1 -t 1,2' in out_data)
+            self.assertTrue('-m /model -b 3x3 -o 2x2 -h '
+                            '-t 1,1 -t 1,2' in out_data)
             self.assertTrue(fakecmd + ' test ' +
                             os.path.join(temp_dir, 'input.1.png') +
                             ' ' in out_data)
@@ -206,7 +209,7 @@ class TestCHMRunner(unittest.TestCase):
     def test_run_single_chm_job_nonzero_exitcode_but_got_image(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            scratch = os.path.join(temp_dir,'tmp')
+            scratch = os.path.join(temp_dir, 'tmp')
             os.makedirs(scratch, mode=0o755)
 
             chmrundir = os.path.join(temp_dir,
@@ -225,7 +228,6 @@ class TestCHMRunner(unittest.TestCase):
             con.set('1', CHMJobCreator.CONFIG_OUTPUT_IMAGE, 'output.1.png')
 
             con.set('1', CHMJobCreator.CONFIG_ARGS, '-t 1,1 -t 1,2')
-
 
             fakecmd = os.path.join(temp_dir, 'fake.py')
             write_fake_cmd(fakecmd, '"stdout"', '"stderr"', 1)
@@ -238,7 +240,8 @@ class TestCHMRunner(unittest.TestCase):
             self.assertEqual(ecode, 1)
             f = open(os.path.join(temp_dir, 'out.txt'), 'r')
             out_data = f.read()
-            self.assertTrue('-m /model -b 3x3 -o 2x2 -h -t 1,1 -t 1,2' in out_data)
+            self.assertTrue('-m /model -b 3x3 -o 2x2 -h '
+                            '-t 1,1 -t 1,2' in out_data)
             self.assertTrue(fakecmd + ' test ' +
                             os.path.join(temp_dir, 'input.1.png') +
                             ' ' in out_data)
@@ -249,7 +252,7 @@ class TestCHMRunner(unittest.TestCase):
     def test_run_single_chm_job_no_image(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            scratch = os.path.join(temp_dir,'tmp')
+            scratch = os.path.join(temp_dir, 'tmp')
             os.makedirs(scratch, mode=0o755)
 
             chmrundir = os.path.join(temp_dir,
@@ -268,7 +271,6 @@ class TestCHMRunner(unittest.TestCase):
             con.set('1', CHMJobCreator.CONFIG_OUTPUT_IMAGE, 'output.1.png')
 
             con.set('1', CHMJobCreator.CONFIG_ARGS, '-t 1,1 -t 1,2')
-
 
             fakecmd = os.path.join(temp_dir, 'fake.py')
             write_fake_cmd(fakecmd, '"stdout"', '"stderr"', 0,
@@ -282,7 +284,8 @@ class TestCHMRunner(unittest.TestCase):
             self.assertEqual(ecode, 3)
             f = open(os.path.join(temp_dir, 'out.txt'), 'r')
             out_data = f.read()
-            self.assertTrue('-m /model -b 3x3 -o 2x2 -h -t 1,1 -t 1,2' in out_data)
+            self.assertTrue('-m /model -b 3x3 -o 2x2 -h '
+                            '-t 1,1 -t 1,2' in out_data)
             self.assertTrue(fakecmd + ' test ' +
                             os.path.join(temp_dir, 'input.1.png') +
                             ' ' in out_data)
@@ -293,7 +296,7 @@ class TestCHMRunner(unittest.TestCase):
     def test_run_single_chm_job_no_image_singularity_abort(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            scratch = os.path.join(temp_dir,'tmp')
+            scratch = os.path.join(temp_dir, 'tmp')
             os.makedirs(scratch, mode=0o755)
 
             chmrundir = os.path.join(temp_dir,
@@ -313,10 +316,10 @@ class TestCHMRunner(unittest.TestCase):
 
             con.set('1', CHMJobCreator.CONFIG_ARGS, '-t 1,1 -t 1,2')
 
-
             fakecmd = os.path.join(temp_dir, 'fake.py')
             write_fake_cmd(fakecmd, '"stdout"',
-                           '"ABORT: Could not create temporary directory /tmp"',
+                           '"ABORT: Could not create temporary '
+                           'directory /tmp"',
                            0, write_image=False)
             con.set('', CHMJobCreator.CONFIG_CHM_BIN,
                     fakecmd)
@@ -338,7 +341,7 @@ class TestCHMRunner(unittest.TestCase):
     def test_run_single_chm_job_no_image_singularity_abort_alt_ver(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            scratch = os.path.join(temp_dir,'tmp')
+            scratch = os.path.join(temp_dir, 'tmp')
             os.makedirs(scratch, mode=0o755)
 
             chmrundir = os.path.join(temp_dir,
@@ -357,7 +360,6 @@ class TestCHMRunner(unittest.TestCase):
             con.set('1', CHMJobCreator.CONFIG_OUTPUT_IMAGE, 'output.1.png')
 
             con.set('1', CHMJobCreator.CONFIG_ARGS, '-t 1,1 -t 1,2')
-
 
             fakecmd = os.path.join(temp_dir, 'fake.py')
             write_fake_cmd(fakecmd, '"stdout"',
@@ -378,7 +380,6 @@ class TestCHMRunner(unittest.TestCase):
             self.assertEqual(len(os.listdir(scratch)), 0)
         finally:
             shutil.rmtree(temp_dir)
-
 
 
 if __name__ == '__main__':

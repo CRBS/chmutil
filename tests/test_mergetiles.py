@@ -65,7 +65,6 @@ class TestMergeTiles(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-
     def test_merge_tiles_no_images_in_dir(self):
         temp_dir = tempfile.mkdtemp()
         try:
@@ -77,7 +76,6 @@ class TestMergeTiles(unittest.TestCase):
                                                            '.png'), 1)
         finally:
             shutil.rmtree(temp_dir)
-
 
     def test_merge_tiles_where_data_in_both_images_at_same_pixel(self):
         temp_dir = tempfile.mkdtemp()

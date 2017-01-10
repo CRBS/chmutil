@@ -12,16 +12,13 @@ import unittest
 import os
 import tempfile
 import shutil
-import configparser
 from PIL import Image
 
 from chmutil import checkchmjob
 from chmutil import createchmjob
 from chmutil.core import LoadConfigError
 from chmutil.core import CHMJobCreator
-from chmutil.core import CHMConfig
 from chmutil.core import CHMConfigFromConfigFactory
-
 
 
 def create_successful_job(a_tmp_dir):
@@ -67,7 +64,7 @@ class TestCheckCHMJob(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             # test with bad args which should fail
-            val = checkchmjob.main(['createchmjob.py', temp_dir])
+            checkchmjob.main(['createchmjob.py', temp_dir])
             self.fail('expected LoadConfigError')
         except LoadConfigError as e:
             config = os.path.join(temp_dir, CHMJobCreator.CONFIG_FILE_NAME)
@@ -177,7 +174,7 @@ class TestCheckCHMJob(unittest.TestCase):
             #
             chmconfig = cfac.get_chmconfig()
             con = chmconfig.get_config()
-            con.set(CHMJobCreator.CONFIG_DEFAULT,CHMJobCreator.CONFIG_CLUSTER,
+            con.set(CHMJobCreator.CONFIG_DEFAULT, CHMJobCreator.CONFIG_CLUSTER,
                     'doesnotexist')
             f = open(chmconfig.get_job_config(), 'w')
             con.write(f)
@@ -200,7 +197,6 @@ class TestCheckCHMJob(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-
     def test_check_chm_job_one_chm_job_to_run(self):
         temp_dir = tempfile.mkdtemp()
         try:
@@ -208,9 +204,6 @@ class TestCheckCHMJob(unittest.TestCase):
             pargs = checkchmjob._parse_arguments('hi', [out, '--submit'])
             pargs.program = 'foo'
             pargs.version = '1.0.0'
-            img_tile = os.path.join(out, CHMJobCreator.RUN_DIR,
-                                    CHMJobCreator.TILES_DIR,
-                                    'foo.png', '001.foo.png')
 
             val = checkchmjob._check_chm_job(pargs)
             self.assertEqual(val, 0)
@@ -224,7 +217,7 @@ class TestCheckCHMJob(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_check_chm_job_no_jobs_to_run(self):
+    def test_check_chm_job_all_tasks_complete_with_submit(self):
         temp_dir = tempfile.mkdtemp()
         try:
             out = create_successful_job(temp_dir)

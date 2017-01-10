@@ -102,7 +102,7 @@ class TestCore(unittest.TestCase):
                                              './chm-0.1.0.img\n\nCHM tasks: '
                                              'NA\nMerge tasks: NA\n')
 
-        tsum = TaskSummary(con,chm_task_stats=ts,
+        tsum = TaskSummary(con, chm_task_stats=ts,
                            merge_task_stats=mts)
         self.assertEqual(tsum.get_summary(), 'chmutil version: unknown\n'
                                              'Tiles: 500x500 with 20x20 '
