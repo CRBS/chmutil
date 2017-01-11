@@ -16,12 +16,6 @@ chmutil
 
 Utility package to run `Cascaded Hierarchical Model (CHM) <https://www.sci.utah.edu/software/chm.html>`_ jobs on clusters.
 
-Overview of how jobs are broken up:
-
-
-.. image:: https://github.com/CRBS/chmutil/blob/master/images/chmutil.png
-
-
 `For more information visit our wiki page <https://github.com/CRBS/chmutil/wiki>`_
 
 Tools
@@ -56,6 +50,7 @@ Installation
 Try one of these:
 
 ::
+
   pip install chmutil
 
 Usage
