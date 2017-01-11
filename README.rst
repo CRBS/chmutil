@@ -56,20 +56,7 @@ Installation
 Try one of these:
 
 ::
-
-  make dist
-  pip install dist/chmutil*whl
-
-  # or
-
-  python setup.py install
-
-  # soon will be available via pip install chmutil
-
-  # NOTE if super user not available try this
-
-  pip install --user dist/chmutil*whl
-
+  pip install chmutil
 
 Usage
 --------
