@@ -47,8 +47,6 @@ Compatibility
 Installation
 ------------
 
-Try one of these:
-
 ::
 
   pip install chmutil
