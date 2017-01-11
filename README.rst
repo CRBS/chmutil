@@ -4,8 +4,8 @@ chmutil
 
 
 
-.. image:: https://pyup.io/repos/github/coleslaw481/chmutil/shield.svg
-     :target: https://pyup.io/repos/github/coleslaw481/chmutil/
+.. image:: https://pyup.io/repos/github/CRBS/chmutil/shield.svg
+     :target: https://pyup.io/repos/github/CRBS/chmutil/
      :alt: Updates
 
 .. image:: https://travis-ci.org/CRBS/chmutil.svg?branch=master
