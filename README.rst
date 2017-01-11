@@ -3,6 +3,8 @@ chmutil
 ===============================
 
 
+.. image:: https://img.shields.io/pypi/v/chmutil.svg
+           :target: https://pypi.python.org/pypi/chmutil
 
 .. image:: https://pyup.io/repos/github/CRBS/chmutil/shield.svg
      :target: https://pyup.io/repos/github/CRBS/chmutil/
