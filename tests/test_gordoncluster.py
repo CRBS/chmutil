@@ -174,7 +174,7 @@ class TestGordonCluster(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             opts = CHMConfig('images', 'model', temp_dir,
-                             '500x500', '20x20')
+                             '500x500', '20x20', account='tt234')
             gen = GordonCluster(None)
             gen.set_chmconfig(opts)
             script = gen._get_submit_script_path()
@@ -182,6 +182,10 @@ class TestGordonCluster(unittest.TestCase):
             gen.generate_submit_script()
             self.assertEqual(os.path.isfile(script), True)
             # TODO Test qsub script file has correct data in it
+            f = open(script, 'r')
+            script_data = f.read()
+            f.close()
+            self.assertTrue('#PBS -A tt234\n' in script_data)
         finally:
             shutil.rmtree(temp_dir)
 
@@ -196,6 +200,11 @@ class TestGordonCluster(unittest.TestCase):
             gen.generate_merge_submit_script()
             self.assertEqual(os.path.isfile(script), True)
             # TODO Test qsub script file has correct data in it
+            # TODO Test qsub script file has correct data in it
+            f = open(script, 'r')
+            script_data = f.read()
+            f.close()
+            self.assertTrue('#PBS -A \n' in script_data)
         finally:
             shutil.rmtree(temp_dir)
 

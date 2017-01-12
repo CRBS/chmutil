@@ -91,3 +91,14 @@ testrelease: clean ## Builds and releases code to testpypi
 release: clean ## Builds and releases code to PRODUCTION pypi
 	python setup.py sdist upload -r pypi
 	python setup.py bdist_wheel upload -r pypi
+
+updateversion: ## updates version value in setup.py & chmutil/__init__.py
+	@cv=`egrep '^\s+version=' setup.py | sed "s/^.*='//" | sed "s/'.*//"`; \
+	read -p "Current ($$cv) enter new version: " vers; \
+	echo "Updating setup.py & chmutil/__init__.py with new version: $$vers"; \
+	sed -i "s/version='.*',/version='$$vers',/" setup.py ; \
+	sed -i "s/__version__ = '.*'/__version__ = '$$vers'/" chmutil/__init__.py
+	@echo -n "  Updated setup.py: " ; \
+	grep "version" setup.py ;
+	@echo -n "  Updated chmutil/__init__.py: " ; \
+	grep "__version__" chmutil/__init__.py

@@ -320,6 +320,7 @@ class CHMJobCreator(object):
     CONFIG_OVERLAP_SIZE = 'overlapsize'
     CONFIG_DISABLE_HISTEQ_IMAGES = 'disablehisteqimages'
     CONFIG_TASKS_PER_NODE = 'taskspernode'
+    CONFIG_ACCOUNT = 'account'
     CHMUTIL_VERSION = 'chmutilversion'
     CONFIG_CLUSTER = 'cluster'
     CHMRUNNER = 'chmrunner.py'
@@ -341,7 +342,7 @@ To check job status invoke the following cluster specific command:
 
 On Gordon and Rocce:
 
-qstat -u '$USER'
+qstat -t -u '$USER'
 
 On Comet:
 
@@ -462,6 +463,8 @@ runmerge.CLUSTER
                    str(self._chmopts.get_disable_histogram_eq_val()))
         config.set('', CHMJobCreator.CONFIG_TASKS_PER_NODE,
                    str(self._chmopts.get_number_tasks_per_node()))
+        config.set('', CHMJobCreator.CONFIG_ACCOUNT,
+                   str(self._chmopts.get_account()))
         config.set('', CHMJobCreator.CONFIG_CLUSTER,
                    str(self._chmopts.get_cluster()))
         return config
@@ -1019,6 +1022,11 @@ class CHMConfigFromConfigFactory(object):
         tiles_per_task = config.get(default,
                                     CHMJobCreator.CONFIG_TILES_PER_TASK)
 
+        account = ''
+        if config.has_option(default, CHMJobCreator.CONFIG_ACCOUNT):
+            account = config.get(default, CHMJobCreator.CONFIG_ACCOUNT)
+            logger.debug('account found in config: ' + str(account))
+
         opts = CHMConfig(config.get(default, CHMJobCreator.CONFIG_IMAGES),
                          config.get(default, CHMJobCreator.CONFIG_MODEL),
                          self._job_dir,
@@ -1035,6 +1043,7 @@ class CHMConfigFromConfigFactory(object):
                          merge_tasks_per_node=merge_t_node,
                          cluster=cluster,
                          config=config,
+                         account=account,
                          mergeconfig=mergecon)
         return opts
 

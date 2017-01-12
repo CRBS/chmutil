@@ -53,7 +53,7 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_get_chmconfig_default_values(self):
+    def test_get_chmconfig_default_values_no_account(self):
         temp_dir = tempfile.mkdtemp()
         try:
             cfile = os.path.join(temp_dir,
@@ -92,6 +92,60 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
             self.assertEqual(chmconfig.get_overlap_width(), 10)
             self.assertEqual(chmconfig.get_overlap_size(), '10x20')
             self.assertEqual(chmconfig.get_cluster(), 'mycluster')
+            self.assertEqual(chmconfig.get_account(), '')
+
+            config.set('', CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES, 'False')
+            f = open(cfile, 'w')
+            config.write(f)
+            f.flush()
+            f.close()
+            chmconfig = fac.get_chmconfig()
+            self.assertEqual(chmconfig.get_disable_histogram_eq_val(), False)
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_chmconfig_default_values_with_account_set(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            cfile = os.path.join(temp_dir,
+                                 CHMJobCreator.CONFIG_FILE_NAME)
+            config = configparser.ConfigParser()
+            config.set('', CHMJobCreator.CONFIG_IMAGES, 'images')
+            config.set('', CHMJobCreator.CONFIG_MODEL, 'model')
+            config.set('', CHMJobCreator.CONFIG_TILE_SIZE, '500x600')
+            config.set('', CHMJobCreator.CONFIG_OVERLAP_SIZE, '10x20')
+            config.set('', CHMJobCreator.CONFIG_TILES_PER_TASK, 'tilesperjob')
+            config.set('', CHMJobCreator.CONFIG_TASKS_PER_NODE, 'jobspernode')
+            config.set('', CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES, 'True')
+            config.set('', CHMJobCreator.CONFIG_CHM_BIN, 'chmbin')
+            config.set('', CHMJobCreator.CONFIG_CLUSTER, 'mycluster')
+            config.set('', CHMJobCreator.CONFIG_ACCOUNT, 'gg123')
+            f = open(cfile, 'w')
+            config.write(f)
+            f.flush()
+            f.close()
+
+            fac = CHMConfigFromConfigFactory(temp_dir)
+            chmconfig = fac.get_chmconfig()
+            self.assertEqual(chmconfig.get_out_dir(), temp_dir)
+            self.assertEqual(chmconfig.get_chm_binary(), 'chmbin')
+            self.assertEqual(chmconfig.get_script_bin(), '')
+            self.assertEqual(chmconfig.get_disable_histogram_eq_val(), True)
+            self.assertEqual(chmconfig.get_images(), 'images')
+            self.assertEqual(chmconfig.get_model(), 'model')
+            self.assertEqual(chmconfig.get_number_tasks_per_node(),
+                             'jobspernode')
+            self.assertEqual(chmconfig.get_number_tiles_per_task(),
+                             'tilesperjob')
+            self.assertEqual(chmconfig.get_tile_height(), 600)
+            self.assertEqual(chmconfig.get_tile_width(), 500)
+            self.assertEqual(chmconfig.get_tile_size(), '500x600')
+            self.assertEqual(chmconfig.get_overlap_height(), 20)
+            self.assertEqual(chmconfig.get_overlap_width(), 10)
+            self.assertEqual(chmconfig.get_overlap_size(), '10x20')
+            self.assertEqual(chmconfig.get_cluster(), 'mycluster')
+            self.assertEqual(chmconfig.get_account(), 'gg123')
 
             config.set('', CHMJobCreator.CONFIG_DISABLE_HISTEQ_IMAGES, 'False')
             f = open(cfile, 'w')

@@ -53,6 +53,7 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_mergejob_name(), 'mergechmjob')
         self.assertEqual(opts.get_max_chm_memory_in_gb(), 10)
         self.assertEqual(opts.get_max_merge_memory_in_gb(), 10)
+        self.assertEqual(opts.get_account(), '')
 
         opts = CHMConfig('images', 'model', 'out', '500x600', '20x30',
                          number_tiles_per_task=122,
@@ -66,7 +67,8 @@ class TestCHMConfig(unittest.TestCase):
                          mergejobname='mergy',
                          max_image_pixels=10,
                          max_chm_memory_in_gb=5,
-                         max_merge_memory_in_gb=7)
+                         max_merge_memory_in_gb=7,
+                         account='yo12')
         self.assertEqual(opts.get_images(), 'images')
         self.assertEqual(opts.get_model(), 'model')
         self.assertEqual(opts.get_out_dir(), 'out')
@@ -110,6 +112,7 @@ class TestCHMConfig(unittest.TestCase):
 
         opts.set_config('bye')
         self.assertEqual(opts.get_config(), 'bye')
+        self.assertEqual(opts.get_account(), 'yo12')
 
     def test_extract_width_and_height(self):
         opts = CHMConfig(None, None, None, None, None)
