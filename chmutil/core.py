@@ -342,11 +342,11 @@ To check job status invoke the following cluster specific command:
 
 On Gordon and Rocce:
 
-qstat -t -u '$USER'
+qstat -t -u "$USER"
 
 On Comet:
 
-squeue -u '$USER'
+squeue -u "$USER"
 
 If all jobs have completed invoke the following to see if any more tasks
 need to be run
