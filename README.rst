@@ -7,8 +7,7 @@ chmutil
            :target: https://pypi.python.org/pypi/chmutil
 
 .. image:: https://pyup.io/repos/github/crbs/chmutil/shield.svg
-        :target: https://pyup.io/repos/github/crbs/chmutil/
-     :alt: Updates
+        :target: https://pyup.io/repos/github/crbs/chmutil
 
 .. image:: https://travis-ci.org/CRBS/chmutil.svg?branch=master
        :target: https://travis-ci.org/CRBS/chmutil
