@@ -26,6 +26,16 @@ class InvalidTaskListError(Exception):
     pass
 
 
+class InvalidScriptNameError(Exception):
+    """Raised if invalid script name is used"""
+    pass
+
+
+class InvalidWorkingDirError(Exception):
+    """Raised if invalid working directory is used"""
+    pass
+
+
 class TaskStats(object):
     """Container object that holds information about
        runtime performance of a set of tasks
@@ -899,7 +909,8 @@ class Scheduler(object):
                  taskid_for_filepath=None,
                  taskid=None,
                  submitcmd=None,
-                 arrayflag=None):
+                 arrayflag=None,
+                 load_singularity_cmd=None):
         """Constructor
         """
         self._clustername = clustername
@@ -912,6 +923,7 @@ class Scheduler(object):
         self._taskid_variable = taskid
         self._submitcmd = submitcmd
         self._arrayflag = arrayflag
+        self._load_singularity_cmd = load_singularity_cmd
 
     def get_clustername(self):
         """Gets name"""
@@ -943,7 +955,7 @@ class Scheduler(object):
     def get_job_out_file_name(self):
         """Gets single job output filename <JOBID>.OUT_SUFFIX
         """
-        return (self._jobid_for_filepath_variable + '.' +
+        return (str(self._jobid_for_filepath_variable) +
                 Scheduler.OUT_SUFFIX)
 
     def get_array_job_out_file_name(self):
@@ -953,17 +965,22 @@ class Scheduler(object):
                   values in <> set to
                   appropriate values for scheduler
         """
-        return (self._jobid_for_filepath_variable + '.' +
-                self._taskid_for_filepath_variable +
+        return (str(self._jobid_for_filepath_variable) + '.' +
+                str(self._taskid_for_filepath_variable) +
                 Scheduler.OUT_SUFFIX)
 
     def _make_script_executable(self, script):
         """Sets execute all permission on script path passed in
         :param script: path to script
         """
-        os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+        if os.path.exists(script):
+            logger.debug('Making ' + script + ' executable')
+            os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+        else:
+            logger.error(script + ' does not exist, skipping permission '
+                                  'change')
 
-    def generate_submit_command(self, script, working_dir, number_tasks):
+    def _generate_submit_command(self, script, working_dir, number_tasks):
         """Gets command to submit job
         """
 
@@ -974,10 +991,27 @@ class Scheduler(object):
         else:
             array_args = ' '
         return ('To submit run: cd ' + working_dir + '; ' +
-                self._submitcommand() + array_args + script)
+                self._submitcommand + array_args + script)
+
+    def _get_script_header(self, working_dir, stdout_path, job_name,
+                          walltime, required_mem_gb=None,
+                          number_tasks=None):
+        """Generates commands to put at top of submit script
+        :param script: Full path to script to write out
+        :param working_dir: Working directory
+        :param stdout_path: Standard out file path for jobs.
+                            ie ./$JOB_ID.$TASKID
+        :param job_name: Job name ie foojob
+        :param walltime: Maximum time job is allowed to run ie 12:00:00
+        :param account: Account to bill processing to
+        :param required_mem_gb: Ram in Gb required for job
+        :param number_tasks: number of tasks in job
+        :return: always returns empty string.
+        """
+        return ''
 
     def write_submit_script(self, scriptname, working_dir, stdout_path, job_name,
-                            walltime, cmds, resource_reqs=None,
+                            walltime, cmds, required_mem_gb=None,
                             number_tasks=None):
         """Generates submit script for a cluster
         :param script: Full path to script to write out
@@ -989,19 +1023,32 @@ class Scheduler(object):
         :param cmds: Actual commands being run
         :param resource_reqs: Additional resource requirements for job
         :param number_tasks: number of tasks in job
+        :raises IOError: If this method is unable to write the
+                         submit script to a file
         :return: tuple (how to submit, path to submit script written)
         """
+        if scriptname is None:
+            raise InvalidScriptNameError('Script name cannot be None')
+
+        if working_dir is None:
+            raise InvalidWorkingDirError('Working dir cannot be None')
         script = os.path.join(working_dir, scriptname)
         f = open(script, 'w')
-        f.write(self.get_script_header(working_dir, stdout_path,
+        f.write(self._get_script_header(working_dir, stdout_path,
                                        job_name, walltime,
-                                       resource_reqs=resource_reqs,
+                                       required_mem_gb=required_mem_gb,
                                        number_tasks=number_tasks))
+
+        if self._load_singularity_cmd is not None:
+            logger.debug('Load singularity command is not None '
+                         'adding to submit script')
+            f.write(self._load_singularity_cmd)
+
         f.write(cmds)
         f.flush()
         f.close()
         self._make_script_executable(script)
-        return (self._get_submit_command(script, working_dir, number_tasks),
+        return (self._generate_submit_command(script, working_dir, number_tasks),
                 script)
 
 
@@ -1012,47 +1059,48 @@ class SLURMScheduler(Scheduler):
     def __init__(self, clustername,
                  queue=None,
                  account=None,
-                 jobid_for_filepath=None,
-                 jobid_for_arrayjob=None,
-                 jobid=None,
-                 taskid_for_filepath=None,
-                 taskid=None,
-                 submitcmd=None,
-                 arrayflag=None):
-        super(SLURMScheduler, self).__init__(clustername,
-                                             queue=queue,
-                                             account=account,
-                                             jobid_for_filepath='%A',
-                                             jobid_for_arrayjob='$SLURM_ARRAY_JOB_ID',
-                                             jobid='$SLURM_JOB_ID',
-                                             taskid_for_filepath='%a',
-                                             task='$SLURM_ARRAY_TASK_ID',
-                                             submitcmd='sbatch',
-                                             arrayflag='-a')
+                 load_singularity_cmd=None):
+        super(SLURMScheduler,
+              self).__init__(clustername,
+                             queue=queue,
+                             account=account,
+                             jobid_for_filepath='%A',
+                             jobid_for_arrayjob='$SLURM_ARRAY_JOB_ID',
+                             jobid='$SLURM_JOB_ID',
+                             taskid_for_filepath='%a',
+                             task='$SLURM_ARRAY_TASK_ID',
+                             submitcmd='sbatch',
+                             arrayflag='-a',
+                             load_singularity_cmd=load_singularity_cmd)
 
-    def get_script_header(self, working_dir, stdout_path, job_name,
-                          walltime, resource_reqs=None,
+    def _get_script_header(self, working_dir, stdout_path, job_name,
+                          walltime, required_mem_gb=None,
                           number_tasks=None):
-        """Generates submit script for a cluster
-        :param script: Full path to script to write out
+        """Generates commands to put at top of submit script
         :param working_dir: Working directory
         :param stdout_path: Standard out file path for jobs.
                             ie ./$JOB_ID.$TASKID
         :param job_name: Job name ie foojob
         :param walltime: Maximum time job is allowed to run ie 12:00:00
         :param account: Account to bill processing to
-        :param resource_reqs: Additional resource requirements for job
+        :param required_mem_gb: Ram in Gb required for job
         :param number_tasks: number of tasks in job
-        :return: tuple (how to submit, path to submit script written)
+        :return: string container commands to put at top of submit script
         """
         res = '#!/bin/sh\n#\n#SBATCH --nodes=1\n'
 
         if self._account is not None:
             res += '#SBATCH -A ' + self._account + '\n'
+        else:
+            logger.debug('Account is None, not setting')
+
         res += '#SBATCH -D ' + working_dir + '\n'
 
         if self._queue is not None:
             res += '#SBATCH -p ' + self._queue + '\n'
+        else:
+            logger.debug('Queue is None, not setting')
+
         res += '#SBATCH --export=SLURM_UMASK=0022\n'
         res += '#SBATCH -o ' + stdout_path + '\n'
         res += '#SBATCH -J ' + job_name + '\n'
@@ -1064,49 +1112,50 @@ class SGEScheduler(Scheduler):
     """SGE Scheduler
     """
 
-    def __init__(self, clustername,
-                 queue=None,
-                 account=None,
-                 jobid_for_filepath=None,
-                 jobid_for_arrayjob=None,
-                 jobid=None,
-                 taskid_for_filepath=None,
-                 taskid=None,
-                 submitcmd=None,
-                 arrayflag=None):
-        super(SLURMScheduler, self).__init__(clustername,
-                                             queue=queue,
-                                             account=account,
-                                             jobid_for_filepath='$JOB_ID',
-                                             jobid_for_arrayjob='$SGE_TASK_ID',
-                                             jobid='$JOB_ID',
-                                             taskid_for_filepath='$TASK_ID',
-                                             task='$SGE_TASK_ID',
-                                             submitcmd='qsub',
-                                             arrayflag='-t')
+    def __init__(self, clustername, queue=None, account=None,
+                 load_singularity_cmd=None):
+        super(SGEScheduler,
+              self).__init__(clustername,
+                             queue=queue,
+                             account=account,
+                             jobid_for_filepath='$JOB_ID',
+                             jobid_for_arrayjob='$SGE_TASK_ID',
+                             jobid='$JOB_ID',
+                             taskid_for_filepath='$TASK_ID',
+                             task='$SGE_TASK_ID',
+                             submitcmd='qsub',
+                             arrayflag='-t',
+                             load_singularity_cmd=load_singularity_cmd)
 
-    def get_script_header(self, working_dir, stdout_path, job_name,
-                          walltime, resource_reqs=None,
+    def _get_script_header(self, working_dir, stdout_path, job_name,
+                          walltime, required_mem_gb=None,
                           number_tasks=None):
-        """Generates submit script for a cluster
-        :param script: Full path to script to write out
+        """Generates commands to put at top of submit script
         :param working_dir: Working directory
         :param stdout_path: Standard out file path for jobs.
                             ie ./$JOB_ID.$TASKID
         :param job_name: Job name ie foojob
         :param walltime: Maximum time job is allowed to run ie 12:00:00
         :param account: Account to bill processing to
-        :param resource_reqs: Additional resource requirements for job
+        :param required_mem_gb: Ram in Gb required for job
         :param number_tasks: number of tasks in job
-        :return: tuple (how to submit, path to submit script written)
+        :return: string container commands to put at top of submit script
         """
         res = '#\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n'
         res += '#$ -wd ' + working_dir + '\n'
 
         if self._queue is not None:
             res += '#$ -q ' + self._queue + '\n'
+        else:
+            logger.debug('Queue is None, not setting')
 
         res += '#$ -j y\n#$ -o ' + stdout_path + '\n'
         res += '#$ -N ' + job_name + '\n'
+
+        if required_mem_gb is not None:
+            resource_reqs = ',h_vmem=' + str(required_mem_gb) + 'G'
+        else:
+            resource_reqs = ''
+
         res += '#$ -l h_rt=' + walltime + resource_reqs + '\n\n'
         return res
