@@ -50,6 +50,9 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertTrue('command line:\n\nUnknown' in data)
             self.assertTrue('Chmutil version: unknown' in data)
 
+            # verifies issue #20 has been fixed
+            self.assertTrue('checkjobstatus.py' not in data)
+
         finally:
             shutil.rmtree(temp_dir)
 

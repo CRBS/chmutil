@@ -351,13 +351,13 @@ squeue -u "$USER"
 If all jobs have completed invoke the following to see if any more tasks
 need to be run
 
-checkjobstatus.py {jobdir}
+{checkchmjob} {jobdir}
 
 If there are more tasks to run be sure to rerun above command with
 '--submit' flag to update the batched.* configuration files and the
 runjobs.CLUSTER/runmerge.CLUSTER files like so:
 
-checkjobstatus.py {jobdir} --submit
+{checkchmjob} {jobdir} --submit
 
 
 For more help please visit wiki here:
@@ -379,7 +379,7 @@ base.chm.tasks.list
 batched.chm.tasks.list
   -- Batched CHM task configuration file. This defines how the CHM
      tasks in base.chm.tasks.list are batched on individual compute nodes
-     in the cluster. Created when checkchmjob.py --submitted is run.
+     in the cluster. Created when {checkchmjob} --submitted is run.
 
 base.merge.tasks.list
   -- Configuration of merge tasks. Created when createchmjob.py is run.
@@ -387,7 +387,7 @@ base.merge.tasks.list
 batched.merge.tasks.list
   -- Batched merge task configuration file. This defines how the merge
      tasks in base.merge.tasks.list  are batched on individual compute
-     nodes in the cluster. Created when checkchmjob.py --submitted is run.
+     nodes in the cluster. Created when {checkchmjob} --submitted is run.
 
 chmrun/
   -- Base directory where all job output is written. This directory will
@@ -397,12 +397,7 @@ chmrun/mergestdout/
   -- Directory containing output from merge tasks. Merge tasks are directed
      to write to this path via runmerge.CLUSTER queue submit script file.
 
-chmrun/overlaymaps/
-  -- Directory containing output images that are an overlay of the merged
-     probability maps on top of the original input images. These images are
-     created when the merge tasks are run.
-
-chmrun/overlaymaps/
+chmrun/probmaps/
   -- Directory containing output merged probability maps. These images are
      created when the merge tasks are run.
 
@@ -500,7 +495,8 @@ runmerge.CLUSTER
             version=self._chmopts.get_version(),
             jobdir=self._chmopts.get_out_dir(),
             date=str(datetime.datetime.today()),
-            commandline=rawargs))
+            commandline=rawargs,
+            checkchmjob=CHMJobCreator.CHECKCHMJOB))
         f.flush()
         f.close()
 
