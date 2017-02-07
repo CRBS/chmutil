@@ -883,3 +883,170 @@ class ClusterFactory(object):
 
         logger.error('No cluster class supporting ' + lc_cluster + ' found')
         return None
+
+
+class Scheduler(object):
+    """Base class for various schedulers
+    """
+    OUT_SUFFIX = '.out'
+
+    def __init__(self, queue=None,
+                 jobid_for_filepath=None,
+                 jobid_for_arrayjob=None,
+                 jobid=None,
+                 taskid_for_filepath=None,
+                 taskid=None,
+                 submitcmd=None,
+                 arrayflag=None):
+        """Constructor
+        """
+        self._schedvariables = None
+        self._account = None
+        self._queue = queue
+        self._jobid_for_filepath_variable = jobid_for_filepath
+        self._jobid_for_arrayjob_variable = jobid_for_arrayjob
+        self._jobid_variable = jobid
+        self._taskid_for_filepath_variable = taskid_for_filepath
+        self._taskid_variable = taskid
+        self._submitcmd = submitcmd
+        self._arrayflag = arrayflag
+
+    def set_account(self, account):
+        """Sets account to bill hours consumed on cluster
+        """
+        self._account = account
+
+    def get_jobid_for_arrayjob_variable(self):
+        """Gets jobid variable and will be replaced by
+           scheduler for running array jobs
+        """
+        return self._jobid_for_arrayjob_variable
+
+    def get_jobid_variable(self):
+        """Gets jobid variable that will be replaced by
+           scheduler for running array jobs
+        """
+        return self._jobid_variable
+
+    def get_taskid_variable(self):
+        """Gets taskid variable and will be replaced by
+           scheduler for running array jobs
+        """
+        return self._taskid_variable
+
+    def get_submitcommand(self):
+        """Gets command to submit task/job to scheduler
+        """
+        return self._submitcmd
+
+    def get_arrayflag(self):
+        """Gets array job flag that is appended to submitcommand to tell
+        scheduler the job is an array job
+        """
+        return self._arrayflag
+
+    def get_job_out_file_name(self):
+        """Gets single job output filename <JOBID>.OUT_SUFFIX
+        """
+        return (self._jobid_for_filepath_variable + '.' +
+                Scheduler.OUT_SUFFIX)
+
+    def get_array_job_out_file_name(self):
+        """gets array job file name based on configuration passed in
+        constructor
+        :returns: String in format of <JOBID>.<TASKID>.OUT_SUFFIX with
+                  values in <> set to
+                  appropriate values for scheduler
+        """
+        return (self._jobid_for_filepath_variable + '.' +
+                self._taskid_for_filepath_variable +
+                Scheduler.OUT_SUFFIX)
+
+    def _make_script_executable(self, script):
+        """Sets execute all permission on script path passed in
+        :param script: path to script
+        """
+        os.chmod(script, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+    def generate_submit_command(self, script, working_dir, number_tasks):
+        """Gets command to submit job
+        """
+
+        if number_tasks is not None:
+            if self.get_arrayflag() is not None:
+                array_args = (' ' + self.get_arrayflag() +
+                              ' 1-' + str(number_tasks) + ' ')
+        else:
+            array_args = ' '
+        return ('To submit run: cd ' + working_dir + '; ' +
+                self.get_submitcommand() + array_args + script)
+
+    def write_submit_script(self, script, working_dir, stdout_path, job_name,
+                            walltime, cmds, resource_reqs=None,
+                            number_tasks=None):
+        """Generates submit script for a cluster
+        :param script: Full path to script to write out
+        :param working_dir: Working directory
+        :param stdout_path: Standard out file path for jobs.
+                            ie ./$JOB_ID.$TASKID
+        :param job_name: Job name ie foojob
+        :param walltime: Maximum time job is allowed to run ie 12:00:00
+        :param cmds: Actual commands being run
+        :param resource_reqs: Additional resource requirements for job
+        :param number_tasks: number of tasks in job
+        :return: tuple (how to submit, path to submit script written)
+        """
+        f = open(script, 'w')
+        f.write(self.get_script_header(script, working_dir, stdout_path,
+                                       job_name, walltime,
+                                       resource_reqs=resource_reqs,
+                                       number_tasks=number_tasks))
+        f.write(cmds)
+        f.flush()
+        f.close()
+        self._make_script_executable(script)
+        return (self._get_submit_command(script, working_dir, number_tasks),
+                script)
+
+
+class SLURMScheduler(Scheduler):
+    """SLURM Scheduler
+    """
+
+    def __init__(self, queue=None):
+        super(SLURMScheduler, self).__init__(jobid_for_filepath='%A',
+                                             jobid_for_arrayjob='$SLURM_ARRAY_JOB_ID',
+                                             jobid='$SLURM_JOB_ID',
+                                             taskid_for_filepath='%a',
+                                             task='$SLURM_ARRAY_TASK_ID',
+                                             submitcmd='sbatch',
+                                             arrayflag='-a')
+
+    def get_script_header(self, script, working_dir, stdout_path, job_name,
+                          walltime, resource_reqs=None,
+                          number_tasks=None):
+        """Generates submit script for a cluster
+        :param script: Full path to script to write out
+        :param working_dir: Working directory
+        :param stdout_path: Standard out file path for jobs.
+                            ie ./$JOB_ID.$TASKID
+        :param job_name: Job name ie foojob
+        :param walltime: Maximum time job is allowed to run ie 12:00:00
+        :param account: Account to bill processing to
+        :param resource_reqs: Additional resource requirements for job
+        :param number_tasks: number of tasks in job
+        :return: tuple (how to submit, path to submit script written)
+        """
+        res = '#!/bin/sh\n#\n#SBATCH --nodes=1\n'
+
+        if self._account is not None:
+            res += '#SBATCH -A ' + self._account + '\n'
+        res += '#SBATCH -D ' + working_dir + '\n'
+
+        if self._queue is not None:
+            res += '#SBATCH -p ' + self._queue + '\n'
+        res += '#SBATCH --export=SLURM_UMASK=0022\n'
+        res += '#SBATCH -o ' + stdout_path + '\n'
+        res += '#SBATCH -J ' + job_name + '\n'
+        res += '#SBATCH -t ' + walltime + '\n\n'
+        return res
