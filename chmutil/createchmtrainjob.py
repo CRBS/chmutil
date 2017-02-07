@@ -142,28 +142,48 @@ def _create_submit_script(theargs):
              which will also be appended to the readme.txt file
              for the job.
     """
-    cf = ClusterFactory()
-    clust = cf.get_cluster_by_name(theargs.cluster)
-    if clust is None:
-        raise UnsupportedClusterError(theargs.cluster +
-                                      ' is not a known cluster')
+    # sf = SchedulerFactory()
+    # scheduler = sf.get_scheduler_by_cluster(theargs.cluster)
+    # scheduler = None
+    # if scheduler is None:
+    #    raise UnsupportedClusterError(theargs.cluster +
+    #                                  ' is not known')
 
-    cmd, script = clust.generate_train_submit_script(theargs.outdir,
-                                                     theargs.images,
-                                                     theargs.labels,
-                                                     theargs.stage,
-                                                     theargs.level,
-                                                     theargs.walltime,
-                                                     theargs.chmbin,
-                                                     account=theargs.account,
-                                                     job_name=theargs.jobname,
-                                                     max_mem=theargs.maxmem)
+    # scheduler.set_account(theargs.account)
+    # cmd = ('/usr/bin/time -v ' + theargs.chmbin +
+    #        ' train ' + theargs.images + ' ' + theargs.labels +
+    #        ' -S ' + theargs.stage + ' -L ' + theargs.level +
+    #        ' -m ' + TMP_DIR +
+    #         '\nexitcode=$?\n' +
+    #         'mv -f ' + TMP_DIR + ' ' + MODEL_DIR + '\n'
+    #         'echo "' + os.path.basename(run_script_path) +
+    #         ' exited with code: $exitcode"\n')
+    #             'exit $exitcode\n')
+    #
+    # ucmd, script = scheduler.write_submit_script(RUNTRAIN + scheduler.get_cluster(),
+    #                               theargs.outdir,
+    #                               os.path.join(theargs.outdir, STDOUT_DIR,
+    #                                            scheduler.get_job_out_file_name(),
+    #                                            theargs.jobname,
+    #                                            walltime=theargs.walltime,
+    #                                            cmd)
 
-    f = open(os.path.join(theargs.outdir, README_FILE), 'a')
-    f.write('\n\n' + cmd)
-    f.flush()
-    f.close()
-    return cmd
+    # cmd, script = clust.generate_train_submit_script(theargs.outdir,
+    #                                                 theargs.images,
+    #                                                 theargs.labels,
+    #                                                 theargs.stage,
+    #                                                 theargs.level,
+    #                                                 theargs.walltime,
+    #                                                 theargs.chmbin,
+    #                                                 account=theargs.account,
+    #                                                 job_name=theargs.jobname,
+    #                                                 max_mem=theargs.maxmem)#
+
+    # f = open(os.path.join(theargs.outdir, README_FILE), 'a')
+    # f.write('\n\n' + ucmd)
+    # f.flush()
+    # f.close()
+    # return cmd
 
 
 def _create_directories_and_readme(outdir, rawargs):
