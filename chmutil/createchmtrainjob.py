@@ -16,10 +16,7 @@ MODEL_DIR = 'model'
 TMP_DIR = 'tmp'
 STDOUT_DIR = 'stdout'
 README_FILE = 'readme.txt'
-RUNTRAIN = 'runtrain'
-RUNTRAIN_COMET = RUNTRAIN + '.comet'
-RUNTRAIN_GORDON = RUNTRAIN + '.gordon'
-RUNTRAIN_ROCCE = RUNTRAIN + '.rocce'
+RUNTRAIN = 'runtrain.'
 
 README_BODY = """chmutil job to generate CHM trained model
 ===========================================================
@@ -59,7 +56,7 @@ Below is a description of data in this directory
        this script and definitions of files and
        directories
 
-{runtrain}.<cluster>
+{runtrain}<cluster>
     -- Cluster submit script
 
 {stdout}/
@@ -125,7 +122,7 @@ def _parse_arguments(desc, args):
     parser.add_argument('--walltime', default='24:00:00',
                         help='Sets walltime for job in HH:MM:SS format '
                              'default(24:00:00) ')
-    parser.add_argument('--maxmem', default=90,
+    parser.add_argument('--maxmem', default=90, type=int,
                         help='Sets maximum memory in gigabytes job needs to '
                              'run (default 90)')
     parser.add_argument('--version', action='version',
@@ -152,16 +149,16 @@ def _create_submit_script(theargs):
     sched.set_account(theargs.account)
     cmd = ('/usr/bin/time -v ' + theargs.chmbin +
            ' train ' + theargs.images + ' ' + theargs.labels +
-           ' -S ' + theargs.stage + ' -L ' + theargs.level +
-           ' -m ' + TMP_DIR +
+           ' -S ' + str(theargs.stage) + ' -L ' + str(theargs.level) +
+           ' -m ./' + TMP_DIR +
            '\nexitcode=$?\n' +
-           'mv -f ' + TMP_DIR + ' ' + MODEL_DIR + '\n'
+           'mv -f ./' + TMP_DIR + ' ./' + MODEL_DIR + '\n'
            'echo "' + os.path.basename(theargs.chmbin) +
            ' exited with code: $exitcode"\n'
            'exit $exitcode\n')
     stdout_path = os.path.join(theargs.outdir, TMP_DIR,
                                sched.get_job_out_file_name())
-    ucmd, script = sched.write_submit_script('runtrain.' +
+    ucmd, script = sched.write_submit_script(RUNTRAIN +
                                              sched.get_clustername(),
                                              theargs.outdir,
                                              stdout_path,
@@ -195,7 +192,6 @@ def _create_directories_and_readme(outdir, rawargs):
     # create stdout, tmp, model directories
     os.makedirs(os.path.join(outdir, STDOUT_DIR), mode=0o755)
     os.makedirs(os.path.join(outdir, TMP_DIR), mode=0o755)
-    os.makedirs(os.path.join(outdir, MODEL_DIR), mode=0o755)
 
     readme = README_BODY.format(version=chmutil.__version__,
                                 stdout=STDOUT_DIR,
@@ -210,17 +206,6 @@ def _create_directories_and_readme(outdir, rawargs):
     f.flush()
     f.close()
     return
-
-
-def _create_chmtrain_job(theargs):
-    """Creates CHM Job
-    :param theargs: list of arguments obtained from _parse_arguments()
-    :returns: exit code for program. 0 success otherwise failure
-    """
-    _create_directories_and_readme(theargs.outdir, theargs.rawargs)
-    submit_cmd = _create_submit_script(theargs)
-    sys.stdout.write(submit_cmd)
-    return 0
 
 
 def main(arglist):
@@ -245,7 +230,7 @@ def main(arglist):
                      this script and definitions of files and
                      directories
 
-              {runtrain}.<cluster>
+              {runtrain}<cluster>
                   -- Cluster submit script
 
               {stdout}/
@@ -275,7 +260,10 @@ def main(arglist):
     core.setup_logging(logger, loglevel=theargs.loglevel)
     try:
         theargs.rawargs = ' '.join(arglist)
-        return _create_chmtrain_job(theargs)
+        _create_directories_and_readme(theargs.outdir, theargs.rawargs)
+        submit_cmd = _create_submit_script(theargs)
+        sys.stdout.write(submit_cmd)
+        return 0
     finally:
         logging.shutdown()
 
