@@ -4,10 +4,9 @@ import logging
 import os
 import datetime
 import chmutil
-import stat
 
 from chmutil.core import Parameters
-from chmutil.cluster import ClusterFactory
+from chmutil.cluster import SchedulerFactory
 from chmutil import core
 
 # create logger
@@ -111,7 +110,9 @@ def _parse_arguments(desc, args):
                         help='The number of levels of training to perform. '
                              'Must be >=4')
     parser.add_argument('--cluster', default='rocce',
-                        choices=ClusterFactory.VALID_CLUSTERS,
+                        choices=[SchedulerFactory.ROCCE,
+                                 SchedulerFactory.COMET,
+                                 SchedulerFactory.GORDON],
                         help='Sets which cluster to generate job script for'
                              ' (default rocce)')
     parser.add_argument('--account', default='',
@@ -142,48 +143,38 @@ def _create_submit_script(theargs):
              which will also be appended to the readme.txt file
              for the job.
     """
-    # sf = SchedulerFactory()
-    # scheduler = sf.get_scheduler_by_cluster(theargs.cluster)
-    # scheduler = None
-    # if scheduler is None:
-    #    raise UnsupportedClusterError(theargs.cluster +
-    #                                  ' is not known')
+    sf = SchedulerFactory()
+    sched = sf.get_scheduler_by_cluster_name(theargs.cluster)
+    if sched is None:
+        raise UnsupportedClusterError(theargs.cluster +
+                                      ' is not known')
 
-    # scheduler.set_account(theargs.account)
-    # cmd = ('/usr/bin/time -v ' + theargs.chmbin +
-    #        ' train ' + theargs.images + ' ' + theargs.labels +
-    #        ' -S ' + theargs.stage + ' -L ' + theargs.level +
-    #        ' -m ' + TMP_DIR +
-    #         '\nexitcode=$?\n' +
-    #         'mv -f ' + TMP_DIR + ' ' + MODEL_DIR + '\n'
-    #         'echo "' + os.path.basename(run_script_path) +
-    #         ' exited with code: $exitcode"\n')
-    #             'exit $exitcode\n')
-    #
-    # ucmd, script = scheduler.write_submit_script(RUNTRAIN + scheduler.get_cluster(),
-    #                               theargs.outdir,
-    #                               os.path.join(theargs.outdir, STDOUT_DIR,
-    #                                            scheduler.get_job_out_file_name(),
-    #                                            theargs.jobname,
-    #                                            walltime=theargs.walltime,
-    #                                            cmd)
+    sched.set_account(theargs.account)
+    cmd = ('/usr/bin/time -v ' + theargs.chmbin +
+           ' train ' + theargs.images + ' ' + theargs.labels +
+           ' -S ' + theargs.stage + ' -L ' + theargs.level +
+           ' -m ' + TMP_DIR +
+           '\nexitcode=$?\n' +
+           'mv -f ' + TMP_DIR + ' ' + MODEL_DIR + '\n'
+           'echo "' + os.path.basename(theargs.chmbin) +
+           ' exited with code: $exitcode"\n'
+           'exit $exitcode\n')
+    stdout_path = os.path.join(theargs.outdir, TMP_DIR,
+                               sched.get_job_out_file_name())
+    ucmd, script = sched.write_submit_script('runtrain.' +
+                                             sched.get_clustername(),
+                                             theargs.outdir,
+                                             stdout_path,
+                                             theargs.jobname,
+                                             theargs.walltime,
+                                             cmd,
+                                             required_mem_gb=theargs.maxmem)
 
-    # cmd, script = clust.generate_train_submit_script(theargs.outdir,
-    #                                                 theargs.images,
-    #                                                 theargs.labels,
-    #                                                 theargs.stage,
-    #                                                 theargs.level,
-    #                                                 theargs.walltime,
-    #                                                 theargs.chmbin,
-    #                                                 account=theargs.account,
-    #                                                 job_name=theargs.jobname,
-    #                                                 max_mem=theargs.maxmem)#
-
-    # f = open(os.path.join(theargs.outdir, README_FILE), 'a')
-    # f.write('\n\n' + ucmd)
-    # f.flush()
-    # f.close()
-    # return cmd
+    f = open(os.path.join(theargs.outdir, README_FILE), 'a')
+    f.write('\n\n' + ucmd)
+    f.flush()
+    f.close()
+    return ucmd
 
 
 def _create_directories_and_readme(outdir, rawargs):

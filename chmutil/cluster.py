@@ -895,6 +895,53 @@ class ClusterFactory(object):
         return None
 
 
+class SchedulerFactory(object):
+    """Factory that produces Scheduler objects
+    """
+    COMET = 'comet'
+    ROCCE = 'rocce'
+    GORDON = 'gordon'
+
+    def __init__(self):
+        """Constructor"""
+        pass
+
+    def get_scheduler_by_cluster_name(self, clustername):
+        """Gets Scheduler object by `clustername`
+        :param clustername: name of cluster
+        :returns: Scheduler object appropriate for cluster or None if none
+                  found
+        """
+        if clustername is None:
+            logger.error('clustername passed in is None')
+            return None
+
+        lc_cluster = clustername.lower()
+
+        if lc_cluster == SchedulerFactory.ROCCE:
+            logger.debug('Returning SGEScheduler for ' +
+                         SchedulerFactory.ROCCE)
+            return SGEScheduler(SchedulerFactory.ROCCE, queue='all.q')
+
+        if lc_cluster == SchedulerFactory.GORDON:
+            logger.debug('Returning PBSScheduler for ' +
+                         SchedulerFactory.GORDON)
+            return PBSScheduler(SchedulerFactory.GORDON, queue='normal',
+                                load_singularity_cmd='module load '
+                                                     'singularity/2.1.2\n')
+
+        if lc_cluster == SchedulerFactory.COMET:
+            logger.debug('Returning SLURMScheduler for ' +
+                         SchedulerFactory.COMET)
+
+            return SLURMScheduler(SchedulerFactory.COMET, queue='compute',
+                                  load_singularity_cmd='module load '
+                                                       'singularity/2.2\n')
+
+        logger.error('No cluster class supporting ' + lc_cluster + ' found')
+        return None
+
+
 class Scheduler(object):
     """Base class for various schedulers
     """
@@ -984,18 +1031,23 @@ class Scheduler(object):
         """Gets command to submit job
         """
 
+        array_args = ' '
         if number_tasks is not None:
-            if self.get_arrayflag() is not None:
-                array_args = (' ' + self._arrayflag() +
+            if self._arrayflag is not None:
+                array_args = (' ' + self._arrayflag +
                               ' 1-' + str(number_tasks) + ' ')
+
+        if self._submitcmd is None:
+            submitcmd = ' '
         else:
-            array_args = ' '
+            submitcmd = self._submitcmd
+
         return ('To submit run: cd ' + working_dir + '; ' +
-                self._submitcommand + array_args + script)
+                submitcmd + array_args + script)
 
     def _get_script_header(self, working_dir, stdout_path, job_name,
-                          walltime, required_mem_gb=None,
-                          number_tasks=None):
+                           walltime, required_mem_gb=None,
+                           number_tasks=None):
         """Generates commands to put at top of submit script
         :param script: Full path to script to write out
         :param working_dir: Working directory
@@ -1010,8 +1062,8 @@ class Scheduler(object):
         """
         return ''
 
-    def write_submit_script(self, scriptname, working_dir, stdout_path, job_name,
-                            walltime, cmds, required_mem_gb=None,
+    def write_submit_script(self, scriptname, working_dir, stdout_path,
+                            job_name, walltime, cmds, required_mem_gb=None,
                             number_tasks=None):
         """Generates submit script for a cluster
         :param script: Full path to script to write out
@@ -1035,9 +1087,9 @@ class Scheduler(object):
         script = os.path.join(working_dir, scriptname)
         f = open(script, 'w')
         f.write(self._get_script_header(working_dir, stdout_path,
-                                       job_name, walltime,
-                                       required_mem_gb=required_mem_gb,
-                                       number_tasks=number_tasks))
+                                        job_name, walltime,
+                                        required_mem_gb=required_mem_gb,
+                                        number_tasks=number_tasks))
 
         if self._load_singularity_cmd is not None:
             logger.debug('Load singularity command is not None '
@@ -1048,7 +1100,8 @@ class Scheduler(object):
         f.flush()
         f.close()
         self._make_script_executable(script)
-        return (self._generate_submit_command(script, working_dir, number_tasks),
+        return (self._generate_submit_command(script, working_dir,
+                                              number_tasks),
                 script)
 
 
@@ -1068,14 +1121,14 @@ class SLURMScheduler(Scheduler):
                              jobid_for_arrayjob='$SLURM_ARRAY_JOB_ID',
                              jobid='$SLURM_JOB_ID',
                              taskid_for_filepath='%a',
-                             task='$SLURM_ARRAY_TASK_ID',
+                             taskid='$SLURM_ARRAY_TASK_ID',
                              submitcmd='sbatch',
                              arrayflag='-a',
                              load_singularity_cmd=load_singularity_cmd)
 
     def _get_script_header(self, working_dir, stdout_path, job_name,
-                          walltime, required_mem_gb=None,
-                          number_tasks=None):
+                           walltime, required_mem_gb=None,
+                           number_tasks=None):
         """Generates commands to put at top of submit script
         :param working_dir: Working directory
         :param stdout_path: Standard out file path for jobs.
@@ -1094,7 +1147,8 @@ class SLURMScheduler(Scheduler):
         else:
             logger.debug('Account is None, not setting')
 
-        res += '#SBATCH -D ' + working_dir + '\n'
+        if working_dir is not None:
+            res += '#SBATCH -D ' + working_dir + '\n'
 
         if self._queue is not None:
             res += '#SBATCH -p ' + self._queue + '\n'
@@ -1102,9 +1156,13 @@ class SLURMScheduler(Scheduler):
             logger.debug('Queue is None, not setting')
 
         res += '#SBATCH --export=SLURM_UMASK=0022\n'
-        res += '#SBATCH -o ' + stdout_path + '\n'
-        res += '#SBATCH -J ' + job_name + '\n'
-        res += '#SBATCH -t ' + walltime + '\n\n'
+        if stdout_path is not None:
+            res += '#SBATCH -o ' + stdout_path + '\n'
+        if job_name is not None:
+            res += '#SBATCH -J ' + job_name + '\n'
+
+        if walltime is not None:
+            res += '#SBATCH -t ' + walltime + '\n\n'
         return res
 
 
@@ -1119,17 +1177,17 @@ class SGEScheduler(Scheduler):
                              queue=queue,
                              account=account,
                              jobid_for_filepath='$JOB_ID',
-                             jobid_for_arrayjob='$SGE_TASK_ID',
+                             jobid_for_arrayjob='$JOB_ID',
                              jobid='$JOB_ID',
                              taskid_for_filepath='$TASK_ID',
-                             task='$SGE_TASK_ID',
+                             taskid='$SGE_TASK_ID',
                              submitcmd='qsub',
                              arrayflag='-t',
                              load_singularity_cmd=load_singularity_cmd)
 
     def _get_script_header(self, working_dir, stdout_path, job_name,
-                          walltime, required_mem_gb=None,
-                          number_tasks=None):
+                           walltime, required_mem_gb=None,
+                           number_tasks=None):
         """Generates commands to put at top of submit script
         :param working_dir: Working directory
         :param stdout_path: Standard out file path for jobs.
@@ -1141,21 +1199,100 @@ class SGEScheduler(Scheduler):
         :param number_tasks: number of tasks in job
         :return: string container commands to put at top of submit script
         """
-        res = '#\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n'
-        res += '#$ -wd ' + working_dir + '\n'
+        res = '#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n'
+
+        if working_dir is not None:
+            res += '#$ -wd ' + working_dir + '\n'
 
         if self._queue is not None:
             res += '#$ -q ' + self._queue + '\n'
         else:
             logger.debug('Queue is None, not setting')
 
-        res += '#$ -j y\n#$ -o ' + stdout_path + '\n'
-        res += '#$ -N ' + job_name + '\n'
+        if stdout_path is not None:
+            res += '#$ -j y\n#$ -o ' + stdout_path + '\n'
+
+        if job_name is not None:
+            res += '#$ -N ' + job_name + '\n'
+
+        if walltime is None:
+            comma_delim = ''
+            walltime_reqs = ''
+        else:
+            comma_delim = ','
+            walltime_reqs = 'h_rt=' + walltime
 
         if required_mem_gb is not None:
-            resource_reqs = ',h_vmem=' + str(required_mem_gb) + 'G'
+            resource_reqs = (comma_delim + 'h_vmem=' + str(required_mem_gb) +
+                             'G')
         else:
             resource_reqs = ''
 
-        res += '#$ -l h_rt=' + walltime + resource_reqs + '\n\n'
+        if walltime_reqs is not '' or resource_reqs is not '':
+            res += '#$ -l ' + walltime_reqs + resource_reqs
+
+        res += '\n\n'
+
+        return res
+
+
+class PBSScheduler(Scheduler):
+    """PBS Scheduler
+    """
+
+    def __init__(self, clustername, queue=None, account=None,
+                 load_singularity_cmd=None):
+        super(PBSScheduler,
+              self).__init__(clustername,
+                             queue=queue,
+                             account=account,
+                             jobid_for_filepath='$JOB_ID',
+                             jobid_for_arrayjob='$JOB_ID',
+                             jobid='$JOB_ID',
+                             taskid_for_filepath='$PBS_ARRAYID',
+                             taskid='$PBS_ARRAYID',
+                             submitcmd='qsub',
+                             arrayflag=None,
+                             load_singularity_cmd=load_singularity_cmd)
+
+    def _get_script_header(self, working_dir, stdout_path, job_name,
+                           walltime, required_mem_gb=None,
+                           number_tasks=None):
+        """Generates commands to put at top of submit script
+        :param working_dir: Working directory
+        :param stdout_path: Standard out file path for jobs.
+                            ie ./$JOB_ID.$TASKID
+        :param job_name: Job name ie foojob
+        :param walltime: Maximum time job is allowed to run ie 12:00:00
+        :param account: Account to bill processing to
+        :param required_mem_gb: Ram in Gb required for job
+        :param number_tasks: number of tasks in job
+        :return: string container commands to put at top of submit script
+        """
+        res = '#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n'
+
+        if working_dir is not None:
+            res += '#PBS -wd ' + working_dir + '\n'
+
+        if self._queue is not None:
+            res += '#PBS -q ' + self._queue + '\n'
+        else:
+            logger.debug('Queue is None, not setting')
+        if self._account is not None:
+            res += '#PBS -A ' + self._account + '\n'
+
+        res += '#PBS -l nodes=1:ppn=16:native:noflash\n'
+
+        if number_tasks is not None:
+            res += ('#PBS -t 1-' + str(number_tasks) + '\n')
+
+        if stdout_path is not None:
+            res += '#PBS -j oe\n#PBS -o ' + stdout_path + '\n'
+
+        if job_name is not None:
+            res += '#PBS -N ' + job_name + '\n'
+
+        if walltime is not None:
+            res += '#PBS -l walltime=' + walltime + '\n'
+
         return res
