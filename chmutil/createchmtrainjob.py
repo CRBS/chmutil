@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import sys
 import argparse
 import logging
@@ -147,20 +149,23 @@ def _create_submit_script(theargs):
                                       ' is not known')
 
     sched.set_account(theargs.account)
+    tmpdir = os.path.abspath(os.path.join('./', TMP_DIR))
+    modeldir = os.path.abspath(os.path.join('./', MODEL_DIR))
     cmd = ('/usr/bin/time -v ' + theargs.chmbin +
-           ' train ' + theargs.images + ' ' + theargs.labels +
+           ' train ' + os.path.abspath(theargs.images) + ' ' +
+           os.path.abspath(theargs.labels) +
            ' -S ' + str(theargs.stage) + ' -L ' + str(theargs.level) +
-           ' -m ./' + TMP_DIR +
+           ' -m ' + tmpdir +
            '\nexitcode=$?\n' +
-           'mv -f ./' + TMP_DIR + ' ./' + MODEL_DIR + '\n'
+           'mv -f ' + tmpdir + ' ' + modeldir + '\n'
            'echo "' + os.path.basename(theargs.chmbin) +
            ' exited with code: $exitcode"\n'
            'exit $exitcode\n')
-    stdout_path = os.path.join(theargs.outdir, TMP_DIR,
-                               sched.get_job_out_file_name())
+    stdout_path = os.path.abspath(os.path.join(theargs.outdir, STDOUT_DIR,
+                                  sched.get_job_out_file_name()))
     ucmd, script = sched.write_submit_script(RUNTRAIN +
                                              sched.get_clustername(),
-                                             theargs.outdir,
+                                             os.path.abspath(theargs.outdir),
                                              stdout_path,
                                              theargs.jobname,
                                              theargs.walltime,
@@ -193,11 +198,13 @@ def _create_directories_and_readme(outdir, rawargs):
     os.makedirs(os.path.join(outdir, STDOUT_DIR), mode=0o755)
     os.makedirs(os.path.join(outdir, TMP_DIR), mode=0o755)
 
+    cd_with_rawargs = 'cd ' + os.getcwd() + ';' + rawargs
+
     readme = README_BODY.format(version=chmutil.__version__,
                                 stdout=STDOUT_DIR,
                                 tmp=TMP_DIR,
                                 model=MODEL_DIR,
-                                commandline=rawargs,
+                                commandline=cd_with_rawargs,
                                 date=str(datetime.datetime.today()),
                                 readme=README_FILE,
                                 runtrain=RUNTRAIN)
