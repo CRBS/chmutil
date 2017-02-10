@@ -724,7 +724,7 @@ class GordonCluster(Cluster):
         f.write('echo "DATE: `date`"\n\n')
         f.write('echo "JOBID: $PBS_JOBID"\n')
         f.write('echo "TASKID: $PBS_ARRAYID"\n\n')
-        f.write('module load singularity/2.1.2\n\n')
+        f.write('module load singularity/2.2\n\n')
         f.write('/usr/bin/time -v ' + run_script_path +
                 ' $PBS_ARRAYID ' + working_dir + ' --scratchdir ' +
                 tmp_dir + ' --log DEBUG\n')
@@ -928,7 +928,7 @@ class SchedulerFactory(object):
                          SchedulerFactory.GORDON)
             return PBSScheduler(SchedulerFactory.GORDON, queue='normal',
                                 load_singularity_cmd='module load '
-                                                     'singularity/2.1.2\n')
+                                                     'singularity/2.2\n')
 
         if lc_cluster == SchedulerFactory.COMET:
             logger.debug('Returning SLURMScheduler for ' +
@@ -1246,9 +1246,9 @@ class PBSScheduler(Scheduler):
               self).__init__(clustername,
                              queue=queue,
                              account=account,
-                             jobid_for_filepath='$JOB_ID',
-                             jobid_for_arrayjob='$JOB_ID',
-                             jobid='$JOB_ID',
+                             jobid_for_filepath='$PBS_JOBID',
+                             jobid_for_arrayjob='$PBS_JOBID',
+                             jobid='$PBS_JOBID',
                              taskid_for_filepath='$PBS_ARRAYID',
                              taskid='$PBS_ARRAYID',
                              submitcmd='qsub',
