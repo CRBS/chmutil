@@ -125,8 +125,11 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             data = f.read()
             f.close()
             self.assertTrue('-N chmtrainjob' in data)
-            self.assertTrue('.img train ./images ./labels -S 2 -L 4 -m '
-                            './tmp' in data)
+            labelsdir = os.path.abspath('./labels')
+            imgdir = os.path.abspath('./images')
+            tmpdir = os.path.abspath('./tmp')
+            self.assertTrue('.img train ' + imgdir + ' ' + labelsdir +
+                            ' -S 2 -L 4 -m ' + tmpdir in data)
 
             # check the submit command got appended to end of readme file
             f = open(os.path.join(temp_dir, createchmtrainjob.README_FILE), 'r')
@@ -140,6 +143,10 @@ class TestCreateCHMTrainJob(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             rundir = os.path.join(temp_dir, 'run')
+            imgdir = os.path.abspath('./images')
+            labelsdir = os.path.abspath('./labels')
+            tmpdir = os.path.abspath('./tmp')
+
             res = createchmtrainjob.main(['me.py', './images', './labels',
                                           rundir, '--cluster', 'rocce'])
             self.assertEqual(res, 0)
@@ -160,8 +167,8 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             data = f.read()
             f.close()
             self.assertTrue('-N chmtrainjob' in data)
-            self.assertTrue('.img train ./images ./labels -S 2 -L 4 -m '
-                            './tmp' in data)
+            self.assertTrue('.img train ' + imgdir + ' ' + labelsdir +
+                            ' -S 2 -L 4 -m ' + tmpdir in data)
         finally:
             shutil.rmtree(temp_dir)
 
