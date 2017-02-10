@@ -310,13 +310,13 @@ class TestScheduler(unittest.TestCase):
     def test_pbsgetters(self):
         sched = PBSScheduler('foo')
         self.assertEqual(sched.get_clustername(), 'foo')
-        self.assertEqual(sched.get_jobid_for_arrayjob_variable(), '$JOB_ID')
-        self.assertEqual(sched.get_jobid_variable(), '$JOB_ID')
+        self.assertEqual(sched.get_jobid_for_arrayjob_variable(), '$PBS_JOBID')
+        self.assertEqual(sched.get_jobid_variable(), '$PBS_JOBID')
         self.assertEqual(sched.get_taskid_variable(), '$PBS_ARRAYID')
-        self.assertEqual(sched.get_job_out_file_name(), '$JOB_ID' +
+        self.assertEqual(sched.get_job_out_file_name(), '$PBS_JOBID' +
                          Scheduler.OUT_SUFFIX)
         self.assertEqual(sched.get_array_job_out_file_name(),
-                         '$JOB_ID.$PBS_ARRAYID' +
+                         '$PBS_JOBID.$PBS_ARRAYID' +
                          Scheduler.OUT_SUFFIX)
 
     def test_pbs_get_script_header(self):
