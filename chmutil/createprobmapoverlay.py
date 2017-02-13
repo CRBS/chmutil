@@ -55,6 +55,12 @@ def _parse_arguments(desc, args):
     parser.add_argument("--opacity", type=int, default=70,
                         help='Sets level of opacity of overlay. 0 is '
                              'transparent and 255 is opaque. (default 70)')
+    parser.add_argument("--addprobmap", action='append',
+                        help='Adds additional probability map to'
+                             'overlay image. This argument must be'
+                             'set with the following values delimited'
+                             'by commas <path to probmap>,<threshpc>,'
+                             '<overlay color>,<opacity>')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level (default WARNING)",
@@ -106,12 +112,27 @@ def _get_thresholded_probmap(probmap_file, threshpc):
 
         # threshold image anything belowtheargs.threshpc percentage
         #  set to zero, rest to 255
-        logger.info('Thresholding probability map')
+        logger.info('Thresholding probability map: ' + probmap_file)
         thresh = ImageThresholder(threshold_percent=int(threshpc))
         return thresh.threshold_image(probimg)
     finally:
         if probimg is not None:
             probimg.close()
+
+
+def get_colorized_probmap_image(file, threshpc, color_as_str, opacity):
+    """loads image and returns colorized version of image
+    thresholded by value of threshpc
+    """
+    thresh_image = _get_thresholded_probmap(file, threshpc)
+    logger.info('Colorizing probability map: ' + file)
+    colortuple = _get_pixel_coloring_tuple(color_as_str)
+    colorizer = ColorizeGrayscaleImage(color=colortuple,
+                                       opacity=opacity)
+
+    col_img = colorizer.colorize_image(thresh_image)
+    thresh_image.close()
+    return col_img
 
 
 def _convert_image(image_file, probmap_file, dest_file, theargs):
@@ -123,22 +144,34 @@ def _convert_image(image_file, probmap_file, dest_file, theargs):
     if not os.path.isfile(probmap_file):
         raise NoInputImageFoundError('Image ' + probmap_file + ' not found')
 
-    thresh_image = _get_thresholded_probmap(probmap_file,
-                                            theargs.threshpc)
-
-    logger.info('Colorizing probability map')
-    colortuple = _get_pixel_coloring_tuple(theargs.overlaycolor)
-    colorizer = ColorizeGrayscaleImage(color=colortuple,
-                                       opacity=theargs.opacity)
-
-    col_img = colorizer.colorize_image(thresh_image)
-    thresh_image.close()
+    col_img = get_colorized_probmap_image(probmap_file, theargs.threshpc,
+                                          theargs.overlaycolor,
+                                          theargs.opacity)
 
     logger.info('Loading base image')
     img = Image.open(image_file).convert(mode='RGBA')
 
     logger.info('Combining base image with probability map')
     res = Image.alpha_composite(img, col_img)
+    col_img.close()
+    img.close()
+
+    # get any extra probability maps and add them onto image via
+    # alpha composite
+    if theargs.addprobmap is not None:
+        logger.debug('There are ' + str(len(theargs.addprobmap)) +
+                     ' extra probmaps to add')
+        for addpmap in theargs.addprobmap:
+            pmap_args = addpmap.split(',')
+            if len(pmap_args) != 4:
+                logger.error('Invalid probability map args: ' + addpmap + ' skipping')
+                continue
+            col_img = get_colorized_probmap_image(pmap_args[0],
+                                                  pmap_args[1], pmap_args[2],
+                                                  pmap_args[3])
+            logger.info('Combining base image with probability map: ' + pmap_args[0])
+            res = Image.alpha_composite(res, col_img)
+            col_img.close()
 
     if not dest_file.endswith('.png'):
         dest_file += '.png'
