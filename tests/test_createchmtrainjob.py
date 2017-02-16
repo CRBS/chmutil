@@ -358,7 +358,6 @@ class TestCreateCHMTrainJob(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-
     def test_main_success(self):
         temp_dir = tempfile.mkdtemp()
         try:
@@ -383,6 +382,61 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             f.close()
 
             script = os.path.join(rundir, createchmtrainjob.RUNTRAIN +
+                                  'rocce')
+            f = open(script, 'r')
+            data = f.read()
+            f.close()
+            self.assertTrue('-N chmtrainjob' in data)
+
+            mystr = ('.img train ' + imgdir + ' ' + labelsdir +
+                     ' -S 2 -L 4 -m ' + tmpdir)
+            self.assertTrue(mystr in data)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_main_success_with_mrc_and_mod_file(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            images_file = os.path.join(temp_dir, 'images.mrc')
+            labels_file = os.path.join(temp_dir, 'labels.mod')
+            open(images_file, 'a').close()
+            open(labels_file, 'a').close()
+
+            mrc2tif = os.path.join(temp_dir, 'mrc2tif')
+            f = open(mrc2tif, 'w')
+            f.write('#!/usr/bin/env python\nimport sys\n')
+            f.write('sys.exit(0)\n')
+            f.flush()
+            f.close()
+            os.chmod(mrc2tif, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+            imodmop = os.path.join(temp_dir, 'imodmop')
+            f = open(imodmop, 'w')
+            f.write('#!/usr/bin/env python\nimport sys;sys.exit(0)\n')
+            f.flush()
+            f.close()
+            os.chmod(imodmop, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+            cwd = os.getcwd()
+            tmpdir = os.path.abspath(os.path.join(temp_dir, createchmtrainjob.TMP_DIR))
+
+            res = createchmtrainjob.main(['me.py', images_file, labels_file,
+                                          temp_dir, '--cluster', 'rocce',
+                                          '--imodbindir', temp_dir])
+            self.assertEqual(res, 0)
+            stdout_dir = os.path.join(temp_dir, createchmtrainjob.STDOUT_DIR)
+            self.assertTrue(os.path.isdir(stdout_dir))
+            readme = os.path.join(temp_dir, createchmtrainjob.README_FILE)
+            self.assertTrue(os.path.isfile(readme))
+            f = open(os.path.join(temp_dir, createchmtrainjob.README_FILE), 'r')
+            data = f.read()
+            f.close()
+
+            imgdir = os.path.join(temp_dir, createchmtrainjob.IMAGES_DIR)
+            labelsdir = os.path.join(temp_dir, createchmtrainjob.LABELS_DIR)
+            self.assertTrue('me.py ' + images_file + ' ' + labels_file in data)
+
+            script = os.path.join(temp_dir, createchmtrainjob.RUNTRAIN +
                                   'rocce')
             f = open(script, 'r')
             data = f.read()
