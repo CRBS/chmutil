@@ -118,8 +118,12 @@ def run_external_command(cmd_to_run, tmp_dir,
 
     logger.info("Running command " + cmd_to_run)
     tmp_stdout = os.path.join(tmp_dir, 'stdout.txt')
+    logger.debug('stdout file: ' + tmp_stdout)
+
     stdout_f = open(tmp_stdout, 'w')
     tmp_stderr = os.path.join(tmp_dir, 'stderr.txt')
+    logger.debug('stderr file: ' + tmp_stderr)
+
     stderr_f = open(tmp_stderr, 'w')
     p = subprocess.Popen(shlex.split(cmd_to_run),
                          stdout=stdout_f,
