@@ -16,6 +16,8 @@ logger = logging.getLogger('chmutil.createchmtrainjob')
 
 MODEL_DIR = 'model'
 TMP_DIR = 'tmp'
+IMAGES_DIR = 'images'
+LABELS_DIR = 'labels'
 STDOUT_DIR = 'stdout'
 README_FILE = 'readme.txt'
 RUNTRAIN = 'runtrain.'
@@ -84,6 +86,11 @@ class UnsupportedClusterError(Exception):
     """
     pass
 
+class IMODConversionError(Exception):
+    """Problems converting IMOD files to training data format
+    """
+    pass
+
 
 def _parse_arguments(desc, args):
     """Parses command line arguments using argparse.
@@ -93,8 +100,8 @@ def _parse_arguments(desc, args):
     help_formatter = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc,
                                      formatter_class=help_formatter)
-    parser.add_argument("images", help='Directory of images')
-    parser.add_argument("labels", help='Directory containing label images')
+    parser.add_argument("images", help='Directory of images or mrc file')
+    parser.add_argument("labels", help='Directory containing label images or mod file')
     parser.add_argument("outdir", help='Output directory')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -127,6 +134,9 @@ def _parse_arguments(desc, args):
     parser.add_argument('--maxmem', default=90, type=int,
                         help='Sets maximum memory in gigabytes job needs to '
                              'run (default 90)')
+    parser.add_argument('--imodbindir', default='',
+                        help='Sets bin directory for IMOD commands '
+                             '(default \'\')')
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + chmutil.__version__))
 
@@ -149,8 +159,8 @@ def _create_submit_script(theargs):
                                       ' is not known')
 
     sched.set_account(theargs.account)
-    tmpdir = os.path.abspath(os.path.join('./', TMP_DIR))
-    modeldir = os.path.abspath(os.path.join('./', MODEL_DIR))
+    tmpdir = os.path.abspath(os.path.join(theargs.outdir, TMP_DIR))
+    modeldir = os.path.abspath(os.path.join(theargs.outdir, MODEL_DIR))
     cmd = ('/usr/bin/time -v ' + theargs.chmbin +
            ' train ' + os.path.abspath(theargs.images) + ' ' +
            os.path.abspath(theargs.labels) +
@@ -215,6 +225,87 @@ def _create_directories_and_readme(outdir, rawargs):
     return
 
 
+def _convert_mod_mrc_files(theargs):
+    """Check if images and labels are mrc and mod files, if yes
+    use IMOD to convert them to images and labels
+    :param theargs: Parameters from _parse_arguments function
+    :raises OSError: If there is an error creating images or labels directory
+                     under theargs.outdir
+    :raises IMODConversionError: If either input is invalid or invocations to
+                                 mrc2tif or imodmop fail
+    """
+    if os.path.isdir(theargs.images):
+        logger.debug('Images path is a directory, no conversion needed')
+        return
+
+    if not os.path.isfile(theargs.images):
+        raise IMODConversionError(theargs.images +
+                                  ' is not a file, cannot convert')
+
+    tmp_dir = os.path.join(theargs.outdir, TMP_DIR)
+
+    images_dir = os.path.join(theargs.outdir, IMAGES_DIR)
+    logger.info(theargs.images + ' is a file, assume its an mrc and'
+                ' convert it')
+
+    logger.debug('Creating directory ' + images_dir)
+
+    os.makedirs(images_dir, mode=0o755)
+
+    mrc2tif = os.path.join(theargs.imodbindir, 'mrc2tif')
+
+    logger.debug('Running ' + mrc2tif)
+    ecode, out, err = core.run_external_command(mrc2tif + ' -p ' +
+                                                theargs.images + ' ' +
+                                                os.path.join(images_dir,
+                                                             'x'), tmp_dir)
+    logger.debug('Output from ' + mrc2tif + ': ' + str(out) + ':' + str(err))
+
+    if ecode is not 0:
+        raise IMODConversionError('Non zero exit code from mrc2tif: ' +
+                                  str(ecode) + ' : ' + str(out) + ' : ' +
+                                  str(err))
+
+    if not os.path.isfile(theargs.labels):
+        raise IMODConversionError(theargs.labels +
+                                  ' is not a file, cannot convert')
+
+    labels_dir = os.path.join(theargs.outdir, LABELS_DIR)
+    tmp_mrc = os.path.join(theargs.outdir, TMP_DIR, 'tmp.mrc')
+    logger.info(theargs.images + ' is a file, assume its a mod '
+                'file and convert it')
+    logger.debug('Creating directory ' + labels_dir)
+    os.makedirs(labels_dir, mode=0o755)
+    imodmop = os.path.join(theargs.imodbindir, 'imodmop')
+    logger.debug('Running ' + imodmop)
+    ecode, out, err = core.run_external_command(imodmop + ' -mask 1 ' +
+                                                theargs.labels + ' ' +
+                                                theargs.images + ' ' +
+                                                tmp_mrc, tmp_dir)
+    logger.info('Output from imodmop: ' + str(out) + ':' + str(err))
+
+    if ecode is not 0:
+        raise IMODConversionError('Non zero exit code from imodmop: ' +
+                                  str(ecode) + ' : ' + str(out) + ' : ' +
+                                  str(err))
+
+    ecode, out, err = core.run_external_command(mrc2tif + ' -p ' +
+                                                tmp_mrc + ' ' +
+                                                os.path.join(labels_dir,
+                                                             'x'), tmp_dir)
+    logger.debug('Output from mrc2tif: ' + str(out) + ':' + str(err))
+
+    if ecode is not 0:
+        raise IMODConversionError('Non zero exit code from mrc2tif: ' +
+                                  str(ecode) + ' : ' + str(out) + ' : ' +
+                                  str(err))
+
+    theargs.images = images_dir
+    logger.debug('Updating theargs.images to ' + theargs.images)
+    theargs.labels = labels_dir
+    logger.debug('Updating theargs.labels to ' + theargs.labels)
+
+
 def main(arglist):
     """Main function
     :param arglist: Should be set to sys.argv which is list of arguments
@@ -268,6 +359,7 @@ def main(arglist):
     try:
         theargs.rawargs = ' '.join(arglist)
         _create_directories_and_readme(theargs.outdir, theargs.rawargs)
+        _convert_mod_mrc_files(theargs)
         submit_cmd = _create_submit_script(theargs)
         sys.stdout.write(submit_cmd)
         return 0

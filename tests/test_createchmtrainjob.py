@@ -12,11 +12,13 @@ import unittest
 import os
 import tempfile
 import shutil
+import stat
 
 from chmutil import createchmtrainjob
 from chmutil.core import Parameters
 from chmutil.createchmtrainjob import UnsupportedClusterError
 from chmutil.createchmtrainjob import InvalidOutDirError
+from chmutil.createchmtrainjob import IMODConversionError
 
 
 class TestCreateCHMTrainJob(unittest.TestCase):
@@ -44,6 +46,7 @@ class TestCreateCHMTrainJob(unittest.TestCase):
         self.assertEqual(params.maxmem, 90)
         self.assertEqual(params.cluster, 'rocce')
         self.assertEqual(params.loglevel, 'WARNING')
+        self.assertEqual(params.imodbindir, '')
 
     def test_create_directories_and_readme_outdir_isnot_dir(self):
         temp_dir = tempfile.mkdtemp()
@@ -125,11 +128,15 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             data = f.read()
             f.close()
             self.assertTrue('-N chmtrainjob' in data)
-            labelsdir = os.path.abspath('./labels')
-            imgdir = os.path.abspath('./images')
-            tmpdir = os.path.abspath('./tmp')
-            self.assertTrue('.img train ' + imgdir + ' ' + labelsdir +
-                            ' -S 2 -L 4 -m ' + tmpdir in data)
+            cwd = os.getcwd()
+
+            labelsdir = os.path.abspath(os.path.join(cwd, 'labels'))
+            imgdir = os.path.abspath(os.path.join(cwd, 'images'))
+            tmpdir = os.path.abspath(os.path.join(temp_dir, 'tmp'))
+            mystr = ('.img train ' + imgdir + ' ' + labelsdir +
+                     ' -S 2 -L 4 -m ' + tmpdir)
+
+            self.assertTrue(mystr in data)
 
             # check the submit command got appended to end of readme file
             f = open(os.path.join(temp_dir, createchmtrainjob.README_FILE), 'r')
@@ -139,13 +146,91 @@ class TestCreateCHMTrainJob(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
+    def test_convert_mod_mrc_files_images_is_not_a_dir_or_file(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            images_file = os.path.join(temp_dir, 'images.mrc')
+            labels_file = os.path.join(temp_dir, 'labels.mod')
+            params = createchmtrainjob._parse_arguments('hi',
+                                                        [images_file,
+                                                         labels_file,
+                                                         temp_dir,
+                                                         '--cluster',
+                                                         'rocce',
+                                                         '--imodbindir',
+                                                         temp_dir])
+
+            createchmtrainjob._convert_mod_mrc_files(params)
+            self.fail('Expected IMODConversionError')
+        except IMODConversionError as e:
+            self.assertTrue(images_file + ' is not a file, cannot convert' in str(e))
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_convert_mod_mrc_files_mrc2tif_fails_on_images(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            images_file = os.path.join(temp_dir, 'images.mrc')
+            labels_file = os.path.join(temp_dir, 'labels.mod')
+            open(images_file, 'a').close()
+            open(labels_file, 'a').close()
+            params = createchmtrainjob._parse_arguments('hi',
+                                                        [images_file,
+                                                         labels_file,
+                                                         temp_dir,
+                                                         '--cluster',
+                                                         'rocce',
+                                                         '--imodbindir',
+                                                         temp_dir])
+
+            createchmtrainjob._convert_mod_mrc_files(params)
+            self.fail('Expected IMODConversionError')
+        except IMODConversionError as e:
+            self.assertTrue('Non zero exit code from mrc2tif: ' in str(e))
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_convert_mod_mrc_files_labels_not_file(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            images_file = os.path.join(temp_dir, 'images.mrc')
+            labels_file = os.path.join(temp_dir, 'labels.mod')
+            open(images_file, 'a').close()
+
+            mrc2tif = os.path.join(temp_dir, 'mrc2tif')
+            f = open(mrc2tif, 'w')
+            f.write('#!/usr/bin/env python\nimport sys;sys.exit(0)\n')
+            f.flush()
+            f.close()
+            os.chmod(mrc2tif, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+            params = createchmtrainjob._parse_arguments('hi',
+                                                        [images_file,
+                                                         labels_file,
+                                                         temp_dir,
+                                                         '--cluster',
+                                                         'rocce',
+                                                         '--imodbindir',
+                                                         temp_dir])
+
+            createchmtrainjob._convert_mod_mrc_files(params)
+            self.fail('Expected IMODConversionError')
+        except IMODConversionError as e:
+            self.assertTrue(labels_file + ' is not a file, cannot convert' in str(e))
+
+        finally:
+            shutil.rmtree(temp_dir)
+
     def test_main_success(self):
         temp_dir = tempfile.mkdtemp()
         try:
             rundir = os.path.join(temp_dir, 'run')
-            imgdir = os.path.abspath('./images')
-            labelsdir = os.path.abspath('./labels')
-            tmpdir = os.path.abspath('./tmp')
+            cwd = os.getcwd()
+            imgdir = os.path.abspath(os.path.join(cwd, 'images'))
+            labelsdir = os.path.abspath(os.path.join(cwd, 'labels'))
+            tmpdir = os.path.abspath(os.path.join(rundir, 'tmp'))
 
             res = createchmtrainjob.main(['me.py', './images', './labels',
                                           rundir, '--cluster', 'rocce'])
@@ -167,8 +252,10 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             data = f.read()
             f.close()
             self.assertTrue('-N chmtrainjob' in data)
-            self.assertTrue('.img train ' + imgdir + ' ' + labelsdir +
-                            ' -S 2 -L 4 -m ' + tmpdir in data)
+
+            mystr = ('.img train ' + imgdir + ' ' + labelsdir +
+                     ' -S 2 -L 4 -m ' + tmpdir)
+            self.assertTrue(mystr in data)
         finally:
             shutil.rmtree(temp_dir)
 
