@@ -233,10 +233,11 @@ def _convert_mod_mrc_files(theargs):
                      under theargs.outdir
     :raises IMODConversionError: If either input is invalid or invocations to
                                  mrc2tif or imodmop fail
+    :returns: tuple (updated theargs.images value, updated theargs.labels value)
     """
     if os.path.isdir(theargs.images):
         logger.debug('Images path is a directory, no conversion needed')
-        return
+        return theargs.images, theargs.labels
 
     if not os.path.isfile(theargs.images):
         raise IMODConversionError(theargs.images +
@@ -255,10 +256,10 @@ def _convert_mod_mrc_files(theargs):
     mrc2tif = os.path.join(theargs.imodbindir, 'mrc2tif')
 
     logger.debug('Running ' + mrc2tif)
-    ecode, out, err = core.run_external_command(mrc2tif + ' -p ' +
+    imageoutpath = os.path.join(images_dir, 'x')
+    ecode, out, err = core.run_external_command((mrc2tif + ' -p ' +
                                                 theargs.images + ' ' +
-                                                os.path.join(images_dir,
-                                                             'x'), tmp_dir)
+                                                imageoutpath), tmp_dir)
     logger.debug('Output from ' + mrc2tif + ': ' + str(out) + ':' + str(err))
 
     if ecode is not 0:
@@ -278,10 +279,10 @@ def _convert_mod_mrc_files(theargs):
     os.makedirs(labels_dir, mode=0o755)
     imodmop = os.path.join(theargs.imodbindir, 'imodmop')
     logger.debug('Running ' + imodmop)
-    ecode, out, err = core.run_external_command(imodmop + ' -mask 1 ' +
+    ecode, out, err = core.run_external_command((imodmop + ' -mask 1 ' +
                                                 theargs.labels + ' ' +
                                                 theargs.images + ' ' +
-                                                tmp_mrc, tmp_dir)
+                                                tmp_mrc), tmp_dir)
     logger.info('Output from imodmop: ' + str(out) + ':' + str(err))
 
     if ecode is not 0:
@@ -289,21 +290,17 @@ def _convert_mod_mrc_files(theargs):
                                   str(ecode) + ' : ' + str(out) + ' : ' +
                                   str(err))
 
-    ecode, out, err = core.run_external_command(mrc2tif + ' -p ' +
+    ecode, out, err = core.run_external_command((mrc2tif + ' -p ' +
                                                 tmp_mrc + ' ' +
                                                 os.path.join(labels_dir,
-                                                             'x'), tmp_dir)
+                                                             'x')), tmp_dir)
     logger.debug('Output from mrc2tif: ' + str(out) + ':' + str(err))
 
     if ecode is not 0:
         raise IMODConversionError('Non zero exit code from mrc2tif: ' +
                                   str(ecode) + ' : ' + str(out) + ' : ' +
                                   str(err))
-
-    theargs.images = images_dir
-    logger.debug('Updating theargs.images to ' + theargs.images)
-    theargs.labels = labels_dir
-    logger.debug('Updating theargs.labels to ' + theargs.labels)
+    return images_dir, labels_dir
 
 
 def main(arglist):
@@ -359,7 +356,7 @@ def main(arglist):
     try:
         theargs.rawargs = ' '.join(arglist)
         _create_directories_and_readme(theargs.outdir, theargs.rawargs)
-        _convert_mod_mrc_files(theargs)
+        theargs.images, theargs.labels = _convert_mod_mrc_files(theargs)
         submit_cmd = _create_submit_script(theargs)
         sys.stdout.write(submit_cmd)
         return 0

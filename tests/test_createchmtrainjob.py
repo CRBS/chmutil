@@ -173,8 +173,16 @@ class TestCreateCHMTrainJob(unittest.TestCase):
         try:
             images_file = os.path.join(temp_dir, 'images.mrc')
             labels_file = os.path.join(temp_dir, 'labels.mod')
+            os.makedirs(os.path.join(temp_dir,
+                                     createchmtrainjob.TMP_DIR), mode=0o755)
             open(images_file, 'a').close()
             open(labels_file, 'a').close()
+            mrc2tif = os.path.join(temp_dir, 'mrc2tif')
+            f = open(mrc2tif, 'w')
+            f.write('#!/usr/bin/env python\nimport sys;sys.exit(1)\n')
+            f.flush()
+            f.close()
+            os.chmod(mrc2tif, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
             params = createchmtrainjob._parse_arguments('hi',
                                                         [images_file,
                                                          labels_file,
@@ -187,7 +195,7 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             createchmtrainjob._convert_mod_mrc_files(params)
             self.fail('Expected IMODConversionError')
         except IMODConversionError as e:
-            self.assertTrue('Non zero exit code from mrc2tif: ' in str(e))
+            self.assertTrue('Non zero exit code from mrc2tif: 1 :  :' in str(e))
 
         finally:
             shutil.rmtree(temp_dir)
@@ -197,6 +205,7 @@ class TestCreateCHMTrainJob(unittest.TestCase):
         try:
             images_file = os.path.join(temp_dir, 'images.mrc')
             labels_file = os.path.join(temp_dir, 'labels.mod')
+            os.makedirs(os.path.join(temp_dir, 'tmp'), mode=0o755)
             open(images_file, 'a').close()
 
             mrc2tif = os.path.join(temp_dir, 'mrc2tif')
@@ -218,10 +227,137 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             createchmtrainjob._convert_mod_mrc_files(params)
             self.fail('Expected IMODConversionError')
         except IMODConversionError as e:
-            self.assertTrue(labels_file + ' is not a file, cannot convert' in str(e))
+            self.assertTrue(labels_file + ' is not a file, '
+                                          'cannot convert' in str(e))
 
         finally:
             shutil.rmtree(temp_dir)
+
+    def test_convert_mod_mrc_files_imodmop_fails(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            images_file = os.path.join(temp_dir, 'images.mrc')
+            labels_file = os.path.join(temp_dir, 'labels.mod')
+            os.makedirs(os.path.join(temp_dir,
+                                     createchmtrainjob.TMP_DIR), mode=0o755)
+            open(images_file, 'a').close()
+            open(labels_file, 'a').close()
+            mrc2tif = os.path.join(temp_dir, 'mrc2tif')
+            f = open(mrc2tif, 'w')
+            f.write('#!/usr/bin/env python\nimport sys;sys.exit(0)\n')
+            f.flush()
+            f.close()
+            os.chmod(mrc2tif, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+            imodmop = os.path.join(temp_dir, 'imodmop')
+            f = open(imodmop, 'w')
+            f.write('#!/usr/bin/env python\nimport sys;sys.exit(1)\n')
+            f.flush()
+            f.close()
+            os.chmod(imodmop, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+            params = createchmtrainjob._parse_arguments('hi',
+                                                        [images_file,
+                                                         labels_file,
+                                                         temp_dir,
+                                                         '--cluster',
+                                                         'rocce',
+                                                         '--imodbindir',
+                                                         temp_dir])
+
+            createchmtrainjob._convert_mod_mrc_files(params)
+            self.fail('Expected IMODConversionError')
+        except IMODConversionError as e:
+            self.assertTrue('Non zero exit code from '
+                            'imodmop: 1 :  :' in str(e))
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_convert_mod_mrc_files_second_mrc2tif_fails(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            images_file = os.path.join(temp_dir, 'images.mrc')
+            labels_file = os.path.join(temp_dir, 'labels.mod')
+            os.makedirs(os.path.join(temp_dir,
+                                     createchmtrainjob.TMP_DIR), mode=0o755)
+            open(images_file, 'a').close()
+            open(labels_file, 'a').close()
+            mrc2tif = os.path.join(temp_dir, 'mrc2tif')
+            f = open(mrc2tif, 'w')
+            f.write('#!/usr/bin/env python\nimport sys\n')
+            f.write('if "tmp.mrc" in sys.argv[2]:\n sys.exit(2)\nsys.exit(0)\n')
+            f.flush()
+            f.close()
+            os.chmod(mrc2tif, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+            imodmop = os.path.join(temp_dir, 'imodmop')
+            f = open(imodmop, 'w')
+            f.write('#!/usr/bin/env python\nimport sys;sys.exit(0)\n')
+            f.flush()
+            f.close()
+            os.chmod(imodmop, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+            params = createchmtrainjob._parse_arguments('hi',
+                                                        [images_file,
+                                                         labels_file,
+                                                         temp_dir,
+                                                         '--cluster',
+                                                         'rocce',
+                                                         '--imodbindir',
+                                                         temp_dir])
+
+            createchmtrainjob._convert_mod_mrc_files(params)
+            self.fail('Expected IMODConversionError')
+        except IMODConversionError as e:
+            self.assertTrue('Non zero exit code from '
+                            'mrc2tif: 2 :  :' in str(e))
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_convert_mod_mrc_files_success(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            images_file = os.path.join(temp_dir, 'images.mrc')
+            labels_file = os.path.join(temp_dir, 'labels.mod')
+            os.makedirs(os.path.join(temp_dir,
+                                     createchmtrainjob.TMP_DIR), mode=0o755)
+            open(images_file, 'a').close()
+            open(labels_file, 'a').close()
+            mrc2tif = os.path.join(temp_dir, 'mrc2tif')
+            f = open(mrc2tif, 'w')
+            f.write('#!/usr/bin/env python\nimport sys\n')
+            f.write('sys.exit(0)\n')
+            f.flush()
+            f.close()
+            os.chmod(mrc2tif, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+            imodmop = os.path.join(temp_dir, 'imodmop')
+            f = open(imodmop, 'w')
+            f.write('#!/usr/bin/env python\nimport sys;sys.exit(0)\n')
+            f.flush()
+            f.close()
+            os.chmod(imodmop, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
+
+            params = createchmtrainjob._parse_arguments('hi',
+                                                        [images_file,
+                                                         labels_file,
+                                                         temp_dir,
+                                                         '--cluster',
+                                                         'rocce',
+                                                         '--imodbindir',
+                                                         temp_dir])
+
+            img, lbl = createchmtrainjob._convert_mod_mrc_files(params)
+            self.assertEqual(img, os.path.join(temp_dir,
+                                               createchmtrainjob.IMAGES_DIR))
+            self.assertEqual(lbl, os.path.join(temp_dir,
+                                               createchmtrainjob.LABELS_DIR))
+
+        finally:
+            shutil.rmtree(temp_dir)
+
 
     def test_main_success(self):
         temp_dir = tempfile.mkdtemp()
