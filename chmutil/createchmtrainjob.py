@@ -169,7 +169,7 @@ def _create_submit_script(theargs):
     sched.set_account(theargs.account)
     tmpdir = os.path.abspath(os.path.join(theargs.outdir, TMP_DIR))
     modeldir = os.path.abspath(os.path.join(theargs.outdir, MODEL_DIR))
-    cmd = ('/usr/bin/time -v ' + theargs.chmbin +
+    cmd = ('/usr/bin/time -v ' + os.path.abspath(theargs.chmbin) +
            ' train ' + os.path.abspath(theargs.images) + ' ' +
            os.path.abspath(theargs.labels) +
            ' -S ' + str(theargs.stage) + ' -L ' + str(theargs.level) +
@@ -213,8 +213,13 @@ def _create_directories_and_readme(outdir, rawargs):
         os.makedirs(outdir, mode=0o755)
 
     # create stdout, tmp, model directories
-    os.makedirs(os.path.join(outdir, STDOUT_DIR), mode=0o755)
-    os.makedirs(os.path.join(outdir, TMP_DIR), mode=0o755)
+    stdoutdir = os.path.join(outdir, STDOUT_DIR)
+    if not os.path.isdir(stdoutdir):
+        os.makedirs(stdoutdir, mode=0o755)
+
+    tmpdir = os.path.join(outdir, TMP_DIR)
+    if not os.path.isdir(tmpdir):
+        os.makedirs(tmpdir, mode=0o755)
 
     cd_with_rawargs = 'cd ' + os.getcwd() + ';' + rawargs
 
@@ -401,7 +406,7 @@ def main(arglist):
         _create_directories_and_readme(theargs.outdir, theargs.rawargs)
         theargs.images, theargs.labels = _convert_mod_mrc_files(theargs)
         submit_cmd = _create_submit_script(theargs)
-        sys.stdout.write(submit_cmd)
+        sys.stdout.write('\n' + submit_cmd + '\n\n')
         return 0
     finally:
         logging.shutdown()
