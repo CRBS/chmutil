@@ -1162,7 +1162,12 @@ class SLURMScheduler(Scheduler):
             res += '#SBATCH -J ' + job_name + '\n'
 
         if walltime is not None:
-            res += '#SBATCH -t ' + walltime + '\n\n'
+            res += '#SBATCH -t ' + walltime + '\n'
+
+        res += 'echo "HOST: $HOSTNAME"\n'
+        res += 'echo "DATE: `date`"\n'
+        res += 'echo "JOBID: $SLURM_JOB_ID"\n\n'
+
         return res
 
 
@@ -1232,6 +1237,9 @@ class SGEScheduler(Scheduler):
             res += '#$ -l ' + walltime_reqs + resource_reqs
 
         res += '\n\n'
+        res += 'echo "HOST: $HOSTNAME"\n'
+        res += 'echo "DATE: `date`"\n'
+        res += 'echo "JOBID: $JOB_ID"\n\n'
 
         return res
 
@@ -1294,5 +1302,9 @@ class PBSScheduler(Scheduler):
 
         if walltime is not None:
             res += '#PBS -l walltime=' + walltime + '\n'
+
+        res += 'echo "HOST: $HOSTNAME"\n'
+        res += 'echo "DATE: `date`"\n'
+        res += 'echo "JOBID: $PBS_JOBID"\n\n'
 
         return res

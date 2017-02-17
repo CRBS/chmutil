@@ -184,7 +184,9 @@ class TestScheduler(unittest.TestCase):
         # all args and account, queue none
         self.assertEqual(sched._get_script_header(None, None, None, None),
                          '#!/bin/sh\n#\n#SBATCH --nodes=1\n#SBATCH '
-                         '--export=SLURM_UMASK=0022\n')
+                         '--export=SLURM_UMASK=0022\n'
+                         'echo "HOST: $HOSTNAME"\necho "DATE: `date`"\n'
+                         'echo "JOBID: $SLURM_JOB_ID"\n\n')
 
         # no args none account & queue none
         self.assertEqual(sched._get_script_header('/foo', '/stdoutpath',
@@ -193,8 +195,9 @@ class TestScheduler(unittest.TestCase):
                                                   number_tasks=2),
                          '#!/bin/sh\n#\n#SBATCH --nodes=1\n#SBATCH -D /foo\n'
                          '#SBATCH --export=SLURM_UMASK=0022\n#SBATCH -o '
-                         '/stdoutpath\n#SBATCH -J name\n#SBATCH -t 1:00:00'
-                         '\n\n')
+                         '/stdoutpath\n#SBATCH -J name\n#SBATCH -t 1:00:00\n'
+                         'echo "HOST: $HOSTNAME"\necho "DATE: `date`"\n'
+                         'echo "JOBID: $SLURM_JOB_ID"\n\n')
 
         # everything set
         sched = SLURMScheduler('foo', queue='compute', account='myact')
@@ -205,7 +208,9 @@ class TestScheduler(unittest.TestCase):
                          '#!/bin/sh\n#\n#SBATCH --nodes=1\n#SBATCH -A myact\n'
                          '#SBATCH -D /foo\n#SBATCH -p compute\n#SBATCH '
                          '--export=SLURM_UMASK=0022\n#SBATCH -o /stdoutpath\n'
-                         '#SBATCH -J name\n#SBATCH -t 1:00:00\n\n')
+                         '#SBATCH -J name\n#SBATCH -t 1:00:00\n'
+                         'echo "HOST: $HOSTNAME"\necho "DATE: `date`"\n'
+                         'echo "JOBID: $SLURM_JOB_ID"\n\n')
 
     def test_slurm_write_submit_script(self):
         temp_dir = tempfile.mkdtemp()
@@ -223,7 +228,9 @@ class TestScheduler(unittest.TestCase):
                              '#!/bin/sh\n#\n#SBATCH --nodes=1\n'
                              '#SBATCH -D ' + temp_dir + '\n#SBATCH '
                              '--export=SLURM_UMASK=0022\n#SBATCH -o /stdout\n'
-                             '#SBATCH -J namey\n#SBATCH -t 1:00:00\n\n'
+                             '#SBATCH -J namey\n#SBATCH -t 1:00:00\n'
+                             'echo "HOST: $HOSTNAME"\necho "DATE: `date`"\n'
+                             'echo "JOBID: $SLURM_JOB_ID"\n\n'
                              'module load sing\n/bin/foo\n')
             f.close()
         finally:
@@ -245,45 +252,47 @@ class TestScheduler(unittest.TestCase):
         sched = SGEScheduler('foo')
         # all args and account, queue none
         self.assertEqual(sched._get_script_header(None, None, None, None),
-                         '#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n\n\n')
+                         '#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n\n\n'
+                         'echo "HOST: $HOSTNAME"\necho "DATE: `date`"\n'
+                         'echo "JOBID: $JOB_ID"\n\n')
 
         # no args none account & queue none
-        self.assertEqual(sched._get_script_header('/foo', '/stdoutpath',
-                                                  'name', '1:00:00',
-                                                  required_mem_gb=1,
-                                                  number_tasks=2),
-                         '#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
-                         '/foo\n#$ -j y\n#$ -o /stdoutpath\n#$ -N name\n#$ -l '
-                         'h_rt=1:00:00,h_vmem=1G\n\n')
+        self.assertTrue('#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
+                        '/foo\n#$ -j y\n#$ -o /stdoutpath\n#$ -N name\n#$ -l '
+                        'h_rt=1:00:00,h_vmem=1G\n\n' in
+                        sched._get_script_header('/foo', '/stdoutpath',
+                                                 'name', '1:00:00',
+                                                 required_mem_gb=1,
+                                                 number_tasks=2))
 
         # everything set
         sched = SGEScheduler('foo', queue='compute', account='myact')
-        self.assertEqual(sched._get_script_header('/foo', '/stdoutpath',
-                                                  'name', '1:00:00',
-                                                  required_mem_gb=1,
-                                                  number_tasks=2),
-                         '#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
-                         '/foo\n#$ -q compute\n#$ -j y\n#$ -o /stdoutpath\n#$ '
-                         '-N name\n#$ -l h_rt=1:00:00,h_vmem=1G\n\n')
+        self.assertTrue('#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
+                        '/foo\n#$ -q compute\n#$ -j y\n#$ -o /stdoutpath\n#$ '
+                        '-N name\n#$ -l h_rt=1:00:00,h_vmem=1G\n\n' in
+                        sched._get_script_header('/foo', '/stdoutpath',
+                                                 'name', '1:00:00',
+                                                 required_mem_gb=1,
+                                                 number_tasks=2))
 
         # mem set, but walltime unset
         sched = SGEScheduler('foo', queue='compute', account='myact')
-        self.assertEqual(sched._get_script_header('/foo', '/stdoutpath',
-                                                  'name', None,
-                                                  required_mem_gb=1,
-                                                  number_tasks=2),
-                         '#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
-                         '/foo\n#$ -q compute\n#$ -j y\n#$ -o /stdoutpath\n#$ '
-                         '-N name\n#$ -l h_vmem=1G\n\n')
+        self.assertTrue('#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
+                        '/foo\n#$ -q compute\n#$ -j y\n#$ -o /stdoutpath\n#$ '
+                        '-N name\n#$ -l h_vmem=1G\n\n' in
+                        sched._get_script_header('/foo', '/stdoutpath',
+                                                 'name', None,
+                                                 required_mem_gb=1,
+                                                 number_tasks=2))
 
         # neither mem set, walltime set
         sched = SGEScheduler('foo', queue='compute', account='myact')
-        self.assertEqual(sched._get_script_header('/foo', '/stdoutpath',
-                                                  'name', None,
-                                                  number_tasks=2),
-                         '#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
-                         '/foo\n#$ -q compute\n#$ -j y\n#$ -o /stdoutpath\n#$ '
-                         '-N name\n\n\n')
+        self.assertTrue('#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
+                        '/foo\n#$ -q compute\n#$ -j y\n#$ -o /stdoutpath\n#$ '
+                        '-N name\n\n\n' in
+                        sched._get_script_header('/foo', '/stdoutpath',
+                                                 'name', None,
+                                                 number_tasks=2))
 
     def test_sge_write_submit_script(self):
         temp_dir = tempfile.mkdtemp()
@@ -297,13 +306,14 @@ class TestScheduler(unittest.TestCase):
                              os.path.join(temp_dir, 'scripty'))
 
             f = open(script, 'r')
-            self.assertEqual(f.read(),
-                             '#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ '
-                             '-wd ' + temp_dir + '\n#$ -j y\n#$ -o '
-                             '/stdout\n#$ '
-                             '-N namey\n#$ -l h_rt=1:00:00\n\nmodule load '
-                             'sing\n/bin/foo\n')
+            data = f.read()
             f.close()
+            self.assertTrue('#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ '
+                            '-wd ' + temp_dir + '\n#$ -j y\n#$ -o '
+                            '/stdout\n#$ '
+                            '-N namey\n#$ -l h_rt=1:00:00\n' in data)
+
+            self.assertTrue('module load sing\n' in data)
         finally:
             shutil.rmtree(temp_dir)
 
@@ -322,53 +332,53 @@ class TestScheduler(unittest.TestCase):
     def test_pbs_get_script_header(self):
         sched = PBSScheduler('foo')
         # all args and account, queue none
-        self.assertEqual(sched._get_script_header(None, None, None, None),
-                         '#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -l '
-                         'nodes=1:ppn=16:native:noflash\n')
+        self.assertTrue('#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -l '
+                        'nodes=1:ppn=16:native:noflash\n' in
+                        sched._get_script_header(None, None, None, None))
 
         # no args none account & queue none
-        self.assertEqual(sched._get_script_header('/foo', '/stdoutpath',
-                                                  'name', '1:00:00',
-                                                  required_mem_gb=1,
-                                                  number_tasks=2),
-                         '#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd /foo\n'
-                         '#PBS -l '
-                         'nodes=1:ppn=16:native:noflash\n#PBS -t 1-2\n'
-                         '#PBS -j oe\n#PBS -o /stdoutpath\n#PBS -N name\n'
-                         '#PBS -l walltime=1:00:00\n')
+        self.assertTrue('#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd /foo\n'
+                        '#PBS -l '
+                        'nodes=1:ppn=16:native:noflash\n#PBS -t 1-2\n'
+                        '#PBS -j oe\n#PBS -o /stdoutpath\n#PBS -N name\n'
+                        '#PBS -l walltime=1:00:00\n' in
+                        sched._get_script_header('/foo', '/stdoutpath',
+                                                 'name', '1:00:00',
+                                                 required_mem_gb=1,
+                                                 number_tasks=2))
 
         # everything set
         sched = PBSScheduler('foo', queue='compute', account='myact')
-        self.assertEqual(sched._get_script_header('/foo', '/stdoutpath',
-                                                  'name', '1:00:00',
-                                                  required_mem_gb=1,
-                                                  number_tasks=2),
-                         '#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd /foo\n'
-                         '#PBS -q compute\n#PBS -A myact\n#PBS -l '
-                         'nodes=1:ppn=16:native:noflash\n#PBS -t 1-2\n'
-                         '#PBS -j oe\n#PBS -o /stdoutpath\n#PBS -N name\n'
-                         '#PBS -l walltime=1:00:00\n')
+        self.assertTrue('#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd /foo\n'
+                        '#PBS -q compute\n#PBS -A myact\n#PBS -l '
+                        'nodes=1:ppn=16:native:noflash\n#PBS -t 1-2\n'
+                        '#PBS -j oe\n#PBS -o /stdoutpath\n#PBS -N name\n'
+                        '#PBS -l walltime=1:00:00\n' in
+                        sched._get_script_header('/foo', '/stdoutpath',
+                                                 'name', '1:00:00',
+                                                 required_mem_gb=1,
+                                                 number_tasks=2))
 
         # mem set, but walltime unset
         sched = PBSScheduler('foo', queue='compute', account='myact')
-        self.assertEqual(sched._get_script_header('/foo', '/stdoutpath',
-                                                  'name', None,
-                                                  required_mem_gb=1,
-                                                  number_tasks=2),
-                         '#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd /foo\n'
-                         '#PBS -q compute\n#PBS -A myact\n#PBS -l '
-                         'nodes=1:ppn=16:native:noflash\n#PBS -t 1-2\n'
-                         '#PBS -j oe\n#PBS -o /stdoutpath\n#PBS -N name\n')
+        self.assertTrue('#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd /foo\n'
+                        '#PBS -q compute\n#PBS -A myact\n#PBS -l '
+                        'nodes=1:ppn=16:native:noflash\n#PBS -t 1-2\n'
+                        '#PBS -j oe\n#PBS -o /stdoutpath\n#PBS -N name\n' in
+                        sched._get_script_header('/foo', '/stdoutpath',
+                                                 'name', None,
+                                                 required_mem_gb=1,
+                                                 number_tasks=2))
 
         # neither mem set, walltime set
         sched = PBSScheduler('foo', queue='compute', account='myact')
-        self.assertEqual(sched._get_script_header('/foo', '/stdoutpath',
-                                                  'name', None,
-                                                  number_tasks=2),
-                         '#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd /foo\n'
-                         '#PBS -q compute\n#PBS -A myact\n#PBS -l '
-                         'nodes=1:ppn=16:native:noflash\n#PBS -t 1-2\n'
-                         '#PBS -j oe\n#PBS -o /stdoutpath\n#PBS -N name\n')
+        self.assertTrue('#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd /foo\n'
+                        '#PBS -q compute\n#PBS -A myact\n#PBS -l '
+                        'nodes=1:ppn=16:native:noflash\n#PBS -t 1-2\n'
+                        '#PBS -j oe\n#PBS -o /stdoutpath\n#PBS -N name\n' in
+                        sched._get_script_header('/foo', '/stdoutpath',
+                                                 'name', None,
+                                                 number_tasks=2))
 
     def test_pbs_write_submit_script(self):
         temp_dir = tempfile.mkdtemp()
@@ -383,14 +393,16 @@ class TestScheduler(unittest.TestCase):
                              os.path.join(temp_dir, 'scripty'))
 
             f = open(script, 'r')
-            self.assertEqual(f.read(),
-                             '#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd ' +
-                             temp_dir + '\n#PBS -l '
-                             'nodes=1:ppn=16:native:noflash\n#PBS -t 1-3\n'
-                             '#PBS -j oe\n#PBS -o /stdout\n#PBS -N namey\n'
-                             '#PBS -l walltime=1:00:00\nmodule load sing\n'
-                             '/bin/foo\n')
+            data = f.read()
             f.close()
+            self.assertTrue('#!/bin/sh\n#\n#PBS -V\n#PBS -m n\n#PBS -wd ' +
+                            temp_dir + '\n#PBS -l '
+                            'nodes=1:ppn=16:native:noflash\n#PBS -t 1-3\n'
+                            '#PBS -j oe\n#PBS -o /stdout\n#PBS -N namey\n'
+                            '#PBS -l walltime=1:00:00\n'
+                            'echo "HOST: $HOSTNAME"\necho "DATE: `date`"'
+                            '\necho "JOBID: $PBS_JOBID"\n\nmodule load sing'
+                            '\n/bin/foo\n' in data)
         finally:
             shutil.rmtree(temp_dir)
 
