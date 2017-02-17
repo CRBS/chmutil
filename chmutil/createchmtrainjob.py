@@ -100,8 +100,14 @@ def _parse_arguments(desc, args):
     help_formatter = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc,
                                      formatter_class=help_formatter)
-    parser.add_argument("images", help='Directory of images or mrc file')
-    parser.add_argument("labels", help='Directory containing label images or mod file')
+    parser.add_argument("images", help='Directory of images or mrc file,'
+                                       'mrc file requires IMOD to'
+                                       'be installed and mod file to be'
+                                       'passed into <labels>')
+    parser.add_argument("labels", help='Directory containing label images or '
+                                       'mod file. mod file can only be passed'
+                                       'if mrc file is passed into <images>'
+                                       'and IMOD is installed on system')
     parser.add_argument("outdir", help='Output directory')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -114,7 +120,7 @@ def _parse_arguments(desc, args):
                              'Must be >=2')
     parser.add_argument('--level', type=int, default=4,
                         help='The number of levels of training to perform. '
-                             'Must be >=4')
+                             'Must be >=1')
     parser.add_argument('--cluster', default='rocce',
                         choices=[SchedulerFactory.ROCCE,
                                  SchedulerFactory.COMET,
@@ -135,7 +141,9 @@ def _parse_arguments(desc, args):
                         help='Sets maximum memory in gigabytes job needs to '
                              'run (default 90)')
     parser.add_argument('--imodbindir', default='',
-                        help='Sets bin directory for IMOD commands '
+                        help='Sets bin directory for IMOD commands. '
+                             'Only needed if mrc and mod files are'
+                             'passed into <images> and <labels> '
                              '(default \'\')')
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + chmutil.__version__))
@@ -312,9 +320,10 @@ def main(arglist):
     desc = """
               Version {version}
 
-              Creates script to run CHM train on images in <images> directory
-              and labels in <labels> directory. Putting trained
+              Creates script to run CHM train on training data located
+              in <images> and <labels> directory. Putting the trained
               model under <outdir>/{model}/
+
               The generated script is put in <outdir>.
 
               Here is a breakdown of the following directories and files
@@ -332,22 +341,56 @@ def main(arglist):
                   -- Directory containing output from CHM train task
 
               {tmp}/
-                 -- Directory used to hold temporary CHM train outputs
+                 -- Directory used to hold temporary CHM train outputs.
+                    Once processing is complete this directory is
+                    renamed to {model}/
 
               {model}/
-                 -- Directory containing trained model
+                 -- Directory appears after proccessing completes and
+                    contained trained model.
 
 
               Example Usage:
 
+              createchmtrainjob.py can take data in two formats, default
+              and IMOD extraction mode.
+
+
+              DEFAULT MODE:
+              In default mode the training images are already put into two
+              directories. Here is example usage of that mode:
+
               createchmtrainjob.py ./images ./labels ./run --cluster rocce
 
+
+              IMOD EXTRACTION MODE:
+
+              If IMOD is installed this script can extract properly structured
+              data from .mrc and .mod files. Instead of passing directories to
+              <images> and <labels> just pass an mrc and mod file respectively.
+
+              Example:
+
+              createchmtrainjob.py images.mrc labels.mod ./run --cluster rocce
+
+              In the above mode the images.mrc must contain the training images
+              and the labels.mod must have the contours for that images.mrc
+              file. createchmtrainjob.py will take all the images from
+              images.mrc and put them in <outdir>/{images} directory and
+              extract all labels from labels.mod and put them in
+              <outdir>/{labels}/ directory giving them the name x.###.png.
+              createchmtrainjob.py does this by invoking mrc2tif -p on the
+              images.mrc and by invoking imodmop -mask 1 on the labels.mod
+              file followed by an mrc2tif -p on the mrc file created by
+              imodmop.
               """.format(version=chmutil.__version__,
                          stdout=STDOUT_DIR,
                          tmp=TMP_DIR,
                          model=MODEL_DIR,
                          readme=README_FILE,
-                         runtrain=RUNTRAIN)
+                         runtrain=RUNTRAIN,
+                         images=IMAGES_DIR,
+                         labels=LABELS_DIR)
 
     theargs = _parse_arguments(desc, arglist[1:])
     theargs.program = arglist[0]
