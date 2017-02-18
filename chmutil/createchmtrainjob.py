@@ -91,6 +91,10 @@ class IMODConversionError(Exception):
     """
     pass
 
+class InvalidInputDataError(Exception):
+    """Problem with input data
+    """
+    pass
 
 def _parse_arguments(desc, args):
     """Parses command line arguments using argparse.
@@ -246,15 +250,16 @@ def _convert_mod_mrc_files(theargs):
                      under theargs.outdir
     :raises IMODConversionError: If either input is invalid or invocations to
                                  mrc2tif or imodmop fail
+    :raises InvalidInputDataError: If either input images does not exist on
+                                   filesystem
     :returns: tuple (updated theargs.images value, updated theargs.labels value)
     """
+    if not os.path.exists(theargs.images):
+        raise InvalidInputDataError(theargs.images + ' does not exist')
+
     if os.path.isdir(theargs.images):
         logger.debug('Images path is a directory, no conversion needed')
         return theargs.images, theargs.labels
-
-    if not os.path.isfile(theargs.images):
-        raise IMODConversionError(theargs.images +
-                                  ' is not a file, cannot convert')
 
     tmp_dir = os.path.join(theargs.outdir, TMP_DIR)
 

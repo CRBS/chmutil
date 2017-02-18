@@ -19,6 +19,7 @@ from chmutil.core import Parameters
 from chmutil.createchmtrainjob import UnsupportedClusterError
 from chmutil.createchmtrainjob import InvalidOutDirError
 from chmutil.createchmtrainjob import IMODConversionError
+from chmutil.createchmtrainjob import InvalidInputDataError
 
 
 class TestCreateCHMTrainJob(unittest.TestCase):
@@ -161,9 +162,9 @@ class TestCreateCHMTrainJob(unittest.TestCase):
                                                          temp_dir])
 
             createchmtrainjob._convert_mod_mrc_files(params)
-            self.fail('Expected IMODConversionError')
-        except IMODConversionError as e:
-            self.assertTrue(images_file + ' is not a file, cannot convert' in str(e))
+            self.fail('Expected InvalidInputDataError')
+        except InvalidInputDataError as e:
+            self.assertTrue(images_file + ' does not exist' in str(e))
 
         finally:
             shutil.rmtree(temp_dir)
