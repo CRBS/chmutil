@@ -86,15 +86,18 @@ class UnsupportedClusterError(Exception):
     """
     pass
 
+
 class IMODConversionError(Exception):
     """Problems converting IMOD files to training data format
     """
     pass
 
+
 class InvalidInputDataError(Exception):
     """Problem with input data
     """
     pass
+
 
 def _parse_arguments(desc, args):
     """Parses command line arguments using argparse.
@@ -121,10 +124,10 @@ def _parse_arguments(desc, args):
                         default='./chm-0.1.0.img')
     parser.add_argument('--stage', type=int, default=2,
                         help='The number of stages of training to perform. '
-                             'Must be >=2')
+                             'Must be >=2 (default 2)')
     parser.add_argument('--level', type=int, default=4,
                         help='The number of levels of training to perform. '
-                             'Must be >=1')
+                             'Must be >=1 (default 4)')
     parser.add_argument('--cluster', default='rocce',
                         choices=[SchedulerFactory.ROCCE,
                                  SchedulerFactory.COMET,
@@ -252,7 +255,8 @@ def _convert_mod_mrc_files(theargs):
                                  mrc2tif or imodmop fail
     :raises InvalidInputDataError: If either input images does not exist on
                                    filesystem
-    :returns: tuple (updated theargs.images value, updated theargs.labels value)
+    :returns: tuple (updated theargs.images value,
+                     updated theargs.labels value)
     """
     if not os.path.exists(theargs.images):
         raise InvalidInputDataError(theargs.images + ' does not exist')

@@ -74,7 +74,8 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             self.assertTrue(os.path.isdir(thetmp_dir))
             readme = os.path.join(temp_dir, createchmtrainjob.README_FILE)
             self.assertTrue(os.path.isfile(readme))
-            f = open(os.path.join(temp_dir, createchmtrainjob.README_FILE), 'r')
+            f = open(os.path.join(temp_dir, createchmtrainjob.README_FILE),
+                     'r')
             data = f.read()
             self.assertTrue('some args here' in data)
             f.close()
@@ -89,7 +90,6 @@ class TestCreateCHMTrainJob(unittest.TestCase):
                                                              'some args here')
             stdout_dir = os.path.join(rundir, createchmtrainjob.STDOUT_DIR)
             self.assertTrue(os.path.isdir(stdout_dir))
-            thetmp_dir = os.path.join(rundir, createchmtrainjob.TMP_DIR)
             self.assertTrue(os.path.isdir(rundir))
             readme = os.path.join(rundir, createchmtrainjob.README_FILE)
             self.assertTrue(os.path.isfile(readme))
@@ -140,7 +140,8 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             self.assertTrue(mystr in data)
 
             # check the submit command got appended to end of readme file
-            f = open(os.path.join(temp_dir, createchmtrainjob.README_FILE), 'r')
+            f = open(os.path.join(temp_dir, createchmtrainjob.README_FILE),
+                     'r')
             data = f.read()
             self.assertTrue('To submit run: cd ' + temp_dir in data)
             f.close()
@@ -196,7 +197,8 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             createchmtrainjob._convert_mod_mrc_files(params)
             self.fail('Expected IMODConversionError')
         except IMODConversionError as e:
-            self.assertTrue('Non zero exit code from mrc2tif: 1 :  :' in str(e))
+            self.assertTrue('Non zero exit code from '
+                            'mrc2tif: 1 :  :' in str(e))
 
         finally:
             shutil.rmtree(temp_dir)
@@ -287,7 +289,8 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             mrc2tif = os.path.join(temp_dir, 'mrc2tif')
             f = open(mrc2tif, 'w')
             f.write('#!/usr/bin/env python\nimport sys\n')
-            f.write('if "tmp.mrc" in sys.argv[2]:\n sys.exit(2)\nsys.exit(0)\n')
+            f.write('if "tmp.mrc" in sys.argv[2]:\n sys.exit(2)\n'
+                    'sys.exit(0)\n')
             f.flush()
             f.close()
             os.chmod(mrc2tif, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
@@ -373,7 +376,6 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             self.assertEqual(res, 0)
             stdout_dir = os.path.join(rundir, createchmtrainjob.STDOUT_DIR)
             self.assertTrue(os.path.isdir(stdout_dir))
-            thetmp_dir = os.path.join(rundir, createchmtrainjob.TMP_DIR)
             self.assertTrue(os.path.isdir(rundir))
             readme = os.path.join(rundir, createchmtrainjob.README_FILE)
             self.assertTrue(os.path.isfile(readme))
@@ -418,8 +420,8 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             f.close()
             os.chmod(imodmop, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)
 
-            cwd = os.getcwd()
-            tmpdir = os.path.abspath(os.path.join(temp_dir, createchmtrainjob.TMP_DIR))
+            tmpdir = os.path.abspath(os.path.join(temp_dir,
+                                                  createchmtrainjob.TMP_DIR))
 
             res = createchmtrainjob.main(['me.py', images_file, labels_file,
                                           temp_dir, '--cluster', 'rocce',
@@ -429,7 +431,8 @@ class TestCreateCHMTrainJob(unittest.TestCase):
             self.assertTrue(os.path.isdir(stdout_dir))
             readme = os.path.join(temp_dir, createchmtrainjob.README_FILE)
             self.assertTrue(os.path.isfile(readme))
-            f = open(os.path.join(temp_dir, createchmtrainjob.README_FILE), 'r')
+            f = open(os.path.join(temp_dir, createchmtrainjob.README_FILE),
+                     'r')
             data = f.read()
             f.close()
 

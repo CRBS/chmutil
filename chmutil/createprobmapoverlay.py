@@ -164,12 +164,14 @@ def _convert_image(image_file, probmap_file, dest_file, theargs):
         for addpmap in theargs.addprobmap:
             pmap_args = addpmap.split(',')
             if len(pmap_args) != 4:
-                logger.error('Invalid probability map args: ' + addpmap + ' skipping')
+                logger.error('Invalid probability map args: ' +
+                             addpmap + ' skipping')
                 continue
             col_img = get_colorized_probmap_image(pmap_args[0],
                                                   pmap_args[1], pmap_args[2],
                                                   pmap_args[3])
-            logger.info('Combining base image with probability map: ' + pmap_args[0])
+            logger.info('Combining base image with probability map: ' +
+                        pmap_args[0])
             res = Image.alpha_composite(res, col_img)
             col_img.close()
 
