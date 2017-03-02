@@ -43,6 +43,9 @@ On Comet:
 
 squeue -u "$USER"
 
+If job has finished verify 0 exit code in output files under
+{stdout}/ directory.
+
 For more help please visit wiki here:
 
 https://github.com/CRBS/chmutil/wiki

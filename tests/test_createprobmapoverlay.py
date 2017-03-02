@@ -36,6 +36,25 @@ class TestCreateProbmapOverlay(unittest.TestCase):
         self.assertEqual(pargs.overlaycolor, 'blue')
         self.assertEqual(pargs.threshpc, 30)
         self.assertEqual(pargs.opacity, 70)
+        self.assertEqual(pargs.addprobmap, None)
+
+        pargs = createprobmapoverlay._parse_arguments('hi', ['image',
+                                                             'prob',
+                                                             'out',
+                                                             '--addprobmap',
+                                                             '1,2'])
+
+        self.assertEqual(pargs.addprobmap, ['1,2'])
+
+        pargs = createprobmapoverlay._parse_arguments('hi', ['image',
+                                                             'prob',
+                                                             'out',
+                                                             '--addprobmap',
+                                                             '1,2',
+                                                             '--addprobmap',
+                                                             '3,4'])
+
+        self.assertEqual(pargs.addprobmap, ['1,2', '3,4'])
 
     def test_get_pixel_coloring_tuple(self):
         res = createprobmapoverlay._get_pixel_coloring_tuple('red')
@@ -123,8 +142,46 @@ class TestCreateProbmapOverlay(unittest.TestCase):
             res = createprobmapoverlay.main(['hi.py', img_file, prob_file,
                                              out_file])
             self.assertEqual(res, 0)
-            self.assertTrue(os.path.isfile(out_file + '.png'))
-            # TODO actually check it did the conversion properly
+            res_file = out_file + '.png'
+            self.assertTrue(os.path.isfile(res_file))
+            res_img = Image.open(res_file)
+            self.assertEqual(res_img.getpixel((8, 8)), (0, 0, 0, 255))
+            self.assertEqual(res_img.getpixel((5, 5)), (0, 0, 70, 255))
+            res_img.close()
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_main_success_with_addprobmap(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            img_file = os.path.join(temp_dir, 'image.png')
+            im = Image.new('L', (10, 10))
+            im.save(img_file, 'PNG')
+
+            prob_file = os.path.join(temp_dir, 'probmap.png')
+            im.putpixel((5, 5), 100)
+            im.save(prob_file, 'PNG')
+
+            addprob_file = os.path.join(temp_dir, 'addprobmap.png')
+            im.putpixel((5, 5), 0)
+            im.putpixel((8, 8), 100)
+            im.save(addprob_file, 'PNG')
+            im.close()
+
+            out_file = os.path.join(temp_dir, 'out')
+
+            res = createprobmapoverlay.main(['hi.py', img_file, prob_file,
+                                             out_file, '--addprobmap',
+                                             addprob_file + ',30,green,70',
+                                             '--addprobmap', 'will,fail'])
+            self.assertEqual(res, 0)
+            res_file = out_file + '.png'
+            self.assertTrue(os.path.isfile(res_file))
+            res_img = Image.open(res_file)
+            self.assertEqual(res_img.getpixel((8, 8)), (0, 70, 0, 255))
+            self.assertEqual(res_img.getpixel((5, 5)), (0, 0, 70, 255))
+            res_img.close()
         finally:
             shutil.rmtree(temp_dir)
 
