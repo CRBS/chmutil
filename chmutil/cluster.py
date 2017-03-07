@@ -167,6 +167,73 @@ class TaskSummaryFactory(object):
         self._chm_incomplete_tasks = chm_incomplete_tasks
         self._merge_incomplete_tasks = merge_incomplete_tasks
 
+    def _get_files_in_directory_generator(self, path):
+        """Generator that gets files in directory"""
+        for entry in os.listdir(path):
+            fullpath = os.path.join(path, entry)
+            if os.path.isfile(fullpath):
+                yield fullpath
+            if os.path.isdir(fullpath):
+                for aentry in self._get_files_in_directory_generator(fullpath)
+                    yield aentry
+
+    def _get_chm_compute_hours_consumed(self):
+        """Looks at output from chm tasks to determine how much
+        compute time in hours was consumed
+        returns: number of cpu hours consumed by CHM thus far as an int
+        """
+        usertime_str = 'User time (seconds):'
+        elapstime_str = 'Elapsed (wall clock) time (h:mm:ss or m:ss): '
+        real_str = 'real '
+        user_str = 'user '
+        sum_btime = 0
+        sum_utime = 0
+        sum_gtime = 0
+        sum_gordon_btime = 0
+        sum_gordon_utime = 0
+        count = 0
+        # TODO Calculating BILL time and USED time requires one to know
+        # TODO number of cores per node and we need to store that in
+        # TODO Cluster or Scheduler classes
+
+        tasks_per_node = self._chmconfig.get_number_tasks_per_node()
+
+        stdout_dir = os.path.join(self._chmconfig.get_out_dir(), CHMJobCreator.STDOUT_DIR)
+        for taskfile in self._get_files_in_directory_generator(stdout_dir):
+            f = open(taskfile, 'r')
+            for line in f:
+                if usertime_str in line:
+                    utime = float(line[line.index(': ')+1:].rstrip())
+                if elapstime_str in line:
+                    btime_raw = line[line.index('): ')+2:].rstrip()
+                    split_time = btime_raw.split(':')
+                    btime = 0
+                    if len(split_time) == 3:
+                        btime += float(split_time[0]) * 3600
+                        btime += float(split_time[1]) * 60
+                        btime += float(split_time[2])
+                    if len(split_time) == 2:
+                        btime += float(split_time[0]) * 60
+                        btime += float(split_time[1])
+
+                    if line.startswith(real_str):
+                        btime = float(line[len(real_str):].rstrip())
+
+                    if line.startswith(user_str):
+                        utime = float(line[len(user_str):].rstrip())
+            if 'gordon' in taskfile:
+                sum_btime += btime * 16
+                sum_gordon_btime += btime * 16
+                sum_gordon_utime += utime
+            else:
+                sum_btime += btime * 24
+            count += 1
+            sum_btime += btime
+            sum_utime += utime
+
+        return 0
+
+
     def _get_chm_task_stats(self):
         """Gets `TaskStats` for CHM tasks
         """
