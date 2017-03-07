@@ -168,15 +168,11 @@ def _check_chm_job(theargs):
                                                        get_merge_config())
 
     tsf = TaskSummaryFactory(chmconfig, chm_incomplete_tasks=chm_task_list,
-                             merge_incomplete_tasks=merge_task_list)
+                             merge_incomplete_tasks=merge_task_list,
+                             output_compute=theargs.detailed)
     ts = tsf.get_task_summary()
 
     sys.stdout.write(ts.get_summary() + '\n')
-
-    if theargs.detailed is True:
-        logger.info(DETAILED_FLAG + ' set')
-        sys.stdout.write('\nUnfortunately detailed report has '
-                         'not yet been implemented\n\n')
 
     if theargs.submit is True:
         logger.info(SUBMIT_FLAG + ' set')
