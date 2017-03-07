@@ -10,6 +10,9 @@ Tests for `TaskSummaryFactory in cluster`
 
 import unittest
 import configparser
+import tempfile
+import os
+import shutil
 
 from chmutil.cluster import TaskSummaryFactory
 from chmutil.core import CHMConfig
@@ -22,6 +25,101 @@ class TestCore(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def test_get_files_in_directory_none_passed_in(self):
+        tsf = TaskSummaryFactory(None)
+        count = 0
+        for item in tsf._get_files_in_directory_generator(None):
+            count += 1
+        self.assertEqual(count, 0)
+
+    def test_get_files_in_directory_on_empty_dir(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            tsf = TaskSummaryFactory(None)
+            count = 0
+            for item in tsf._get_files_in_directory_generator(temp_dir):
+                count += 1
+            self.assertEqual(count, 0)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_files_in_directory_on_one_file(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            tsf = TaskSummaryFactory(None)
+            count = 0
+            onefile = os.path.join(temp_dir, 'foo.txt')
+            open(onefile, 'a').close()
+
+            for item in tsf._get_files_in_directory_generator(onefile):
+                self.assertEqual(item, onefile)
+                count += 1
+
+            self.assertEqual(count, 1)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_files_in_directory_on_dir_with_file(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            tsf = TaskSummaryFactory(None)
+            count = 0
+            onefile = os.path.join(temp_dir, 'foo.txt')
+            open(onefile, 'a').close()
+
+            for item in tsf._get_files_in_directory_generator(temp_dir):
+                self.assertEqual(item, onefile)
+                count += 1
+
+            self.assertEqual(count, 1)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_files_in_directory_on_multiple_files(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            tsf = TaskSummaryFactory(None)
+            one = os.path.join(temp_dir, '1.txt')
+            two = os.path.join(temp_dir, '2.txt')
+            three = os.path.join(temp_dir, '3.txt')
+            open(one, 'a').close()
+            open(two, 'a').close()
+            open(three, 'a').close()
+            thefiles = []
+            for item in tsf._get_files_in_directory_generator(temp_dir):
+                thefiles.append(item)
+            self.assertTrue(one in thefiles)
+            self.assertTrue(two in thefiles)
+            self.assertTrue(three in thefiles)
+            self.assertEqual(len(thefiles), 3)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_files_in_directory_on_multiple_directories(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            tsf = TaskSummaryFactory(None)
+            one = os.path.join(temp_dir, '1.txt')
+            two = os.path.join(temp_dir, '2.txt')
+            subdir = os.path.join(temp_dir, 'foodir')
+            os.makedirs(subdir, mode=0o0775)
+            three = os.path.join(subdir, '3.txt')
+            four = os.path.join(subdir, '4.txt')
+            open(one, 'a').close()
+            open(two, 'a').close()
+            open(three, 'a').close()
+            open(four, 'a').close()
+            thefiles = []
+            for item in tsf._get_files_in_directory_generator(temp_dir):
+                thefiles.append(item)
+            self.assertTrue(one in thefiles)
+            self.assertTrue(two in thefiles)
+            self.assertTrue(three in thefiles)
+            self.assertTrue(four in thefiles)
+            self.assertEqual(len(thefiles), 4)
+        finally:
+            shutil.rmtree(temp_dir)
 
     def test_get_chm_task_stats_everything_is_none(self):
         tsf = TaskSummaryFactory(None)

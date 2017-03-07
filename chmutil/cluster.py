@@ -45,6 +45,9 @@ class TaskStats(object):
         """
         self._completed_task_count = 0
         self._total_task_count = 0
+        self._total_walltime = 0
+        self._total_usertime = 0
+        self.set_total_tasks_with_cputimes = 0
 
     def set_completed_task_count(self, count):
         """sets number of completed tasks
@@ -68,6 +71,36 @@ class TaskStats(object):
         """returns total tasks count
         """
         return self._total_task_count
+
+    def set_total_cpu_walltime(self, total_walltime):
+        """Sets total walltime"""
+        self._total_walltime = total_walltime
+
+    def get_total_cpu_walltime(self):
+        """Gets total walltime
+        """
+        return self._total_walltime
+
+    def set_total_cpu_usertime(self, total_usertime):
+        """Sets total usertime"""
+        self._total_usertime = total_usertime
+
+    def get_total_cpu_usertime(self):
+        """Gets total usertime
+        """
+        return self._total_usertime
+
+    def set_total_tasks_with_cputimes(self, count):
+        """Sets number of tasks used to calculate
+           cpu times
+        """
+        self.set_total_tasks_with_cputimes = count
+
+    def set_total_tasks_with_cputimes(self):
+        """Sets number of tasks used to calculate
+           cpu times
+        """
+        return self.set_total_tasks_with_cputimes
 
 
 class TaskSummary(object):
@@ -157,10 +190,13 @@ class TaskSummaryFactory(object):
     """
     USERTIME_STR = 'User time (seconds):'
     ELAPSTIME_STR = 'Elapsed (wall clock) time (h:mm:ss or m:ss): '
+    MAXMEM_STR = 'Maximum resident set size (kbytes): '
     REAL_STR = 'real '
     USER_STR = 'user '
+
     def __init__(self, chmconfig, chm_incomplete_tasks=None,
-                 merge_incomplete_tasks=None):
+                 merge_incomplete_tasks=None,
+                 output_compute=False):
         """Constructor
            :param chmconfig: Should be a `CHMConfig` object loaded with a
                              valid CHM job
@@ -173,6 +209,19 @@ class TaskSummaryFactory(object):
 
     def _get_files_in_directory_generator(self, path):
         """Generator that gets files in directory"""
+
+        if path is None:
+            logger.error('Path is None, returning nothing')
+            return
+
+        # first time we encounter a file yield it
+        if os.path.isfile(path):
+            yield path
+
+        # second time we encounter a file just return
+        if os.path.isfile(path):
+            return
+
         logger.debug(path + ' is a directory looking for files within')
         for entry in os.listdir(path):
             fullpath = os.path.join(path, entry)
@@ -184,30 +233,26 @@ class TaskSummaryFactory(object):
 
     def _get_chm_compute_hours_consumed(self):
         """Looks at output from chm tasks to determine how much
-        compute time in hours was consumed
-        returns: tuple (sum user time in hours, sum walltime in hours, number of tasks)
+        compute was consumed
+        returns: array of tuples
+                 [(user time in seconds,walltime in seconds,max memory in kb)]
         """
-        sum_usertime = 0
-        sum_walltime = 0
-
-        count = 0
-        # TODO Calculating BILL time and USED time requires one to know
-        # TODO number of cores per node and we need to store that in
-        # TODO Cluster or Scheduler classes
-
-        tasks_per_node = self._chmconfig.get_number_tasks_per_node()
-
+        res = []
         stdout_dir = os.path.join(self._chmconfig.get_out_dir(),
                                   CHMJobCreator.STDOUT_DIR)
         for taskfile in self._get_files_in_directory_generator(stdout_dir):
             f = open(taskfile, 'r')
             for line in f:
+                usertime = 0
+                max_memory = 0
+                walltime = 0
                 if TaskSummaryFactory.USERTIME_STR in line:
                     usertime = float(line[line.index(': ')+1:].rstrip())
+                if TaskSummaryFactory.MAXMEM_STR in line:
+                    max_memory = int(line[line.index('): ')+2:].rstrip())
                 if TaskSummaryFactory.ELAPSTIME_STR in line:
                     walltime_raw = line[line.index('): ')+2:].rstrip()
                     split_time = walltime_raw.split(':')
-                    walltime = 0
                     if len(split_time) == 3:
                         walltime += float(split_time[0]) * 3600
                         walltime += float(split_time[1]) * 60
@@ -223,11 +268,9 @@ class TaskSummaryFactory(object):
                     if line.startswith(TaskSummaryFactory.USER_STR):
                         usertime = float(line[len(TaskSummaryFactory.
                                                   USER_STR):].rstrip())
-            count += 1
-            sum_walltime += walltime
-            sum_usertime += usertime
 
-        return sum_usertime / 3600.0, sum_walltime / 3600.0, count
+            res.append((usertime, walltime, max_memory))
+        return res
 
     def _get_chm_task_stats(self):
         """Gets `TaskStats` for CHM tasks
