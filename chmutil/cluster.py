@@ -155,6 +155,10 @@ class TaskSummaryFactory(object):
        which contains summary information about the
        job.
     """
+    USERTIME_STR = 'User time (seconds):'
+    ELAPSTIME_STR = 'Elapsed (wall clock) time (h:mm:ss or m:ss): '
+    REAL_STR = 'real '
+    USER_STR = 'user '
     def __init__(self, chmconfig, chm_incomplete_tasks=None,
                  merge_incomplete_tasks=None):
         """Constructor
@@ -169,28 +173,23 @@ class TaskSummaryFactory(object):
 
     def _get_files_in_directory_generator(self, path):
         """Generator that gets files in directory"""
+        logger.debug(path + ' is a directory looking for files within')
         for entry in os.listdir(path):
             fullpath = os.path.join(path, entry)
             if os.path.isfile(fullpath):
                 yield fullpath
             if os.path.isdir(fullpath):
-                for aentry in self._get_files_in_directory_generator(fullpath)
+                for aentry in self._get_files_in_directory_generator(fullpath):
                     yield aentry
 
     def _get_chm_compute_hours_consumed(self):
         """Looks at output from chm tasks to determine how much
         compute time in hours was consumed
-        returns: number of cpu hours consumed by CHM thus far as an int
+        returns: tuple (sum user time in hours, sum walltime in hours, number of tasks)
         """
-        usertime_str = 'User time (seconds):'
-        elapstime_str = 'Elapsed (wall clock) time (h:mm:ss or m:ss): '
-        real_str = 'real '
-        user_str = 'user '
-        sum_btime = 0
-        sum_utime = 0
-        sum_gtime = 0
-        sum_gordon_btime = 0
-        sum_gordon_utime = 0
+        sum_usertime = 0
+        sum_walltime = 0
+
         count = 0
         # TODO Calculating BILL time and USED time requires one to know
         # TODO number of cores per node and we need to store that in
@@ -198,41 +197,37 @@ class TaskSummaryFactory(object):
 
         tasks_per_node = self._chmconfig.get_number_tasks_per_node()
 
-        stdout_dir = os.path.join(self._chmconfig.get_out_dir(), CHMJobCreator.STDOUT_DIR)
+        stdout_dir = os.path.join(self._chmconfig.get_out_dir(),
+                                  CHMJobCreator.STDOUT_DIR)
         for taskfile in self._get_files_in_directory_generator(stdout_dir):
             f = open(taskfile, 'r')
             for line in f:
-                if usertime_str in line:
-                    utime = float(line[line.index(': ')+1:].rstrip())
-                if elapstime_str in line:
-                    btime_raw = line[line.index('): ')+2:].rstrip()
-                    split_time = btime_raw.split(':')
-                    btime = 0
+                if TaskSummaryFactory.USERTIME_STR in line:
+                    usertime = float(line[line.index(': ')+1:].rstrip())
+                if TaskSummaryFactory.ELAPSTIME_STR in line:
+                    walltime_raw = line[line.index('): ')+2:].rstrip()
+                    split_time = walltime_raw.split(':')
+                    walltime = 0
                     if len(split_time) == 3:
-                        btime += float(split_time[0]) * 3600
-                        btime += float(split_time[1]) * 60
-                        btime += float(split_time[2])
+                        walltime += float(split_time[0]) * 3600
+                        walltime += float(split_time[1]) * 60
+                        walltime += float(split_time[2])
                     if len(split_time) == 2:
-                        btime += float(split_time[0]) * 60
-                        btime += float(split_time[1])
+                        walltime += float(split_time[0]) * 60
+                        walltime += float(split_time[1])
 
-                    if line.startswith(real_str):
-                        btime = float(line[len(real_str):].rstrip())
+                    if line.startswith(TaskSummaryFactory.REAL_STR):
+                        walltime = float(line[len(TaskSummaryFactory.
+                                                  REAL_STR):].rstrip())
 
-                    if line.startswith(user_str):
-                        utime = float(line[len(user_str):].rstrip())
-            if 'gordon' in taskfile:
-                sum_btime += btime * 16
-                sum_gordon_btime += btime * 16
-                sum_gordon_utime += utime
-            else:
-                sum_btime += btime * 24
+                    if line.startswith(TaskSummaryFactory.USER_STR):
+                        usertime = float(line[len(TaskSummaryFactory.
+                                                  USER_STR):].rstrip())
             count += 1
-            sum_btime += btime
-            sum_utime += utime
+            sum_walltime += walltime
+            sum_usertime += usertime
 
-        return 0
-
+        return sum_usertime / 3600.0, sum_walltime / 3600.0, count
 
     def _get_chm_task_stats(self):
         """Gets `TaskStats` for CHM tasks
