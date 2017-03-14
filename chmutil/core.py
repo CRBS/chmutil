@@ -989,8 +989,14 @@ class CHMConfigFromConfigFactory(object):
             mergecon = self._get_config(os.path.join(self._job_dir,
                                                      CHMJobCreator.
                                                      MERGE_CONFIG_FILE_NAME))
-            merge_t_node = mergecon.getint(default,
-                                           CHMJobCreator.MERGE_TASKS_PER_NODE)
+            try:
+
+                merge_t_node = mergecon.getint(default,
+                                               CHMJobCreator.
+                                               MERGE_TASKS_PER_NODE)
+            except NoOptionError:
+                logger.warning('Merge tasks per node not found. setting to 1')
+                merge_t_node = 1
         else:
             logger.debug('Skipping load of merge job configuration')
             mergecon = None
