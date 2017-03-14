@@ -47,7 +47,9 @@ class TaskStats(object):
         self._total_task_count = 0
         self._total_walltime = 0
         self._total_usertime = 0
-        self.set_total_tasks_with_cputimes = 0
+        self._total_tasks_with_cputimes = 0
+        self._total_memorykb = 0
+        self._max_memorykb = 0
 
     def set_completed_task_count(self, count):
         """sets number of completed tasks
@@ -94,13 +96,33 @@ class TaskStats(object):
         """Sets number of tasks used to calculate
            cpu times
         """
-        self.set_total_tasks_with_cputimes = count
+        self._total_tasks_with_cputimes = count
 
-    def set_total_tasks_with_cputimes(self):
-        """Sets number of tasks used to calculate
+    def get_total_tasks_with_cputimes(self):
+        """Gets number of tasks used to calculate
            cpu times
         """
-        return self.set_total_tasks_with_cputimes
+        return self._total_tasks_with_cputimes
+
+    def set_max_memory_in_kb(self, max_memorykb):
+        """Sets max memory for jobs in kilobytes
+        """
+        self._max_memorykb = max_memorykb
+
+    def get_max_memory_in_kb(self):
+        """Gets max memory for jobs in kilobytes
+        """
+        return self._max_memorykb
+
+    def set_total_memory_in_kb(self, total_memorykb):
+        """Sets total memory in kilobytes
+        """
+        self._total_memorykb = total_memorykb
+
+    def get_total_memory_in_kb(self):
+        """Gets total memory in kilobytes
+        """
+        return self._total_memorykb
 
 
 class TaskSummary(object):
@@ -206,6 +228,7 @@ class TaskSummaryFactory(object):
         self._chmconfig = chmconfig
         self._chm_incomplete_tasks = chm_incomplete_tasks
         self._merge_incomplete_tasks = merge_incomplete_tasks
+        self._output_compute = output_compute
 
     def _get_files_in_directory_generator(self, path):
         """Generator that gets files in directory"""
@@ -222,6 +245,9 @@ class TaskSummaryFactory(object):
         if os.path.isfile(path):
             return
 
+        if not os.path.isdir(path):
+            return
+
         logger.debug(path + ' is a directory looking for files within')
         for entry in os.listdir(path):
             fullpath = os.path.join(path, entry)
@@ -231,21 +257,21 @@ class TaskSummaryFactory(object):
                 for aentry in self._get_files_in_directory_generator(fullpath):
                     yield aentry
 
-    def _get_chm_compute_hours_consumed(self):
+    def _get_compute_hours_consumed(self, dirpath):
         """Looks at output from chm tasks to determine how much
         compute was consumed
+        :param dirpath: directory containing task output files
         returns: array of tuples
                  [(user time in seconds,walltime in seconds,max memory in kb)]
         """
         res = []
-        stdout_dir = os.path.join(self._chmconfig.get_out_dir(),
-                                  CHMJobCreator.STDOUT_DIR)
-        for taskfile in self._get_files_in_directory_generator(stdout_dir):
+        for taskfile in self._get_files_in_directory_generator(dirpath):
+            logger.debug('Examining ' + taskfile)
             f = open(taskfile, 'r')
+            usertime = 0
+            max_memory = 0
+            walltime = 0
             for line in f:
-                usertime = 0
-                max_memory = 0
-                walltime = 0
                 if TaskSummaryFactory.USERTIME_STR in line:
                     usertime = float(line[line.index(': ')+1:].rstrip())
                 if TaskSummaryFactory.MAXMEM_STR in line:
@@ -261,16 +287,54 @@ class TaskSummaryFactory(object):
                         walltime += float(split_time[0]) * 60
                         walltime += float(split_time[1])
 
-                    if line.startswith(TaskSummaryFactory.REAL_STR):
-                        walltime = float(line[len(TaskSummaryFactory.
-                                                  REAL_STR):].rstrip())
+                if line.startswith(TaskSummaryFactory.REAL_STR):
 
-                    if line.startswith(TaskSummaryFactory.USER_STR):
-                        usertime = float(line[len(TaskSummaryFactory.
-                                                  USER_STR):].rstrip())
+                    walltime = float(line[len(TaskSummaryFactory.
+                                              REAL_STR):].rstrip())
 
-            res.append((usertime, walltime, max_memory))
+                if line.startswith(TaskSummaryFactory.USER_STR):
+                    usertime = float(line[len(TaskSummaryFactory.
+                                              USER_STR):].rstrip())
+            if walltime > 0:
+                res.append((usertime, walltime, max_memory))
+            else:
+                logger.debug('Parsed file had 0 walltime so skipping : ' +
+                             taskfile)
         return res
+
+    def _update_chm_task_stats_with_compute(self, taskstats, runtimes_list):
+        """Updates if needed `TaskStats` passed in as chmts
+        with compute usage if requested via `output_compute` flag
+        in constructor
+        :returns TaskStats: updated with compute stats if needed
+        """
+        if self._output_compute is False or runtimes_list is None:
+            return taskstats
+
+        if taskstats is None:
+            logger.error('TaskStats is None, skipping update of compute times')
+            return None
+
+        num_tasks = len(runtimes_list)
+        logger.debug('Found ' + str(num_tasks) + ' with compute times')
+        sum_usertime = 0
+        sum_walltime = 0
+        max_memory = 0
+        sum_memory = 0
+        for t in runtimes_list:
+            sum_usertime += t[0]
+            sum_walltime += t[1]
+            sum_memory += t[2]
+            if t[2] > max_memory:
+                max_memory = t[2]
+
+        taskstats.set_total_tasks_with_cputimes(num_tasks)
+        taskstats.set_total_cpu_usertime(sum_usertime)
+        taskstats.set_total_cpu_walltime(sum_walltime)
+        taskstats.set_max_memory_in_kb(max_memory)
+        taskstats.set_total_memory_in_kb(sum_memory)
+
+        return taskstats
 
     def _get_chm_task_stats(self):
         """Gets `TaskStats` for CHM tasks
@@ -289,6 +353,17 @@ class TaskSummaryFactory(object):
         chmts = TaskStats()
         chmts.set_completed_task_count(completed_chm_tasks)
         chmts.set_total_task_count(total_chm_tasks)
+
+        runtimes_list = []
+        try:
+            stdout_dir = os.path.join(self._chmconfig.get_out_dir(),
+                                      CHMJobCreator.STDOUT_DIR)
+            runtimes_list = self._get_compute_hours_consumed(stdout_dir)
+        except AttributeError:
+            logger.error('Unable to get output directory from config'
+                         'skipping examining of compute hours consumed')
+
+        chmts = self._update_chm_task_stats_with_compute(chmts, runtimes_list)
         return chmts
 
     def _get_merge_task_stats(self):
@@ -307,6 +382,13 @@ class TaskSummaryFactory(object):
         mergets = TaskStats()
         mergets.set_completed_task_count(completed_merge_tasks)
         mergets.set_total_task_count(total_merge_tasks)
+
+        stdout_dir = os.path.join(self._chmconfig.get_out_dir(),
+                                  CHMJobCreator.MERGE_STDOUT_DIR)
+        runtimes_list = self._get_compute_hours_consumed(stdout_dir)
+        mergets = self._update_chm_task_stats_with_compute(mergets,
+                                                           runtimes_list)
+
         return mergets
 
     def get_task_summary(self):
@@ -343,6 +425,7 @@ class CHMTaskChecker(object):
             if not out_file.startswith('/') and jobdir is not None:
                 out_file = os.path.join(jobdir, CHMJobCreator.RUN_DIR,
                                         out_file)
+            logger.debug('Checking if image file exists: ' + out_file)
             if not os.path.isfile(out_file):
                 task_list.append(s)
 
@@ -381,6 +464,7 @@ class MergeTaskChecker(object):
             if not out_file.startswith('/') and jobdir is not None:
                 out_file = os.path.join(jobdir, CHMJobCreator.RUN_DIR,
                                         out_file)
+            logger.debug('Checking if image file exists: ' + out_file)
             if not os.path.isfile(out_file):
                 task_list.append(s)
 

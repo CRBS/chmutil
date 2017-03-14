@@ -16,9 +16,11 @@ import shutil
 
 from chmutil.cluster import TaskSummaryFactory
 from chmutil.core import CHMConfig
+from chmutil.core import CHMJobCreator
+from chmutil.cluster import TaskStats
 
 
-class TestCore(unittest.TestCase):
+class TestTaskSummaryFactory(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -26,14 +28,14 @@ class TestCore(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_get_files_in_directory_none_passed_in(self):
+    def test_get_files_in_directory_generator_none_passed_in(self):
         tsf = TaskSummaryFactory(None)
         count = 0
         for item in tsf._get_files_in_directory_generator(None):
             count += 1
         self.assertEqual(count, 0)
 
-    def test_get_files_in_directory_on_empty_dir(self):
+    def test_get_files_in_directory_generator_on_empty_dir(self):
         temp_dir = tempfile.mkdtemp()
         try:
             tsf = TaskSummaryFactory(None)
@@ -44,7 +46,7 @@ class TestCore(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_get_files_in_directory_on_one_file(self):
+    def test_get_files_in_directory_generator_on_one_file(self):
         temp_dir = tempfile.mkdtemp()
         try:
             tsf = TaskSummaryFactory(None)
@@ -60,7 +62,7 @@ class TestCore(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_get_files_in_directory_on_dir_with_file(self):
+    def test_get_files_in_directory_generator_on_dir_with_file(self):
         temp_dir = tempfile.mkdtemp()
         try:
             tsf = TaskSummaryFactory(None)
@@ -76,7 +78,7 @@ class TestCore(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_get_files_in_directory_on_multiple_files(self):
+    def test_get_files_in_directory_generator_on_multiple_files(self):
         temp_dir = tempfile.mkdtemp()
         try:
             tsf = TaskSummaryFactory(None)
@@ -96,7 +98,7 @@ class TestCore(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_get_files_in_directory_on_multiple_directories(self):
+    def test_get_files_in_directory_generator_on_multiple_directories(self):
         temp_dir = tempfile.mkdtemp()
         try:
             tsf = TaskSummaryFactory(None)
@@ -120,6 +122,120 @@ class TestCore(unittest.TestCase):
             self.assertEqual(len(thefiles), 4)
         finally:
             shutil.rmtree(temp_dir)
+
+    def test_chm_compute_hours_consumed_empty_and_with_files(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            con = CHMConfig('./images', './model', './outdir', '500x500', '20x20')
+
+            # test empty directory
+            tsf = TaskSummaryFactory(con)
+            res = tsf._get_compute_hours_consumed(temp_dir)
+            self.assertEqual(len(res), 0)
+
+            # test one file valid format old way ie real, user, sys
+            oldformatfile = os.path.join(temp_dir, '1234.1')
+            f = open(oldformatfile, 'w')
+            f.write('HOST: comet-22-63\nDATE: blah\ns\n\n')
+            f.write('real 150.05\nuser 250.10\nsys 66.66\n')
+            f.write('chmrunner.py exited with code: 0\n')
+            f.flush()
+            f.close()
+            res = tsf._get_compute_hours_consumed(temp_dir)
+            self.assertEqual(len(res), 1)
+            self.assertEqual(res, [(250.1, 150.05, 0)])
+
+            # test 2 files one with no content
+            open(os.path.join(temp_dir, '234.22'), 'a').close()
+            res = tsf._get_compute_hours_consumed(temp_dir)
+            self.assertEqual(len(res), 1)
+            self.assertEqual(res, [(250.1, 150.05, 0)])
+
+            # test 3 files one with content but not run stats
+            no_time_file = os.path.join(temp_dir, 'hello.txt')
+            f = open(no_time_file, 'w')
+            f.write('h\nasdfasd\n how\n are\n you\n')
+            f.flush()
+            f.close()
+            res = tsf._get_compute_hours_consumed(temp_dir)
+            self.assertEqual(len(res), 1)
+            self.assertEqual(res, [(250.1, 150.05, 0)])
+
+
+            # test 5 files 3 have content, one old format, two new format
+            new_format_file = os.path.join(temp_dir, '778786.1')
+            f = open(new_format_file, 'w')
+            f.write('a\n\b\nc\n')
+            f.write('User time (seconds): 9823.73\n')
+            f.write('System time (seconds): 9281.73\n')
+            f.write('Percent of CPU this job got: 1591%\n')
+            f.write('Elapsed (wall clock) time (h:mm:ss or m:ss): 3:23:15\n')
+            f.write('Average shared text size (kbytes): 0\n')
+            f.write('Average unshared data size (kbytes): 0\n')
+            f.write('Average stack size (kbytes): 0\n')
+            f.flush()
+            f.close()
+
+            new_format_file2 = os.path.join(temp_dir, '778786.2')
+            f = open(new_format_file2, 'w')
+            f.write('a\n\b\nc\n')
+            f.write('        User time (seconds): 100.00\n')
+            f.write('  System time (seconds): 200.00\n')
+            f.write('  Percent of CPU this job got: 1591%\n')
+            f.write(' Elapsed (wall clock) time (h:mm:ss or m:ss): 20:15\n')
+            f.write('Average shared text size (kbytes): 0\n')
+            f.write('Average unshared data size (kbytes): 0\n')
+            f.write('Average stack size (kbytes): 0\n')
+            f.write('        Maximum resident set size (kbytes): 5287148\n')
+            f.flush()
+            f.close()
+
+            res = tsf._get_compute_hours_consumed(temp_dir)
+            self.assertEqual(len(res), 3)
+            self.assertEqual(res, [(250.1, 150.05, 0), (9823.73, 12195.0, 0),
+                                   (100.0, 1215.0, 5287148)])
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_update_chm_task_stats_with_compute(self):
+        # pass a None list and taskstats
+        tsf = TaskSummaryFactory(None, output_compute=True)
+        res = tsf._update_chm_task_stats_with_compute(None, None)
+        self.assertEqual(res, None)
+
+        # None for res list
+        ts = TaskStats()
+        res = tsf._update_chm_task_stats_with_compute(ts, None)
+        self.assertEqual(res, ts)
+
+        # None for taskstats
+        res = tsf._update_chm_task_stats_with_compute(None, [])
+        self.assertEqual(res, None)
+
+        # empty res list
+        ts = TaskStats()
+        res = tsf._update_chm_task_stats_with_compute(ts, [])
+        self.assertEqual(res, ts)
+
+        # try 1 stats
+        ts = TaskStats()
+        res = tsf._update_chm_task_stats_with_compute(ts, [(1, 2, 3)])
+        self.assertEqual(res, ts)
+        self.assertEqual(res.get_total_tasks_with_cputimes(), 1)
+        self.assertEqual(res.get_max_memory_in_kb(), 3)
+        self.assertEqual(res.get_total_cpu_usertime(), 1)
+        self.assertEqual(res.get_total_cpu_walltime(), 2)
+
+        # try 3 entries
+        ts = TaskStats()
+        res = tsf._update_chm_task_stats_with_compute(ts, [(5, 5, 10),
+                                                           (1, 2, 3),
+                                                           (4, 5, 1)])
+        self.assertEqual(res, ts)
+        self.assertEqual(res.get_total_tasks_with_cputimes(), 3)
+        self.assertEqual(res.get_max_memory_in_kb(), 10)
+        self.assertEqual(res.get_total_cpu_usertime(), 10)
+        self.assertEqual(res.get_total_cpu_walltime(), 12)
 
     def test_get_chm_task_stats_everything_is_none(self):
         tsf = TaskSummaryFactory(None)
@@ -166,6 +282,51 @@ class TestCore(unittest.TestCase):
         ts = tsf._get_chm_task_stats()
         self.assertEqual(ts.get_completed_task_count(), 3)
         self.assertEqual(ts.get_total_task_count(), 4)
+
+    def test_get_chm_task_stats_outputcompute_true(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            con = CHMConfig('./images', './model', temp_dir, '500x500', '20x20')
+            stdout_dir = os.path.join(temp_dir,
+                                      CHMJobCreator.STDOUT_DIR)
+            os.makedirs(stdout_dir, mode=0o755)
+
+            new_format_file2 = os.path.join(stdout_dir, '778786.2')
+            f = open(new_format_file2, 'w')
+            f.write('a\n\b\nc\n')
+            f.write('        User time (seconds): 100.00\n')
+            f.write('  System time (seconds): 200.00\n')
+            f.write('  Percent of CPU this job got: 1591%\n')
+            f.write(' Elapsed (wall clock) time (h:mm:ss or m:ss): 20:15\n')
+            f.write('Average shared text size (kbytes): 0\n')
+            f.write('Average unshared data size (kbytes): 0\n')
+            f.write('Average stack size (kbytes): 0\n')
+            f.write('        Maximum resident set size (kbytes): 5287148\n')
+            f.flush()
+            f.close()
+            cfig = configparser.ConfigParser()
+            cfig.add_section('1')
+            cfig.set('1', 'hi', 'val')
+            cfig.add_section('2')
+            cfig.set('2', 'hi', 'val')
+            cfig.add_section('3')
+            cfig.set('3', 'hi', 'val')
+            cfig.add_section('4')
+            cfig.set('4', 'hi', 'val')
+            # try with lists with elements
+            tsf = TaskSummaryFactory(con, chm_incomplete_tasks=['hi'],
+                                     merge_incomplete_tasks=['a', 'b'],
+                                     output_compute=True)
+            ts = tsf._get_chm_task_stats()
+            self.assertEqual(ts.get_completed_task_count(), 3)
+            self.assertEqual(ts.get_total_task_count(), 4)
+            self.assertEqual(ts.get_total_tasks_with_cputimes(), 3)
+            self.assertEqual(ts.get_max_memory_in_kb(), 10)
+            self.assertEqual(ts.get_total_cpu_usertime(), 10)
+            self.assertEqual(ts.get_total_cpu_walltime(), 12)
+
+        finally:
+            shutil.rmtree(temp_dir)
 
     def test_get_task_summary(self):
         con = CHMConfig('./images', './model', './outdir', '500x500', '20x20')
