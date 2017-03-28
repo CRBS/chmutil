@@ -24,7 +24,7 @@ test_requirements = [
 
 setup(
     name='chmutil',
-    version='0.5.2',
+    version='0.6.0',
     description="Utility package to run CHM jobs on clusters",
     long_description=readme + '\n\n' + history,
     author="Christopher Churas",
