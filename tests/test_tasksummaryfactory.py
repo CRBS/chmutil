@@ -283,6 +283,13 @@ class TestTaskSummaryFactory(unittest.TestCase):
         self.assertEqual(ts.get_completed_task_count(), 3)
         self.assertEqual(ts.get_total_task_count(), 4)
 
+        # try with lists with elements 2 incomplete
+        tsf = TaskSummaryFactory(con, chm_incomplete_tasks=['hi', 'bye'],
+                                 merge_incomplete_tasks=['a', 'b'])
+        ts = tsf._get_chm_task_stats()
+        self.assertEqual(ts.get_completed_task_count(), 2)
+        self.assertEqual(ts.get_total_task_count(), 4)
+
     def test_get_chm_task_stats_outputcompute_true(self):
         temp_dir = tempfile.mkdtemp()
         try:
@@ -304,6 +311,7 @@ class TestTaskSummaryFactory(unittest.TestCase):
             f.write('        Maximum resident set size (kbytes): 5287148\n')
             f.flush()
             f.close()
+
             cfig = configparser.ConfigParser()
             cfig.add_section('1')
             cfig.set('1', 'hi', 'val')
@@ -313,6 +321,7 @@ class TestTaskSummaryFactory(unittest.TestCase):
             cfig.set('3', 'hi', 'val')
             cfig.add_section('4')
             cfig.set('4', 'hi', 'val')
+            con.set_config(cfig)
             # try with lists with elements
             tsf = TaskSummaryFactory(con, chm_incomplete_tasks=['hi'],
                                      merge_incomplete_tasks=['a', 'b'],
@@ -320,10 +329,29 @@ class TestTaskSummaryFactory(unittest.TestCase):
             ts = tsf._get_chm_task_stats()
             self.assertEqual(ts.get_completed_task_count(), 3)
             self.assertEqual(ts.get_total_task_count(), 4)
-            self.assertEqual(ts.get_total_tasks_with_cputimes(), 3)
-            self.assertEqual(ts.get_max_memory_in_kb(), 10)
-            self.assertEqual(ts.get_total_cpu_usertime(), 10)
-            self.assertEqual(ts.get_total_cpu_walltime(), 12)
+            self.assertEqual(ts.get_total_tasks_with_cputimes(), 1)
+            self.assertEqual(ts.get_max_memory_in_kb(), 5287148)
+            self.assertEqual(ts.get_total_cpu_usertime(), 100)
+            self.assertEqual(ts.get_total_cpu_walltime(), 1215)
+
+            # try with a second output file
+            oldformatfile = os.path.join(stdout_dir, '1234.1')
+            f = open(oldformatfile, 'w')
+            f.write('HOST: comet-22-63\nDATE: blah\ns\n\n')
+            f.write('real 150.0\nuser 250.0\nsys 60.0\n')
+            f.write('chmrunner.py exited with code: 0\n')
+            f.flush()
+            f.close()
+            tsf = TaskSummaryFactory(con, chm_incomplete_tasks=['hi'],
+                                     merge_incomplete_tasks=['a', 'b'],
+                                     output_compute=True)
+            ts = tsf._get_chm_task_stats()
+            self.assertEqual(ts.get_completed_task_count(), 3)
+            self.assertEqual(ts.get_total_task_count(), 4)
+            self.assertEqual(ts.get_total_tasks_with_cputimes(), 2)
+            self.assertEqual(ts.get_max_memory_in_kb(), 5287148)
+            self.assertEqual(ts.get_total_cpu_usertime(), 350)
+            self.assertEqual(ts.get_total_cpu_walltime(), 1365)
 
         finally:
             shutil.rmtree(temp_dir)
