@@ -294,7 +294,8 @@ class TestTaskSummaryFactory(unittest.TestCase):
         temp_dir = tempfile.mkdtemp()
         try:
             con = CHMConfig('./images', './model', temp_dir, '500x500', '20x20')
-            stdout_dir = os.path.join(temp_dir,
+            run_dir = os.path.join(temp_dir, CHMJobCreator.RUN_DIR)
+            stdout_dir = os.path.join(run_dir,
                                       CHMJobCreator.STDOUT_DIR)
             os.makedirs(stdout_dir, mode=0o755)
 

@@ -168,7 +168,7 @@ class TaskSummary(object):
         completed = task_stats.get_completed_task_count()
         pc_complete_str = '{0:.0%}'.format((float(completed)/float(total)))
 
-        # {:,} logic to add thosands separator was introduced in
+        # {:,} logic to add thousands separator was introduced in
         # python 2.7 so we are basically not doing it for 2.6 and
         # i dont want to waste time on adding it for old version of python
         if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
@@ -179,6 +179,48 @@ class TaskSummary(object):
             total_str = '{0:,}'.format(total)
         return (pc_complete_str + ' complete (' + completed_str + ' of ' +
                 total_str + ' completed)')
+
+    def _get_compute_summary_from_task_stats(self, prefix, task_stats):
+        """Creates a summary string from `task_stats` object
+        :param prefix: Prefix string to place at start of each line in summary
+        :param task_stats: `TaskStats` object to summarize
+        :returns: For valid `TaskStats` object this method will return a
+                  string of form:
+          <prefix> task runtime: # hours per task (#gb ram per task)
+          <prefix> task CPU consumption so far: # CPU hours (~# CPU years)
+          <prefix> task estimated remaining compute: # CPU hours (~# CPU years)
+          <prefix> task estimated days to complete: # days
+                  otherwise if task_stats is None this is output:
+
+                   Unable to calculate CPU consumption for <prefix>
+
+                  if no stats are available on computed jobs (no jobs finished)
+                  then this is returned:
+
+                  No completed task information for <prefix>
+        """
+        if task_stats is None:
+            return 'Unable to calculate CPU consumption for ' + str(prefix)
+
+        num_tasks_with_cputimes = task_stats.get_total_tasks_with_cputimes()
+        if num_tasks_with_cputimes <= 0:
+            return 'No completed task information for ' + str(prefix)
+
+        # get average runtime
+        walltime = task_stats.get_total_cpu_walltime()
+        avg_seconds_per_task = walltime / num_tasks_with_cputimes
+        avg_hours_per_task = avg_seconds_per_task / 3600.0
+
+        # get average memory
+        total_mem_kb = task_stats.get_total_memory_in_kb()
+        avg_mem_gb = total_mem_kb / num_tasks_with_cputimes / 1000.0
+
+        # get total compute consumed so far
+        total_user_hours = task_stats.get_total_cpu_usertime() / 3600.0
+        total_user_years = total_user_hours / 24 / 365
+
+        # get estimated remaining compute
+        return 'NA'
 
     def get_summary(self):
         """Gets the summary of CHM job in human readable form
@@ -357,8 +399,10 @@ class TaskSummaryFactory(object):
 
         runtimes_list = []
         try:
-            stdout_dir = os.path.join(self._chmconfig.get_out_dir(),
-                                      CHMJobCreator.STDOUT_DIR)
+            stdout_dir = self._chmconfig.get_stdout_dir()
+            logger.debug('Examining ' + stdout_dir + ' for log files to' +
+                         'calculate compute times')
+
             runtimes_list = self._get_compute_hours_consumed(stdout_dir)
         except AttributeError:
             logger.error('Unable to get output directory from config'
@@ -384,8 +428,7 @@ class TaskSummaryFactory(object):
         mergets.set_completed_task_count(completed_merge_tasks)
         mergets.set_total_task_count(total_merge_tasks)
 
-        stdout_dir = os.path.join(self._chmconfig.get_out_dir(),
-                                  CHMJobCreator.MERGE_STDOUT_DIR)
+        stdout_dir = self._chmconfig.get_merge_stdout_dir()
         runtimes_list = self._get_compute_hours_consumed(stdout_dir)
         mergets = self._update_chm_task_stats_with_compute(mergets,
                                                            runtimes_list)
