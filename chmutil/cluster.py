@@ -344,6 +344,7 @@ class TaskSummaryFactory(object):
             con = self._chmconfig.get_config()
             if con is not None:
                 total_chm_tasks = len(self._chmconfig.get_config().sections())
+                logger.debug('Total task count: ' + str(total_chm_tasks))
 
         completed_chm_tasks = 0
         if self._chm_incomplete_tasks is not None:
