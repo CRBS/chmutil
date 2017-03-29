@@ -220,6 +220,13 @@ class TaskSummary(object):
         total_user_years = total_user_hours / 24 / 365
 
         # get estimated remaining compute
+        total = task_stats.get_total_task_count()
+        completed = task_stats.get_completed_task_count()
+        remaining = total - completed
+        if remaining > 0:
+            remain_compute_hours = avg_hours_per_task * remaining
+            remain_compute_years = remain_compute_hours / 24 / 365
+
         return 'NA'
 
     def get_summary(self):
