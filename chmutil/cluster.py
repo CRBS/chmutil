@@ -138,8 +138,14 @@ class TaskSummary(object):
         self._merge_task_stats = merge_task_stats
         self._chm_task_summary = self.\
             _get_summary_from_task_stats(self._chm_task_stats)
+        self._chm_compute_summary = self.\
+            _get_compute_summary_from_task_stats('CHM',
+                                                 self._chm_task_stats)
         self._merge_task_summary = self.\
             _get_summary_from_task_stats(self._merge_task_stats)
+        self._merge_task_compute_summary = self.\
+            _get_compute_summary_from_task_stats('Merge',
+                                                 self._merge_task_stats)
 
     def get_chm_task_stats(self):
         """Returns `TaskStats` for CHM tasks
@@ -150,6 +156,39 @@ class TaskSummary(object):
         """Returns `TaskStats` for merge tasks
         """
         return self._merge_task_stats
+
+    def _convert_number_to_string(self, val):
+        """Converts `val` to string with thousands separator (ie
+           1233 becomes 1,233) for versions of python > 2.6
+           otherwise this method just converts the number to string
+        :param val: number to convert
+        :returns: number converted to string with thousands separator
+        """
+        if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
+            return str(val)
+        else:
+            return '{0:,}'.format(val)
+
+    def _convert_float_to_string(self, val):
+        """Converts float `val` to string with thousands separator (ie
+           1233 becomes 1,233.0) for versions of python > 2.6
+           otherwise this method just converts the number to string
+        :param val: number to convert
+        :returns: number converted to string with thousands separator
+        """
+        if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
+            return str(val)
+        else:
+            return '{0:,.1f}'.format(val)
+
+    def _convert_years_to_string(self, val):
+        """Takes `val` which is assumed to be a float and returns
+           string of float with only one value to right of decimal
+           ie: 23423.23423 becomes 23423.2
+        :param val: value to convert
+        :returns: string converted value
+        """
+        return '{0:.1f}'.format(val)
 
     def _get_summary_from_task_stats(self, task_stats):
         """Creates a summary string from `task_stats` object
@@ -167,18 +206,24 @@ class TaskSummary(object):
 
         completed = task_stats.get_completed_task_count()
         pc_complete_str = '{0:.0%}'.format((float(completed)/float(total)))
+        completed_str = self._convert_number_to_string(completed)
+        total_str = self._convert_number_to_string(total)
 
-        # {:,} logic to add thousands separator was introduced in
-        # python 2.7 so we are basically not doing it for 2.6 and
-        # i dont want to waste time on adding it for old version of python
-        if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
-            completed_str = str(completed)
-            total_str = str(total)
-        else:
-            completed_str = '{0:,}'.format(completed)
-            total_str = '{0:,}'.format(total)
         return (pc_complete_str + ' complete (' + completed_str + ' of ' +
                 total_str + ' completed)')
+
+    def _get_runtime_in_hours_per_task(self, task_stats):
+        """Calculates average runtime in hours based on information
+           in task_stats passed in
+        :param task_stats: TaskStats object containing raw stats
+        :returns: average runtime in hours as float
+        """
+        num_tasks_with_cputimes = task_stats.get_total_tasks_with_cputimes()
+        # get average runtime
+        walltime = task_stats.get_total_cpu_walltime()
+        avg_seconds_per_task = walltime / num_tasks_with_cputimes
+        avg_hours_per_task = avg_seconds_per_task / 3600.0
+        return self._convert_float_to_string(avg_hours_per_task)
 
     def _get_compute_summary_from_task_stats(self, prefix, task_stats):
         """Creates a summary string from `task_stats` object
@@ -200,34 +245,54 @@ class TaskSummary(object):
                   No completed task information for <prefix>
         """
         if task_stats is None:
-            return 'Unable to calculate CPU consumption for ' + str(prefix)
+            logger.warning('task_stats passed into '
+                           '_get_compute_summary_from_task_stats is None')
+            return ''
 
         num_tasks_with_cputimes = task_stats.get_total_tasks_with_cputimes()
         if num_tasks_with_cputimes <= 0:
-            return 'No completed task information for ' + str(prefix)
+            logger.info('No tasks with cpu times found')
+            return ''
 
         # get average runtime
-        walltime = task_stats.get_total_cpu_walltime()
-        avg_seconds_per_task = walltime / num_tasks_with_cputimes
-        avg_hours_per_task = avg_seconds_per_task / 3600.0
+        avg_hours_str = self._get_runtime_in_hours_per_task(task_stats)
 
         # get average memory
         total_mem_kb = task_stats.get_total_memory_in_kb()
         avg_mem_gb = total_mem_kb / num_tasks_with_cputimes / 1000.0
+        mem_str = self._convert_number_to_string(avg_mem_gb)
 
         # get total compute consumed so far
-        total_user_hours = task_stats.get_total_cpu_usertime() / 3600.0
+        usertime = task_stats.get_total_cpu_usertime()
+        total_user_hours = usertime / 3600.0
         total_user_years = total_user_hours / 24 / 365
+        avg_compute_seconds_per_task = usertime / num_tasks_with_cputimes
+        avg_compute_hours_per_task = avg_compute_seconds_per_task / 3600.0
+        user_hours_str = self._convert_float_to_string(total_user_hours)
+        user_years_str = self._convert_years_to_string(total_user_years)
 
         # get estimated remaining compute
         total = task_stats.get_total_task_count()
         completed = task_stats.get_completed_task_count()
         remaining = total - completed
-        if remaining > 0:
-            remain_compute_hours = avg_hours_per_task * remaining
-            remain_compute_years = remain_compute_hours / 24 / 365
+        remain_years_str = 'NA'
+        remain_hours_str = 'NA'
 
-        return 'NA'
+        if remaining > 0:
+            remain_compute_hours = avg_compute_hours_per_task * remaining
+            remain_compute_years = remain_compute_hours / 24 / 365
+            remain_hours_str = self.\
+                _convert_float_to_string(remain_compute_hours)
+            remain_years_str = self.\
+                _convert_years_to_string(remain_compute_years)
+
+        p_str = str(prefix)
+        return ('\n' + p_str + ' runtime: ' + avg_hours_str +
+                ' hours per task (' + mem_str + 'GB ram)\n' +
+                p_str + ' CPU consumption so far: ' + user_hours_str +
+                ' CPU hours (~' + user_years_str + ' years)\n' +
+                p_str + ' estimated remaining compute: ' + remain_hours_str +
+                ' CPU hours (~' + remain_years_str + ' years)\n')
 
     def get_summary(self):
         """Gets the summary of CHM job in human readable form
@@ -250,8 +315,11 @@ class TaskSummary(object):
                 ' tasks(s) per node\nTrained CHM model: ' +
                 self._chmconfig.get_model() + '\nCHM binary: ' +
                 self._chmconfig.get_chm_binary() + '\n\n' + 'CHM tasks: ' +
-                self._chm_task_summary + '\nMerge tasks: ' +
-                self._merge_task_summary + '\n')
+                self._chm_task_summary +
+                self._chm_compute_summary +
+                '\nMerge tasks: ' +
+                self._merge_task_summary +
+                self._merge_task_compute_summary + '\n')
 
 
 class TaskSummaryFactory(object):

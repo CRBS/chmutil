@@ -157,6 +157,12 @@ def _check_chm_job(theargs):
     """
     sys.stdout.write('\nAnalyzing job. This may take a minute...\n\n')
 
+    if theargs.detailed:
+        sys.stdout.write('In fact this may take extra long cause '
+                         '--detailed was set\n')
+        sys.stdout.write('WARNING: Runtime information is new as of 0.6 and'
+                         ' may contain errors\n\n')
+
     chmconfig = _get_chmconfig(theargs.jobdir)
     if theargs.skipchm is False:
         chm_task_list = _get_incompleted_chm_task_list(chmconfig.get_config())
