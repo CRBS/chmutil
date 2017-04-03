@@ -206,6 +206,12 @@ class TaskSummary(object):
 
         completed = task_stats.get_completed_task_count()
         pc_complete_str = '{0:.0%}'.format((float(completed)/float(total)))
+
+        # if any jobs are not complete set percent to 99%.
+        # This is a fix to deal with
+        if pc_complete_str == '100%' and completed < total:
+            pc_complete_str = '99%'
+
         completed_str = self._convert_number_to_string(completed)
         total_str = self._convert_number_to_string(total)
 

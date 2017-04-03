@@ -160,7 +160,7 @@ def _check_chm_job(theargs):
     if theargs.detailed:
         sys.stdout.write('In fact this may take extra long cause '
                          '--detailed was set\n')
-        sys.stdout.write('WARNING: Runtime information is new as of 0.6 and'
+        sys.stdout.write('WARNING: Runtime information is new and'
                          ' may contain errors\n\n')
 
     chmconfig = _get_chmconfig(theargs.jobdir)

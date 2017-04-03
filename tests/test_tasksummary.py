@@ -48,12 +48,19 @@ class TestCore(unittest.TestCase):
 
         ts.set_completed_task_count(3490)
         ts.set_total_task_count(10000)
-        if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
-            self.assertEqual(tsum._get_summary_from_task_stats(ts),
-                             '35% complete (3490 of 10000 completed)')
-        else:
-            self.assertEqual(tsum._get_summary_from_task_stats(ts),
-                             '35% complete (3,490 of 10,000 completed)')
+        if __name__ == '__main__':
+            if sys.version_info[0] == 2 and sys.version_info[1] <= 6:
+                self.assertEqual(tsum._get_summary_from_task_stats(ts),
+                                 '35% complete (3490 of 10000 completed)')
+            else:
+                self.assertEqual(tsum._get_summary_from_task_stats(ts),
+                                 '35% complete (3,490 of 10,000 completed)')
+
+        # double check 100% is never output unless all jobs have completed
+        ts.set_completed_task_count(1500)
+        ts.set_total_task_count(1501)
+        res = tsum._get_summary_from_task_stats(ts)
+        self.assertTrue('99% complete (1' in res)
 
     def test__get_compute_summary_from_task_stats(self):
 
