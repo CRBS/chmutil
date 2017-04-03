@@ -126,7 +126,8 @@ class TestTaskSummaryFactory(unittest.TestCase):
     def test_chm_compute_hours_consumed_empty_and_with_files(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            con = CHMConfig('./images', './model', './outdir', '500x500', '20x20')
+            con = CHMConfig('./images', './model', './outdir', '500x500',
+                            '20x20')
 
             # test empty directory
             tsf = TaskSummaryFactory(con)
@@ -160,7 +161,6 @@ class TestTaskSummaryFactory(unittest.TestCase):
             res = tsf._get_compute_hours_consumed(temp_dir)
             self.assertEqual(len(res), 1)
             self.assertEqual(res, [(250.1, 150.05, 0)])
-
 
             # test 5 files 3 have content, one old format, two new format
             new_format_file = os.path.join(temp_dir, '778786.1')
@@ -293,7 +293,8 @@ class TestTaskSummaryFactory(unittest.TestCase):
     def test_get_chm_task_stats_outputcompute_true(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            con = CHMConfig('./images', './model', temp_dir, '500x500', '20x20')
+            con = CHMConfig('./images', './model', temp_dir, '500x500',
+                            '20x20')
             run_dir = os.path.join(temp_dir, CHMJobCreator.RUN_DIR)
             stdout_dir = os.path.join(run_dir,
                                       CHMJobCreator.STDOUT_DIR)
