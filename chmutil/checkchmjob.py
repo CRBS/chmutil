@@ -34,32 +34,32 @@ def _parse_arguments(desc, args):
     help_formatter = argparse.RawDescriptionHelpFormatter
     parser = argparse.ArgumentParser(description=desc,
                                      formatter_class=help_formatter)
-    parser.add_argument("jobdir", help='Directory containing ' +
+    parser.add_argument("jobdir", help='directory containing ' +
                                        CHMJobCreator.CONFIG_FILE_NAME +
                                        ' file')
 
     bmerge = CHMJobCreator.MERGE_CONFIG_BATCHED_TASKS_FILE_NAME
     batchchm = CHMJobCreator.CONFIG_BATCHED_TASKS_FILE_NAME
     parser.add_argument(SUBMIT_FLAG, action="store_true",
-                        help='Rewrite {batchchm}'
+                        help='rewrite {batchchm}'
                              'and {batchmerge} files with any'
                              'jobs that need to still be'
                              'processed. WARNING: Do NOT add this'
-                             'flag if tasks are still running,'
-                             'since key configuration files '
+                             ' flag if tasks are still running,'
+                             ' since key configuration files '
                              'will be '
                              'rewritten.'.format(batchchm=batchchm,
                                                  batchmerge=bmerge))
 
     parser.add_argument(DETAILED_FLAG, action="store_true",
-                        help='Output detailed summary '
+                        help='output detailed summary '
                              'information for job')
     parser.add_argument("--skipchm", action="store_true",
-                        help='Skips examination of CHM jobs. This will'
-                             'mean stats on CHM jobs will be invalid')
+                        help='skips examination of CHM jobs. This will'
+                             ' mean stats on CHM jobs will be invalid')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-                        help="Set the logging level (default WARNING)",
+                        help="set the logging level (default WARNING)",
                         default='WARNING')
     parser.add_argument('--version', action='version',
                         version=('%(prog)s ' + chmutil.__version__))
