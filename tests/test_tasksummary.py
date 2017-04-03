@@ -128,7 +128,9 @@ class TestCore(unittest.TestCase):
         self.assertTrue('foo CPU consumption so far: '
                         '7,884.0 CPU hours (~0.9 years)\n' in res)
         self.assertTrue('\nfoo estimated remaining compute: '
-                        '7,883.3 CPU hours (~0.9 years)\n' in res)
+                        '7,883.3 CPU hours (~0.9 years)\n' in res or
+                        '\nfoo estimated remaining compute: '
+                        '7,884.0 CPU hours (~0.9 years)\n' in res)
 
     def test_get_summary(self):
         tsum = TaskSummary(None)
