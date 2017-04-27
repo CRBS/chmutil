@@ -37,6 +37,7 @@ class TestCreateProbmapOverlay(unittest.TestCase):
         self.assertEqual(pargs.threshpc, 30)
         self.assertEqual(pargs.opacity, 70)
         self.assertEqual(pargs.addprobmap, None)
+        self.assertEqual(pargs.rawthreshold, None)
 
         pargs = createprobmapoverlay._parse_arguments('hi', ['image',
                                                              'prob',
@@ -90,6 +91,27 @@ class TestCreateProbmapOverlay(unittest.TestCase):
             im.save(probmap, 'PNG')
             im.close()
             pmap = createprobmapoverlay._get_thresholded_probmap(probmap, 30)
+            self.assertEqual(pmap.getpixel((5, 5)), 255)
+            self.assertEqual(pmap.getpixel((5, 4)), 0)
+            pmap.close()
+
+            # set raw threshold above threshpc
+            im.close()
+            pmap = createprobmapoverlay._get_thresholded_probmap(probmap, 30,
+                                                                 rawthreshold=101)
+            self.assertEqual(pmap.getpixel((5, 5)), 0)
+            self.assertEqual(pmap.getpixel((5, 4)), 0)
+            pmap.close()
+
+            # test where img zeroed out
+            pmap = createprobmapoverlay._get_thresholded_probmap(probmap, 90)
+            self.assertEqual(pmap.getpixel((5, 5)), 0)
+            self.assertEqual(pmap.getpixel((5, 4)), 0)
+            pmap.close()
+
+            # set rawthreshold below threshpc
+            pmap = createprobmapoverlay._get_thresholded_probmap(probmap, 90,
+                                                                 rawthreshold=99)
             self.assertEqual(pmap.getpixel((5, 5)), 255)
             self.assertEqual(pmap.getpixel((5, 4)), 0)
             pmap.close()
