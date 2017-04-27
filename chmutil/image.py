@@ -66,14 +66,19 @@ class ImageThresholder(object):
     """Thresholds image by percent specified
     """
 
-    def __init__(self, threshold_percent=30):
+    def __init__(self, threshold_percent=30, rawthreshold=None):
         """
         Constructor
         :param threshold_percent: int value ranging between 0 and 100 where
                                   0 is 0% and 100 is 100%
+        :param rawcutoff: raw cutoff value setting to 3 means values 2 and
+                          less to 0 and rest to 255
         """
         self._threshold_percent = threshold_percent
-        self._cutoff = int((float(threshold_percent)*0.01)*255)
+        if rawthreshold is not None:
+            self._cutoff = rawthreshold
+        else:
+            self._cutoff = int((float(threshold_percent)*0.01)*255)
 
     def get_pixel_intensity_cutoff(self):
         """Gets pixel intensity cutoff as calculated in constructor
