@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import math
 import logging
 from PIL import Image
 from PIL import ImageMath
+
 
 logger = logging.getLogger(__name__)
 
@@ -148,14 +150,19 @@ class ColorizeGrayscaleImage(object):
 class ImageTile(object):
     """Represents a tile from a Pillow Image
     """
-    def __init__(self, image, box=None):
+    def __init__(self, image, box=None, row=None,
+                 col=None):
         """Constructor
         :param image: Pillow Image representing tile
         :param box: tuple (left, upper, right, lower) representing location of
                     tile in parent Image
+        :param row: row tile belows to, expect int starting at 0
+        :param col: column tile belows to, expect int starting at 0
         """
         self._image = image
         self._box = box
+        self._row = row
+        self._col = col
 
     def get_box(self):
         """Gets location of tile in parent image
@@ -168,6 +175,56 @@ class ImageTile(object):
         :returns: Pillow Image
         """
         return self._image
+
+    def get_row(self):
+        """Gets Row
+        """
+        return self._row
+
+    def get_col(self):
+        """Gets Column
+        """
+        return self._col
+
+
+class RowColumnImageTileGenerator(object):
+    """Generator that extracts `ImageTile` objects from Pillow Image
+       where each tile is a square tile of size specified in
+       constructor and i
+    """
+    def __init__(self, tilesize):
+        """Constructor
+        :param tilesize: size of tile in pixels as int ie 128
+        """
+        self._tilesize = tilesize
+
+    def get_image_tiles(self, image):
+        """Gets generator that obtains `ImageTile` from Pillow
+           `image` passed in with the size of the tiles defined
+           by `tilesize` in constructor
+        :returns ImageTile: for each tile
+        """
+        if image is None:
+            raise InvalidImageError('Image is None')
+
+        (width, height) = image.size
+
+        if width <= self._tilesize and height <= self._tilesize:
+            logger.info('Tilesize is larger then image')
+            yield ImageTile(image, (0, 0, width, height), row=0, col=0)
+            return
+
+        numrows = int(math.floor(height/self._tilesize))
+        numcols = int(math.floor(width/self._tilesize))
+
+        for c in range(numcols):
+            for r in range(numrows):
+                thebox = (c*self._tilesize,
+                          r*self._tilesize,
+                          c*self._tilesize + self._tilesize,
+                          r*self._tilesize + self._tilesize)
+                img = image.crop(thebox)
+                yield ImageTile(img, box=thebox, row=r, col=c)
 
 
 class SingleColumnImageTileGenerator(object):

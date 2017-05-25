@@ -9,6 +9,7 @@ from PIL import Image
 from PIL import ImageOps
 from PIL import ImageFilter
 
+from chmutil.image import RowColumnImageTileGenerator
 from chmutil.core import Parameters
 from chmutil import core
 
@@ -48,6 +49,12 @@ def _parse_arguments(desc, args):
                                              'image 50%% of original size'
                                              '(default 0)',
                         default=0, type=int)
+    parser.add_argument("--gentiles", action='store_true',
+                        help='Generate image tiles of size --tilesize'
+                             ' storing results in <output> directory')
+    parser.add_argument("--tilesize", type=int, default=128,
+                        help='Sets tile size in pixels if --gentiles is set.'
+                             '(default 128)')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level (default WARNING)",
@@ -88,10 +95,37 @@ def _convert_image(image_file, dest_file, theargs):
         logger.info('Downsampling by factor of ' + str(ds))
         img = img.resize((int(img.size[0]/ds), int(img.size[1]/ds)))
 
+    if theargs.gentiles:
+        logger.info('Generating tiles of size: ' + str(theargs.tilesize) +
+                    ' pixels')
+        return _generate_tiles(img, theargs.tilesize, theargs.output)
+
     if not dest_file.endswith('.png'):
         dest_file += '.png'
     img.save(dest_file, "PNG")
     return 0
+
+
+def _generate_tiles(img, tilesize, output):
+    """Generates square tiles from image of size `tilesize`
+       storing results in `output` directory
+    :param img: PIL image
+    :param tilesize: size of tiles as int in pixels ie 128
+    :param output: output directory to write results to. If directory
+                   does not exist, it will be created.
+    :param includepartialtiles: boolean if True then code will output
+                                tiles with only partial data. Size of
+                                output tiles will be set b
+    :returns: 0 upon success or non zero for error
+    """
+    tilegen = RowColumnImageTileGenerator(tilesize)
+    zoom = '0'
+    for tile in tilegen:
+        name = (zoom + '-r' + str(tile.get_row()) + '-c' +
+                str(tile.get_col()) + '.png')
+        fp = os.path.join(output, name)
+        tile.get_image().save(fp)
+        tile.close()
 
 
 def main(arglist):
