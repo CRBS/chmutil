@@ -126,11 +126,11 @@ def _generate_tiles(img, tilesize, output):
     tilegen = RowColumnImageTileGenerator(tilesize)
     zoom = '0'
     for tile in tilegen.get_image_tiles(img):
-        name = (zoom + '-r' + str(tile.get_row()) + '-c' +
+        name = (zoom + '-r' + str(tile.get_row()) + '_c' +
                 str(tile.get_col()) + '.png')
         fp = os.path.join(output, name)
         tile.get_image().save(fp)
-        tile.close()
+        tile.get_image().close()
 
 
 def main(arglist):
@@ -156,6 +156,7 @@ def main(arglist):
               3. AutoContrast
               4. GaussianBlur
               5. Downsample
+              6. Generate Tiles
 
               Example Usage:
 
