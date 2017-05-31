@@ -53,43 +53,48 @@ class TestRowColumnImageTileGenerator(unittest.TestCase):
             self.assertEqual(res.get_box(), (0, 0, 200, 200))
             self.assertEqual(res.get_row(), 0)
             self.assertEqual(res.get_col(), 0)
-            self.assertEqual(1, 2, 'Complete unit tests here')
         self.assertEqual(counter, 1)
-"""
+
     def test_two_tiles_returned_perfectly_divisible(self):
-        im = Image.new('L', (500, 200))
-        gen = SingleColumnImageTileGenerator(tileheight=100)
+        im = Image.new('L', (200, 100))
+        gen = RowColumnImageTileGenerator(100)
         counter = 0
         im_list = []
         for res in gen.get_image_tiles(im):
             counter += 1
             im_list.append(res)
 
-        self.assertEqual(im_list[0].get_image().size, (500, 100))
-        self.assertEqual(im_list[0].get_box(), (0, 0, 500, 100))
+        self.assertEqual(im_list[0].get_image().size, (100, 100))
+        self.assertEqual(im_list[0].get_box(), (0, 0, 100, 100))
 
-        self.assertEqual(im_list[1].get_image().size, (500, 100))
-        self.assertEqual(im_list[1].get_box(), (0, 100, 500, 200))
+        self.assertEqual(im_list[1].get_image().size, (100, 100))
+        self.assertEqual(im_list[1].get_box(), (100, 0, 200, 100))
 
         self.assertEqual(counter, 2)
 
-    def test_two_tiles_returned_last_tile_shorter(self):
-        im = Image.new('L', (500, 190))
-        gen = SingleColumnImageTileGenerator(tileheight=100)
+    def test_four_tiles_returned_notperfectly_divisible(self):
+        im = Image.new('L', (200, 210))
+        gen = RowColumnImageTileGenerator(100)
         counter = 0
         im_list = []
         for res in gen.get_image_tiles(im):
             counter += 1
             im_list.append(res)
 
-        self.assertEqual(im_list[0].get_image().size, (500, 100))
-        self.assertEqual(im_list[0].get_box(), (0, 0, 500, 100))
+        self.assertEqual(im_list[0].get_image().size, (100, 100))
+        self.assertEqual(im_list[0].get_box(), (0, 0, 100, 100))
 
-        self.assertEqual(im_list[1].get_image().size, (500, 90))
-        self.assertEqual(im_list[1].get_box(), (0, 100, 500, 190))
+        self.assertEqual(im_list[1].get_image().size, (100, 100))
+        self.assertEqual(im_list[1].get_box(), (0, 100, 100, 200))
 
-        self.assertEqual(counter, 2)
-"""
+        self.assertEqual(im_list[2].get_image().size, (100, 100))
+        self.assertEqual(im_list[2].get_box(), (100, 0, 200, 100))
+
+        self.assertEqual(im_list[3].get_image().size, (100, 100))
+        self.assertEqual(im_list[3].get_box(), (100, 100, 200, 200))
+
+        self.assertEqual(counter, 4)
+
 
 if __name__ == '__main__':
     unittest.main()
