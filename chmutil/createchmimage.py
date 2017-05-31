@@ -98,7 +98,12 @@ def _convert_image(image_file, dest_file, theargs):
     if theargs.gentiles:
         logger.info('Generating tiles of size: ' + str(theargs.tilesize) +
                     ' pixels')
-        return _generate_tiles(img, theargs.tilesize, theargs.output)
+        outpath = os.path.abspath(theargs.output)
+
+        if not os.path.isdir(outpath):
+            logger.info('Creating directory: ' + outpath)
+            os.makedirs(outpath, mode=0o755)
+        return _generate_tiles(img, theargs.tilesize, outpath)
 
     if not dest_file.endswith('.png'):
         dest_file += '.png'
@@ -120,7 +125,7 @@ def _generate_tiles(img, tilesize, output):
     """
     tilegen = RowColumnImageTileGenerator(tilesize)
     zoom = '0'
-    for tile in tilegen:
+    for tile in tilegen.get_image_tiles(img):
         name = (zoom + '-r' + str(tile.get_row()) + '-c' +
                 str(tile.get_col()) + '.png')
         fp = os.path.join(output, name)
