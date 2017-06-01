@@ -131,6 +131,7 @@ def _generate_tiles(img, tilesize, output):
         fp = os.path.join(output, name)
         tile.get_image().save(fp)
         tile.get_image().close()
+    return 0
 
 
 def main(arglist):
