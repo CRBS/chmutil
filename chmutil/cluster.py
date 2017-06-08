@@ -1543,7 +1543,7 @@ class SGEScheduler(Scheduler):
 
         if required_mem_gb is not None:
             resource_reqs = (comma_delim + 'h_vmem=' + str(required_mem_gb) +
-                             'G')
+                             'G,virtual_free=' + str(required_mem_gb) + 'G')
         else:
             resource_reqs = ''
 

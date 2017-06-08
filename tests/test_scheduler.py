@@ -259,7 +259,7 @@ class TestScheduler(unittest.TestCase):
         # no args none account & queue none
         self.assertTrue('#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
                         '/foo\n#$ -j y\n#$ -o /stdoutpath\n#$ -N name\n#$ -l '
-                        'h_rt=1:00:00,h_vmem=1G\n\n' in
+                        'h_rt=1:00:00,h_vmem=1G,virtual_free=1G\n\n' in
                         sched._get_script_header('/foo', '/stdoutpath',
                                                  'name', '1:00:00',
                                                  required_mem_gb=1,
@@ -269,7 +269,8 @@ class TestScheduler(unittest.TestCase):
         sched = SGEScheduler('foo', queue='compute', account='myact')
         self.assertTrue('#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
                         '/foo\n#$ -q compute\n#$ -j y\n#$ -o /stdoutpath\n#$ '
-                        '-N name\n#$ -l h_rt=1:00:00,h_vmem=1G\n\n' in
+                        '-N name\n#$ -l h_rt=1:00:00,h_vmem=1G,'
+                        'virtual_free=1G\n\n' in
                         sched._get_script_header('/foo', '/stdoutpath',
                                                  'name', '1:00:00',
                                                  required_mem_gb=1,
@@ -279,7 +280,7 @@ class TestScheduler(unittest.TestCase):
         sched = SGEScheduler('foo', queue='compute', account='myact')
         self.assertTrue('#!/bin/sh\n#$ -V\n#$ -S /bin/sh\n#$ -notify\n#$ -wd '
                         '/foo\n#$ -q compute\n#$ -j y\n#$ -o /stdoutpath\n#$ '
-                        '-N name\n#$ -l h_vmem=1G\n\n' in
+                        '-N name\n#$ -l h_vmem=1G,virtual_free=1G\n\n' in
                         sched._get_script_header('/foo', '/stdoutpath',
                                                  'name', None,
                                                  required_mem_gb=1,
