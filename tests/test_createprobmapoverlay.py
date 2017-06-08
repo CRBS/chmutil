@@ -97,8 +97,9 @@ class TestCreateProbmapOverlay(unittest.TestCase):
 
             # set raw threshold above threshpc
             im.close()
-            pmap = createprobmapoverlay._get_thresholded_probmap(probmap, 30,
-                                                                 rawthreshold=101)
+            pmap = createprobmapoverlay.\
+                _get_thresholded_probmap(probmap, 30,
+                                         rawthreshold=101)
             self.assertEqual(pmap.getpixel((5, 5)), 0)
             self.assertEqual(pmap.getpixel((5, 4)), 0)
             pmap.close()
@@ -110,8 +111,9 @@ class TestCreateProbmapOverlay(unittest.TestCase):
             pmap.close()
 
             # set rawthreshold below threshpc
-            pmap = createprobmapoverlay._get_thresholded_probmap(probmap, 90,
-                                                                 rawthreshold=99)
+            pmap = createprobmapoverlay.\
+                _get_thresholded_probmap(probmap, 90,
+                                         rawthreshold=99)
             self.assertEqual(pmap.getpixel((5, 5)), 255)
             self.assertEqual(pmap.getpixel((5, 4)), 0)
             pmap.close()

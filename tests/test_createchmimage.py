@@ -114,7 +114,6 @@ class TestCreateCHMImage(unittest.TestCase):
             self.assertEqual(img4.size, (100, 100))
             img4.close()
 
-
         finally:
             shutil.rmtree(temp_dir)
 
