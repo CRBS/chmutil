@@ -56,6 +56,22 @@ class SingularityAbortError(Exception):
     pass
 
 
+def parse_width_and_height_from_str(val):
+    """parses WxH value into tuple. If 'x' is missing then
+       both values in tuple will be set to the same number
+    :param val: string containing WIDTHxHEIGHT
+    :returns: tuple (WIDTH,HEIGHT) upon success, or tuple('','') if
+              val passed in is empty string or None.
+    """
+    if val is None or val == '':
+        return '', ''
+    sval = str(val).split('x')
+
+    if len(sval) == 1:
+        return int(sval[0]), int(sval[0])
+    return int(sval[0]), int(sval[1])
+
+
 def setup_logging(thelogger,
                   log_format='%(asctime)-15s %(levelname)s %(name)s '
                              '%(message)s',
@@ -707,13 +723,7 @@ class CHMConfig(object):
     def _extract_width_and_height(self, val):
         """parses WxH value into tuple
         """
-        if val is None or val == '':
-            return '', ''
-        sval = str(val).split('x')
-
-        if len(sval) == 1:
-            return int(sval[0]), int(sval[0])
-        return int(sval[0]), int(sval[1])
+        return parse_width_and_height_from_str(val)
 
     def _parse_and_set_tile_width_height(self, tile_size):
         """parses out tile width and height
