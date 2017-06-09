@@ -19,6 +19,7 @@ from chmutil.core import Box
 LOG_FORMAT = "%(asctime)-15s %(levelname)s (%(process)d) %(name)s %(message)s"
 
 IMAGEDIR_KEY = 'imagedir'
+
 # create logger
 logger = logging.getLogger('chmutil.createchmimage')
 
@@ -47,7 +48,7 @@ def _parse_arguments(desc, args):
     parser.add_argument("--useconfig", help='Instead of generating random'
                                             'tiles use config passed in')
     parser.add_argument("--tilesize", default='512x512',
-                        help='NOT IMPLEMENTED Size of tiles in WxH format '
+                        help='Size of tiles in WxH format '
                              '(default 512x512)')
     parser.add_argument("--scratchdir", default='/tmp')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
@@ -88,19 +89,23 @@ def _does_tile_intersect_any_other_tiles(tile_tuple_list, new_tile_tuple):
     for entry in tile_tuple_list:
         if entry[0] == new_tile_tuple[0]:
             if entry[1].does_box_intersect(new_tile_tuple[1]) is True:
-                logger.info('Found intersecting tile')
+                logger.debug('Found intersecting tile')
                 return True
     return False
 
 
 def _pick_random_tiles(img_list, num_tiles, tile_width=512,
-                       tile_height=512):
+                       tile_height=512,):
     """Using random generates a list of tuples with image path and tile
     location
     :returns: nested tuple (image path, (left, upper, right, and lower))
     """
+    logger.info("Tile Width: " + str(tile_width) + " Tile Height: " +
+                str(tile_height))
+
     num_images = len(img_list)
     tile_tuple_list = []
+    intersect_tile_count = 0
     while len(tile_tuple_list) < num_tiles:
         the_img = img_list[random.randint(0, num_images-1)]
         tile_box = _pick_tile(the_img, tile_width, tile_height)
@@ -108,6 +113,14 @@ def _pick_random_tiles(img_list, num_tiles, tile_width=512,
         if _does_tile_intersect_any_other_tiles(tile_tuple_list,
                                                 new_tile_tuple) is False:
             tile_tuple_list.append(new_tile_tuple)
+        else:
+            intersect_tile_count += 1
+            if intersect_tile_count >= ((num_tiles*10) + 1000):
+                logger.error('Having problems finding non intersecting '
+                             'tiles. Already have run into ' +
+                             str(intersect_tile_count) + ' locations that ' +
+                             'overlap an existing tile')
+                return None
 
     return tile_tuple_list
 
@@ -211,7 +224,14 @@ def _create_mrc_stack(image_dir, num_tiles, dest_file, theargs):
     else:
         logger.debug('Generating random tiles')
         random.seed(theargs.seed)
-        tile_tuple_list = _pick_random_tiles(img_list, num_tiles)
+        tsize = core.parse_width_and_height_from_str(theargs.tilesize)
+
+        tile_tuple_list = _pick_random_tiles(img_list, num_tiles,
+                                             tile_width=tsize[0],
+                                             tile_height=tsize[1])
+        if tile_tuple_list is None:
+            logger.error('Unable to generate random tiles')
+            return 1
 
     temp_dir = tempfile.mkdtemp(dir=theargs.scratchdir)
     curdir = os.getcwd()

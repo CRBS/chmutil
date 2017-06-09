@@ -26,10 +26,15 @@ class TestImageTile(unittest.TestCase):
         tile = ImageTile(im)
         self.assertEqual(tile.get_box(), None)
         self.assertEqual(tile.get_image(), im)
+        self.assertEqual(tile.get_row(), None)
+        self.assertEqual(tile.get_col(), None)
 
-        tile = ImageTile(im, box=(4, 5, 6, 7))
+        tile = ImageTile(im, box=(4, 5, 6, 7), row=2,
+                         col=3)
         self.assertEqual(tile.get_box(), (4, 5, 6, 7))
         self.assertEqual(tile.get_image(), im)
+        self.assertEqual(tile.get_row(), 2)
+        self.assertEqual(tile.get_col(), 3)
 
 
 if __name__ == '__main__':
