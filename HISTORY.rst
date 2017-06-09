@@ -2,6 +2,22 @@
 History
 =======
 
+0.7.0 (2017-06-09)
+------------------
+
+* Added --gentiles flag to createchmimage.py generate tiles from
+  image that can be viewed in probability map viewer.
+  `Issue #42 <https://github.com/CRBS/chmutil/issues/42>`_
+
+* Added --rawthreshold flag to createprobmapoverlay.py which 
+  lets caller specify exact pixel intensity value instead of
+  percentage as offered with --threshpc.
+  `Issue #41 <https://github.com/CRBS/chmutil/issues/41>`_
+
+* Added virtual_free to requirements for SGE jobs submitted
+  by createchmtrainjob.py to rocce cluster. 
+  `Issue #40 <https://github.com/CRBS/chmutil/issues/40>`_
+
 0.6.0 (2017-03-03)
 ------------------
 
