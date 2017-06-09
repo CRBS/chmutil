@@ -5,7 +5,7 @@ History
 0.7.0 (2017-06-09)
 ------------------
 
-* Added --gentiles flag to createchmimage.py generate tiles from
+* Added --gentiles flag to createchmimage.py to generate tiles from
   image that can be viewed in probability map viewer.
   `Issue #42 <https://github.com/CRBS/chmutil/issues/42>`_
 
