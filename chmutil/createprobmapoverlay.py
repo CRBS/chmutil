@@ -52,6 +52,10 @@ def _parse_arguments(desc, args):
                              'intensity'
                              'less then 30%% of 255 to 0 and the rest to 255',
                         default=30)
+    parser.add_argument("--rawthreshold", type=int,
+                        help='Raw pixel intensity threshold. If set overrides'
+                             ' --threshpc parameter '
+                             '(should be value between 1-255')
     parser.add_argument("--opacity", type=int, default=70,
                         help='Sets level of opacity of overlay. 0 is '
                              'transparent and 255 is opaque. (default 70)')
@@ -96,13 +100,15 @@ def _get_pixel_coloring_tuple(thecolor):
     return 0, 0, 1
 
 
-def _get_thresholded_probmap(probmap_file, threshpc):
+def _get_thresholded_probmap(probmap_file, threshpc, rawthreshold=None):
     """Reads probability map and thresholds it according to
     value of `threshpc`
     :param probmap_file:
     :param threshpc: threshold percent ie 30 means to threshold
            all pixels below 30% max intensity to 0 and the rest
            to 255
+    :param rawthreshold: sets raw threshold to use as cutoff. If
+                         set then `threshpc` parameter is ignored
     :return: Pillow Image that is grayscale thresholded to be
              values of 0 or 255
     """
@@ -113,18 +119,21 @@ def _get_thresholded_probmap(probmap_file, threshpc):
         # threshold image anything belowtheargs.threshpc percentage
         #  set to zero, rest to 255
         logger.info('Thresholding probability map: ' + probmap_file)
-        thresh = ImageThresholder(threshold_percent=int(threshpc))
+        thresh = ImageThresholder(threshold_percent=int(threshpc),
+                                  rawthreshold=rawthreshold)
         return thresh.threshold_image(probimg)
     finally:
         if probimg is not None:
             probimg.close()
 
 
-def get_colorized_probmap_image(file, threshpc, color_as_str, opacity):
+def get_colorized_probmap_image(file, threshpc, color_as_str, opacity,
+                                rawthreshold=None):
     """loads image and returns colorized version of image
     thresholded by value of threshpc
     """
-    thresh_image = _get_thresholded_probmap(file, threshpc)
+    thresh_image = _get_thresholded_probmap(file, threshpc,
+                                            rawthreshold=rawthreshold)
     logger.info('Colorizing probability map: ' + file)
     colortuple = _get_pixel_coloring_tuple(color_as_str)
     colorizer = ColorizeGrayscaleImage(color=colortuple,
@@ -146,7 +155,8 @@ def _convert_image(image_file, probmap_file, dest_file, theargs):
 
     col_img = get_colorized_probmap_image(probmap_file, theargs.threshpc,
                                           theargs.overlaycolor,
-                                          theargs.opacity)
+                                          theargs.opacity,
+                                          rawthreshold=theargs.rawthreshold)
 
     logger.info('Loading base image')
     img = Image.open(image_file).convert(mode='RGBA')
