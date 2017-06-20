@@ -320,6 +320,7 @@ class CHMJobCreator(object):
     MERGE_OUTPUT_OVERLAY_IMAGE = 'overlayoutputimage'
     MERGE_MERGETILES_BIN = 'mergetilesbin'
     MERGE_TASKS_PER_NODE = 'mergetaskspernode'
+    MERGE_GENTIFS = 'gentifs'
     RUN_DIR = 'chmrun'
     STDOUT_DIR = 'stdout'
     TILES_DIR = 'tiles'
@@ -347,6 +348,7 @@ class CHMJobCreator(object):
     MERGERUNNER = 'mergetilerunner.py'
     CHECKCHMJOB = 'checkchmjob.py'
     README_TXT_FILE = 'readme.txt'
+    PMAP_SUFFIX = '.tif'
     README_BODY = """chmutil job to run CHM jobs on cluster of computers
 ===========================================================
 
@@ -535,6 +537,8 @@ runmerge.CLUSTER
                    self._chmopts.get_out_dir())
         config.set('', CHMJobCreator.MERGE_TASKS_PER_NODE,
                    str(self._chmopts.get_number_merge_tasks_per_node()))
+        config.set('', CHMJobCreator.MERGE_GENTIFS,
+                   str(self._chmopts.get_gentifs_arg()))
         config.set('', CHMJobCreator.CONFIG_CLUSTER,
                    str(self._chmopts.get_cluster()))
         return config
@@ -611,7 +615,7 @@ runmerge.CLUSTER
                                 str(img_cntr).zfill(3) + '.' + i_name))
 
     def _add_mergetask_for_image_to_config(self, config, counter_as_str,
-                                           image_name):
+                                           image_name, image_suffix):
         """Adds merge job to config object
         :param config: configparser config object to add merge job to
         :param counter_as_str: Counter used in string form
@@ -621,9 +625,15 @@ runmerge.CLUSTER
         config.add_section(counter_as_str)
         config.set(counter_as_str, CHMJobCreator.MERGE_INPUT_IMAGE_DIR,
                    os.path.join(CHMJobCreator.TILES_DIR, image_name))
+
+        if image_suffix is None:
+            adj_image_name = image_name
+        else:
+            adj_image_name = image_name + image_suffix
+
         config.set(counter_as_str, CHMJobCreator.MERGE_OUTPUT_IMAGE,
                    os.path.join(CHMJobCreator.PROBMAPS_DIR,
-                                image_name))
+                                adj_image_name))
         config.set(counter_as_str,
                    CHMJobCreator.MERGE_OUTPUT_OVERLAY_IMAGE,
                    os.path.join(CHMJobCreator.OVERLAYMAPS_DIR,
@@ -644,12 +654,20 @@ runmerge.CLUSTER
         mergecounter = 1
         run_dir = self._create_run_dir()
 
+        if self._chmopts.get_gentifs_arg() is True:
+            imgsuffix = CHMJobCreator.PMAP_SUFFIX
+            logger.debug('Appending ' + CHMJobCreator.PMAP_SUFFIX +
+                         ' to probability map image filenames')
+        else:
+            imgsuffix = None
+
         for iis in imagestats:
             i_name = self._create_output_image_dir(iis, run_dir)
             img_cntr = 1
             self._add_mergetask_for_image_to_config(mergeconfig,
                                                     str(mergecounter),
-                                                    i_name)
+                                                    i_name,
+                                                    imgsuffix)
             for a in arg_gen.get_args(iis):
                 counter_as_str = str(counter)
                 self._add_task_for_image_to_config(config, counter_as_str,
@@ -690,7 +708,8 @@ class CHMConfig(object):
                  account='',
                  config=None,
                  mergeconfig=None,
-                 rawargs=None):
+                 rawargs=None,
+                 gentifs=False):
         """Constructor
         """
         self._images = images
@@ -719,6 +738,13 @@ class CHMConfig(object):
         self._merge_tasks_per_node = merge_tasks_per_node
         self._cluster = cluster
         self._rawargs = rawargs
+        self._gentifs = gentifs
+
+    def get_gentifs_arg(self):
+        """Gets value of gentifs argument
+        :returns: Can be False, True, or None
+        """
+        return self._gentifs
 
     def _extract_width_and_height(self, val):
         """parses WxH value into tuple
@@ -1007,10 +1033,19 @@ class CHMConfigFromConfigFactory(object):
             except NoOptionError:
                 logger.warning('Merge tasks per node not found. setting to 1')
                 merge_t_node = 1
+
+            try:
+                gentifs = mergecon.getboolean(default,
+                                              CHMJobCreator.MERGE_GENTIFS)
+            except NoOptionError:
+                logger.warning('No gentifs found. setting to False')
+                gentifs = False
+
         else:
             logger.debug('Skipping load of merge job configuration')
             mergecon = None
             merge_t_node = 1
+            gentifs = False
 
         if config is None:
             logger.debug('Config is None')
@@ -1022,7 +1057,9 @@ class CHMConfigFromConfigFactory(object):
                 logger.debug('Setting cluster to ' + str(cluster))
                 return CHMConfig(None, None, self._job_dir,
                                  None, None, cluster=cluster,
-                                 mergeconfig=mergecon)
+                                 mergeconfig=mergecon,
+                                 gentifs=gentifs,
+                                 merge_tasks_per_node=merge_t_node)
 
             logger.error('Mergeconfig is None')
             return CHMConfig(None, None, self._job_dir,
@@ -1060,7 +1097,8 @@ class CHMConfigFromConfigFactory(object):
                          cluster=cluster,
                          config=config,
                          account=account,
-                         mergeconfig=mergecon)
+                         mergeconfig=mergecon,
+                         gentifs=gentifs)
         return opts
 
 

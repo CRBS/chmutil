@@ -53,6 +53,79 @@ class TestCHMConfigFromConfigFactory(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
+    def test_get_chmconfig_skip_all_configs(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            fac = CHMConfigFromConfigFactory(temp_dir)
+            chmconfig = fac.get_chmconfig(skip_loading_config=True,
+                                          skip_loading_mergeconfig=True)
+            self.assertEqual(chmconfig.get_images(), None)
+            self.assertEqual(chmconfig.get_model(), None)
+            self.assertEqual(chmconfig.get_out_dir(), temp_dir)
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_chmconfig_skip_config_with_missing_mergeconfig(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            fac = CHMConfigFromConfigFactory(temp_dir)
+            chmconfig = fac.get_chmconfig(skip_loading_config=True,
+                                          skip_loading_mergeconfig=False)
+            self.assertEqual(chmconfig.get_images(), None)
+            self.assertEqual(chmconfig.get_model(), None)
+            self.assertEqual(chmconfig.get_out_dir(), temp_dir)
+            self.assertEqual(chmconfig.get_number_merge_tasks_per_node(), 1)
+        except LoadConfigError as e:
+            self.assertTrue('configuration file does not exist' in str(e))
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_chmconfig_skip_config_but_not_merge(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            cfile = os.path.join(temp_dir,
+                                 CHMJobCreator.MERGE_CONFIG_FILE_NAME)
+            config = configparser.ConfigParser()
+            config.set('', CHMJobCreator.CONFIG_IMAGES, 'images')
+            config.set('', CHMJobCreator.CONFIG_CLUSTER, 'yocluster')
+            config.set('', CHMJobCreator.MERGE_TASKS_PER_NODE, '4')
+            f = open(cfile, 'w')
+            config.write(f)
+            f.flush()
+            f.close()
+            fac = CHMConfigFromConfigFactory(temp_dir)
+            chmconfig = fac.get_chmconfig(skip_loading_config=True,
+                                          skip_loading_mergeconfig=False)
+            self.assertEqual(chmconfig.get_images(), None)
+            self.assertEqual(chmconfig.get_model(), None)
+            self.assertEqual(chmconfig.get_out_dir(), temp_dir)
+            self.assertEqual(chmconfig.get_number_merge_tasks_per_node(), 4)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_chmconfig_skip_config_but_not_merge_with_no_tasks_per(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            cfile = os.path.join(temp_dir,
+                                 CHMJobCreator.MERGE_CONFIG_FILE_NAME)
+            config = configparser.ConfigParser()
+            config.set('', CHMJobCreator.CONFIG_IMAGES, 'images')
+            config.set('', CHMJobCreator.CONFIG_CLUSTER, 'yocluster')
+            f = open(cfile, 'w')
+            config.write(f)
+            f.flush()
+            f.close()
+            fac = CHMConfigFromConfigFactory(temp_dir)
+            chmconfig = fac.get_chmconfig(skip_loading_config=True,
+                                          skip_loading_mergeconfig=False)
+            self.assertEqual(chmconfig.get_images(), None)
+            self.assertEqual(chmconfig.get_model(), None)
+            self.assertEqual(chmconfig.get_out_dir(), temp_dir)
+            self.assertEqual(chmconfig.get_number_merge_tasks_per_node(), 1)
+        finally:
+            shutil.rmtree(temp_dir)
+
     def test_get_chmconfig_default_values_no_account(self):
         temp_dir = tempfile.mkdtemp()
         try:

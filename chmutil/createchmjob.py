@@ -51,7 +51,9 @@ def _parse_arguments(desc, args):
     parser.add_argument('--disablechmhisteq', action='store_true',
                         help='If set tells CHM NOT to do internal histogram '
                              'equalization')
-
+    parser.add_argument('--gentifs', action='store_true',
+                        help='If set, probability map images will be saved as'
+                             'tif files with .tif appended to file name')
     parser.add_argument('--tilespertask', '--jobspertask', dest='tilespertask',
                         default='50', type=int,
                         help='Number of tiles to run per task. Lower numbers '

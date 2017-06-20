@@ -234,7 +234,7 @@ class TestCheckCHMJob(unittest.TestCase):
             probmap = os.path.join(out, CHMJobCreator.RUN_DIR,
                                    CHMJobCreator.PROBMAPS_DIR,
                                    'foo.png')
-            myimg.save(probmap, 'PNG')
+            myimg.save(probmap)
 
             val = checkchmjob._check_chm_job(pargs)
             self.assertEqual(val, 0)

@@ -43,6 +43,7 @@ class TestCreateCHMJob(unittest.TestCase):
         self.assertEqual(pargs.cluster, 'rocce')
         self.assertEqual(pargs.walltime, '12:00:00')
         self.assertEqual(pargs.jobname, 'chmjob')
+        self.assertEqual(pargs.gentifs, False)
 
     def test_create_chm_job_where_not_able_to_create_job(self):
         temp_dir = tempfile.mkdtemp()
@@ -84,6 +85,39 @@ class TestCreateCHMJob(unittest.TestCase):
                                                    out,
                                                    '--tilesize',
                                                    '520x520'])
+            pargs.program = 'foo'
+            pargs.version = '0.1.2'
+            pargs.rawargs = 'hi how are you'
+            val = createchmjob._create_chm_job(pargs)
+            self.assertEqual(val, 0)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_create_chm_job_success_withgentifs_set(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            images = os.path.join(temp_dir, 'images')
+            os.makedirs(images, mode=0o755)
+
+            # add a fake png image
+            pngfile = os.path.join(images, 'foo.png')
+            size = 800, 800
+            myimg = Image.new('L', size)
+            myimg.save(pngfile, 'PNG')
+
+            model = os.path.join(temp_dir, 'model')
+            os.makedirs(model, mode=0o755)
+            p_mat = os.path.join(model, 'param.mat')
+            open(p_mat, 'a').close()
+
+            out = os.path.join(temp_dir, 'out')
+
+            pargs = createchmjob._parse_arguments('hi',
+                                                  [images, model,
+                                                   out,
+                                                   '--tilesize',
+                                                   '520x520',
+                                                   '--gentifs'])
             pargs.program = 'foo'
             pargs.version = '0.1.2'
             pargs.rawargs = 'hi how are you'

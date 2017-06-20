@@ -159,6 +159,39 @@ class TestCHMJobCreator(unittest.TestCase):
         finally:
             shutil.rmtree(temp_dir)
 
+    def test_add_mergetask_for_image_to_config(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            opts = CHMConfig(os.path.join(temp_dir, 'images'), 'model',
+                             temp_dir, '200x100', '20x20')
+            creator = CHMJobCreator(opts)
+            config = creator._create_config()
+            run_dir = creator._create_run_dir()
+            self.assertTrue(os.path.isdir(run_dir))
+
+            creator._add_mergetask_for_image_to_config(config, "1", "foo",
+                                                       None)
+            res = config.get("1", CHMJobCreator.MERGE_INPUT_IMAGE_DIR)
+            self.assertEqual(res, os.path.join(CHMJobCreator.TILES_DIR,
+                                               'foo'))
+
+            res = config.get("1", CHMJobCreator.MERGE_OUTPUT_IMAGE)
+            self.assertEqual(res, os.path.join(CHMJobCreator.PROBMAPS_DIR,
+                                               'foo'))
+
+            tif = CHMJobCreator.PMAP_SUFFIX
+            creator._add_mergetask_for_image_to_config(config, "2", "bar",
+                                                       tif)
+            res = config.get("2", CHMJobCreator.MERGE_INPUT_IMAGE_DIR)
+            self.assertEqual(res, os.path.join(CHMJobCreator.TILES_DIR,
+                                               'bar'))
+
+            res = config.get("2", CHMJobCreator.MERGE_OUTPUT_IMAGE)
+            self.assertEqual(res, os.path.join(CHMJobCreator.PROBMAPS_DIR,
+                                               'bar' + tif))
+        finally:
+            shutil.rmtree(temp_dir)
+
     def test_create_job_one_image_one_tile_per_job(self):
         temp_dir = tempfile.mkdtemp()
         try:
@@ -200,6 +233,62 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertEqual(config.get('1',
                                         CHMJobCreator.CONFIG_TASKS_PER_NODE),
                              '1')
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_create_job_one_image_one_tile_per_job_and_gentifs_true(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            image_dir = os.path.join(temp_dir, 'images')
+            os.makedirs(image_dir, mode=0o775)
+            fooimg = os.path.join(image_dir, 'foo1.png')
+            self._create_png_image(fooimg, (400, 300))
+
+            opts = CHMConfig(image_dir, 'model',
+                             temp_dir, '200x100', '0x0',
+                             gentifs=True)
+            creator = CHMJobCreator(opts)
+            opts = creator.create_job()
+            self.assertEqual(opts.get_out_dir(), temp_dir)
+            self.assertEqual(opts.get_job_config(),
+                             os.path.join(temp_dir,
+                                          CHMJobCreator.CONFIG_FILE_NAME))
+            tmpdir = os.path.join(opts.get_run_dir(), CHMJobCreator.STDOUT_DIR)
+            self.assertTrue(os.path.isdir(tmpdir))
+            config = configparser.ConfigParser()
+            config.read(opts.get_job_config())
+            self.assertEqual(config.sections(),
+                             ['1', '2', '3', '4', '5', '6'])
+            self.assertEqual(config.get('1',
+                                        CHMJobCreator.CONFIG_INPUT_IMAGE),
+                             'foo1.png')
+            self.assertEqual(config.get('1', CHMJobCreator.CONFIG_ARGS),
+                             '-t 1,1')
+            self.assertEqual(config.get('1',
+                                        CHMJobCreator.CONFIG_OUTPUT_IMAGE),
+                             os.path.join(CHMJobCreator.TILES_DIR,
+                                          'foo1.png', '001.foo1.png'))
+
+            self.assertEqual(config.get('1', CHMJobCreator.CONFIG_MODEL),
+                             'model')
+            self.assertEqual(config.get('1',
+                                        CHMJobCreator.
+                                        CONFIG_DISABLE_HISTEQ_IMAGES),
+                             'True')
+            self.assertEqual(config.get('1',
+                                        CHMJobCreator.CONFIG_TASKS_PER_NODE),
+                             '1')
+
+            config = opts.get_merge_config()
+            res = config.getboolean(CHMJobCreator.CONFIG_DEFAULT,
+                                    CHMJobCreator.MERGE_GENTIFS)
+            self.assertEqual(res, True)
+
+            res = config.get('1', CHMJobCreator.MERGE_OUTPUT_IMAGE)
+            self.assertEqual(res, os.path.join(CHMJobCreator.PROBMAPS_DIR,
+                                               'foo1.png' +
+                                               CHMJobCreator.PMAP_SUFFIX))
 
         finally:
             shutil.rmtree(temp_dir)
