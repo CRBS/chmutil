@@ -15,6 +15,8 @@ import shutil
 from PIL import Image
 
 from chmutil import createchmjob
+from chmutil.core import CHMConfigFromConfigFactory
+from chmutil.core import CHMJobCreator
 
 
 class TestCreateCHMJob(unittest.TestCase):
@@ -123,6 +125,11 @@ class TestCreateCHMJob(unittest.TestCase):
             pargs.rawargs = 'hi how are you'
             val = createchmjob._create_chm_job(pargs)
             self.assertEqual(val, 0)
+            fac = CHMConfigFromConfigFactory(out)
+            chmconfig = fac.get_chmconfig(skip_loading_mergeconfig=False)
+            mcon = chmconfig.get_merge_config()
+            self.assertEqual(mcon.getboolean(CHMJobCreator.CONFIG_DEFAULT,
+                                             CHMJobCreator.MERGE_GENTIFS), True)
         finally:
             shutil.rmtree(temp_dir)
 
