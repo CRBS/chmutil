@@ -121,7 +121,8 @@ def _create_chm_job(theargs):
                         merge_tasks_per_node=mergetaskspernode,
                         version=chmutil.__version__,
                         cluster=theargs.cluster,
-                        rawargs=theargs.rawargs)
+                        rawargs=theargs.rawargs,
+                        gentifs=theargs.gentifs)
 
         creator = CHMJobCreator(con)
         creator.create_job()
