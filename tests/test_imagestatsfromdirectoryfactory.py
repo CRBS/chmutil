@@ -14,7 +14,7 @@ import os
 import unittest
 
 from PIL import Image
-from chmutil.core import ImageStatsFromDirectoryFactory
+from chmutil.image import ImageStatsFromDirectoryFactory
 
 
 class TestImageStatsFromDirectoryFactory(unittest.TestCase):
@@ -73,7 +73,7 @@ class TestImageStatsFromDirectoryFactory(unittest.TestCase):
             size = 128, 256
             myimg = Image.new('L', size)
             myimg.save(pngfile, 'PNG')
-
+            expsize = os.path.getsize(pngfile)
             fac = ImageStatsFromDirectoryFactory(temp_dir)
             res = fac.get_input_image_stats()
             self.assertEqual(len(res), 1)
@@ -81,6 +81,7 @@ class TestImageStatsFromDirectoryFactory(unittest.TestCase):
             self.assertEqual(res[0].get_height(), 256)
             self.assertEqual(res[0].get_file_path(), pngfile)
             self.assertEqual(res[0].get_format(), 'PNG')
+            self.assertEqual(res[0].get_size_in_bytes(), expsize)
         finally:
             shutil.rmtree(temp_dir)
 

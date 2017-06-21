@@ -19,7 +19,7 @@ from PIL import Image
 
 from chmutil.core import CHMJobCreator
 from chmutil.core import CHMConfig
-from chmutil.core import ImageStats
+from chmutil.image import ImageStats
 
 
 class TestCHMJobCreator(unittest.TestCase):
