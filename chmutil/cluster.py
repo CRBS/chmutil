@@ -10,6 +10,8 @@ import configparser
 from configparser import NoOptionError
 
 from chmutil.core import CHMJobCreator
+from chmutil.image import ImageStatsSummary
+from chmutil.image import ImageStatsFromDirectoryFactory
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +132,8 @@ class TaskSummary(object):
     """
 
     def __init__(self, chmconfig, chm_task_stats=None,
-                 merge_task_stats=None):
+                 merge_task_stats=None,
+                 image_stats_summary=None):
         """Constructor
         """
         self._chmconfig = chmconfig
@@ -516,13 +519,32 @@ class TaskSummaryFactory(object):
 
         return mergets
 
+    def _get_image_stats_summary(self):
+        """Generates ImageStatsSummary object
+        """
+        if self._output_compute is None or self._output_compute is False:
+            logger.debug('Skipping analysis of input image data')
+            return ImageStatsSummary()
+
+        imgdir = self._chmconfig.get_images()
+        if not os.path.isdir(imgdir):
+            logger.error('Input image path not a directory')
+            return ImageStatsSummary()
+
+        fac = ImageStatsFromDirectoryFactory(imgdir)
+        isum = ImageStatsSummary()
+        for iis in fac.get_input_image_stats():
+            isum.add_image_stats(iis)
+        return isum
+
     def get_task_summary(self):
         """Gets `TaskSummary` for CHM job defined in constructor
            :returns: TaskSummary object
         """
         return TaskSummary(self._chmconfig,
                            chm_task_stats=self._get_chm_task_stats(),
-                           merge_task_stats=self._get_merge_task_stats())
+                           merge_task_stats=self._get_merge_task_stats(),
+                           image_stats_summary=self._get_image_stats_summary())
 
 
 class CHMTaskChecker(object):
