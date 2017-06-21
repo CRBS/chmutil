@@ -13,6 +13,7 @@ import configparser
 import tempfile
 import os
 import shutil
+from PIL import Image
 
 from chmutil.cluster import TaskSummaryFactory
 from chmutil.core import CHMConfig
@@ -354,6 +355,108 @@ class TestTaskSummaryFactory(unittest.TestCase):
             self.assertEqual(ts.get_max_memory_in_kb(), 5287148)
             self.assertEqual(ts.get_total_cpu_usertime(), 350)
             self.assertEqual(ts.get_total_cpu_walltime(), 1365)
+
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_image_stats_summary_output_compute_false(self):
+        con = CHMConfig('./images', './model', './outdir', '500x500', '20x20')
+        cfig = configparser.ConfigParser()
+        cfig.add_section('1')
+        cfig.set('1', 'hi', 'val')
+        cfig.add_section('2')
+        cfig.set('2', 'hi', 'val')
+        con.set_config(cfig)
+
+        mfig = configparser.ConfigParser()
+        mfig.add_section('3')
+        mfig.set('3', 'hi', 'val')
+        con.set_merge_config(mfig)
+
+        tsf = TaskSummaryFactory(con, chm_incomplete_tasks=[],
+                                 merge_incomplete_tasks=[])
+        isum = tsf._get_image_stats_summary()
+        self.assertEqual(isum.get_image_count(), 0)
+
+    def test_get_image_stats_summary_output_compute_true_but_invalid_dir(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            con = CHMConfig(os.path.join(temp_dir,'images'),
+                            './model', './outdir', '500x500', '20x20')
+            cfig = configparser.ConfigParser()
+            cfig.add_section('1')
+            cfig.set('1', 'hi', 'val')
+            cfig.add_section('2')
+            cfig.set('2', 'hi', 'val')
+            con.set_config(cfig)
+
+            mfig = configparser.ConfigParser()
+            mfig.add_section('3')
+            mfig.set('3', 'hi', 'val')
+            con.set_merge_config(mfig)
+
+            tsf = TaskSummaryFactory(con, chm_incomplete_tasks=[],
+                                     merge_incomplete_tasks=[],
+                                     output_compute=True)
+            isum = tsf._get_image_stats_summary()
+            self.assertEqual(isum.get_image_count(), 0)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_image_stats_summary_output_compute_true_no_images(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            con = CHMConfig(temp_dir,
+                            './model', './outdir', '500x500', '20x20')
+            cfig = configparser.ConfigParser()
+            cfig.add_section('1')
+            cfig.set('1', 'hi', 'val')
+            cfig.add_section('2')
+            cfig.set('2', 'hi', 'val')
+            con.set_config(cfig)
+
+            mfig = configparser.ConfigParser()
+            mfig.add_section('3')
+            mfig.set('3', 'hi', 'val')
+            con.set_merge_config(mfig)
+
+            tsf = TaskSummaryFactory(con, chm_incomplete_tasks=[],
+                                     merge_incomplete_tasks=[],
+                                     output_compute=True)
+            isum = tsf._get_image_stats_summary()
+            self.assertEqual(isum.get_image_count(), 0)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    def test_get_image_stats_summary_output_compute_true_one_image(self):
+        temp_dir = tempfile.mkdtemp()
+        try:
+            im = Image.new('L', (10, 10))
+            iname = os.path.join(temp_dir, '1.png')
+            im.save(iname)
+            expsize = os.path.getsize(iname)
+            con = CHMConfig(temp_dir,
+                            './model', './outdir', '500x500', '20x20')
+            cfig = configparser.ConfigParser()
+            cfig.add_section('1')
+            cfig.set('1', 'hi', 'val')
+            cfig.add_section('2')
+            cfig.set('2', 'hi', 'val')
+            con.set_config(cfig)
+
+            mfig = configparser.ConfigParser()
+            mfig.add_section('3')
+            mfig.set('3', 'hi', 'val')
+            con.set_merge_config(mfig)
+
+            tsf = TaskSummaryFactory(con, chm_incomplete_tasks=[],
+                                     merge_incomplete_tasks=[],
+                                     output_compute=True)
+            isum = tsf._get_image_stats_summary()
+            self.assertEqual(isum.get_image_count(), 1)
+            self.assertEqual(isum.get_total_pixels(), 100)
+            self.assertEqual(isum.get_total_size_of_images_in_bytes(), expsize)
+            self.assertEqual(isum.get_image_dimensions_as_dict(), {(10,10): 1})
 
         finally:
             shutil.rmtree(temp_dir)
