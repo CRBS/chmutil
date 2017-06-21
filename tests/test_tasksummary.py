@@ -14,6 +14,8 @@ import sys
 from chmutil.cluster import TaskStats
 from chmutil.cluster import TaskSummary
 from chmutil.core import CHMConfig
+from chmutil.image import ImageStatsSummary
+from chmutil.image import ImageStats
 
 
 class TestCore(unittest.TestCase):
@@ -23,6 +25,50 @@ class TestCore(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def test_convert_float_to_string_with_unitprefix(self):
+        ts = TaskSummary(None)
+        res = ts._convert_float_to_string_with_unitprefix(0)
+        self.assertEqual(res, '0 ')
+        res = ts._convert_float_to_string_with_unitprefix(1000001)
+        self.assertEqual(res, '1.0 mega')
+
+        res = ts._convert_float_to_string_with_unitprefix(1000000001)
+        self.assertEqual(res, '1.0 giga')
+
+    def test_get_image_dimensions_from_dict(self):
+        tsum = TaskSummary(None)
+        res = tsum._get_image_dimensions_from_dict(None)
+        self.assertEqual(res, 'No image dimension data found')
+
+        res = tsum._get_image_dimensions_from_dict({})
+        self.assertEqual(res, 'Image dimension data empty')
+
+        res = tsum._get_image_dimensions_from_dict({(800, 600): 1})
+        self.assertEqual(res, '800 x 600')
+
+        res = tsum._get_image_dimensions_from_dict({(800, 600): 1,
+                                                    (100, 100): 5})
+        self.assertEqual(res, '100 x 100 *Only 5 images have this dimension')
+
+    def test_get_input_image_summary_with_three_images(self):
+        iss = ImageStatsSummary()
+        istat = ImageStats('/foo', 100, 200, 'L',
+                           size_in_bytes=50)
+        iss.add_image_stats(istat)
+
+        istat = ImageStats('/foo2', 100, 200, 'L',
+                           size_in_bytes=60)
+        iss.add_image_stats(istat)
+
+        istat = ImageStats('/foo2', 300, 400, 'L',
+                           size_in_bytes=100)
+        iss.add_image_stats(istat)
+        tsum = TaskSummary(None)
+        res = tsum._get_input_image_summary(iss)
+        self.assertEqual(res, 'Number input images: 3 (210 bytes)\n'
+                              'Dimensions of images: 100 x 200 *Only '
+                              '2 images have this dimension\n\n')
 
     def test_get_summary_from_task_stats(self):
         tsum = TaskSummary(None)
@@ -179,8 +225,20 @@ class TestCore(unittest.TestCase):
                                              './chm-0.1.0.img\n\nCHM tasks: '
                                              'NA\nMerge tasks: NA\n')
 
+        iss = ImageStatsSummary()
+        istat = ImageStats('/foo', 100, 200, 'L',
+                           size_in_bytes=50)
+        iss.add_image_stats(istat)
+
+        istat = ImageStats('/foo2', 100, 200, 'L',
+                           size_in_bytes=60)
+        iss.add_image_stats(istat)
+
+        istat = ImageStats('/foo2', 300, 400, 'L',
+                           size_in_bytes=100)
         tsum = TaskSummary(con, chm_task_stats=ts,
-                           merge_task_stats=mts)
+                           merge_task_stats=mts,
+                           image_stats_summary=iss)
         self.assertEqual(tsum.get_summary(), 'chmutil version: unknown\n'
                                              'Tiles: 500x500 with 20x20 '
                                              'overlap\nDisable histogram '
@@ -188,7 +246,10 @@ class TestCore(unittest.TestCase):
                                              'Tasks: 1 tiles per task, 1 '
                                              'tasks(s) per node\nTrained '
                                              'CHM model: ./model\nCHM binary: '
-                                             './chm-0.1.0.img\n\nCHM tasks: '
+                                             './chm-0.1.0.img\n\nNumber input '
+                                             'images: 2 (110 bytes)\n'
+                                             'Dimensions of images: 100 x 200'
+                                             '\n\nCHM tasks: '
                                              '50% complete (1 of 2 completed)'
                                              '\nMerge tasks: 75% complete '
                                              '(3 of 4 completed)\n')

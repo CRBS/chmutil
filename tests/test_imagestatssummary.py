@@ -29,6 +29,14 @@ class TestImageStatsSummary(unittest.TestCase):
         self.assertEqual(iss.get_total_pixels(), 0)
         self.assertEqual(iss.get_image_dimensions_as_dict(), {})
 
+    def test_add_image_stats_none_passed(self):
+        iss = ImageStatsSummary()
+        iss.add_image_stats(None)
+        self.assertEqual(iss.get_image_count(), 0)
+        self.assertEqual(iss.get_total_size_of_images_in_bytes(), 0)
+        self.assertEqual(iss.get_total_pixels(), 0)
+        self.assertEqual(iss.get_image_dimensions_as_dict(), {})
+
     def test_add_image_stats_one_image(self):
         iss = ImageStatsSummary()
         istat = ImageStats('/foo', 100, 200, 'L',

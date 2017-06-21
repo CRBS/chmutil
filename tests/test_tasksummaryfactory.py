@@ -376,7 +376,7 @@ class TestTaskSummaryFactory(unittest.TestCase):
         tsf = TaskSummaryFactory(con, chm_incomplete_tasks=[],
                                  merge_incomplete_tasks=[])
         isum = tsf._get_image_stats_summary()
-        self.assertEqual(isum.get_image_count(), 0)
+        self.assertEqual(isum, None)
 
     def test_get_image_stats_summary_output_compute_true_but_invalid_dir(self):
         temp_dir = tempfile.mkdtemp()

@@ -131,6 +131,11 @@ class TaskSummary(object):
     """Summary of a CHM job
     """
 
+    GIGA_PREFIX = 'giga'
+    MEGA_PREFIX = 'mega'
+    MEGA_VAL = 1000000
+    GIGA_VAL = 1000000000
+
     def __init__(self, chmconfig, chm_task_stats=None,
                  merge_task_stats=None,
                  image_stats_summary=None):
@@ -149,6 +154,8 @@ class TaskSummary(object):
         self._merge_task_compute_summary = self.\
             _get_compute_summary_from_task_stats('Merge',
                                                  self._merge_task_stats)
+        self._image_summary = self.\
+            _get_input_image_summary(image_stats_summary)
 
     def get_chm_task_stats(self):
         """Returns `TaskStats` for CHM tasks
@@ -192,6 +199,24 @@ class TaskSummary(object):
         :returns: string converted value
         """
         return '{0:.1f}'.format(val)
+
+    def _convert_float_to_string_with_unitprefix(self, val):
+        """Converts number to string and appends unitprefix
+        :param val: value to convert
+        :returns: string of form <val as str> prefix
+                  where prefix is none for values less then
+                  10-e6, mega for values between
+                  10-e6 and 10-e9, giga above 10-e9"""
+        if val < TaskSummary.MEGA_VAL:
+            return self._convert_number_to_string(val) + ' '
+
+        if val < TaskSummary.GIGA_VAL:
+            div_val = float(val)/TaskSummary.MEGA_VAL
+            return (self._convert_float_to_string(div_val) + ' ' +
+                    TaskSummary.MEGA_PREFIX)
+        div_val = float(val)/TaskSummary.GIGA_VAL
+        return (self._convert_float_to_string(div_val) + ' ' +
+                TaskSummary.GIGA_PREFIX)
 
     def _get_summary_from_task_stats(self, task_stats):
         """Creates a summary string from `task_stats` object
@@ -303,6 +328,63 @@ class TaskSummary(object):
                 p_str + ' estimated remaining compute: ' + remain_hours_str +
                 ' CPU hours (~' + remain_years_str + ' years)\n')
 
+    def _get_image_dimensions_from_dict(self, image_dim_dict):
+        """Given a dictionary containing keys that are WxH tuples
+           and values that are the count of images with those
+           dimensions. This method returns a human readable string
+           of the image dimensions, if multiple dimensions are seen
+           then the most common one is output with this line appended
+           *Image dimensions differ"""
+        if image_dim_dict is None:
+            return 'No image dimension data found'
+
+        if len(image_dim_dict.keys()) is 0:
+            return 'Image dimension data empty'
+
+        if len(image_dim_dict.keys()) is 1:
+            imtuple = image_dim_dict.keys()[0]
+            w_str = self._convert_number_to_string(imtuple[0])
+            h_str = self._convert_number_to_string(imtuple[1])
+            return w_str + ' x ' + h_str
+
+        max_images = -1
+        max_key = None
+        for k in image_dim_dict.keys():
+            if max_key is None or image_dim_dict[k] >= max_images:
+                max_key = k
+                max_images = image_dim_dict[max_key]
+
+        imstr = self._convert_number_to_string(max_images)
+        w_str = self._convert_number_to_string(max_key[0])
+        h_str = self._convert_number_to_string(max_key[1])
+        return (w_str + ' x ' + h_str + ' *Only ' + imstr +
+                ' images have this dimension')
+
+    def _get_input_image_summary(self, image_stats_summary):
+        """Gets summary about input images from image_stats_summary object
+        :param image_stats_summary: ImageStatsSummary object to get stats from
+        :returns: string of form
+                  Number input images: X,XXX (X PREFIXbytes)
+                  Dimensions of images: XX,XXX X XX,XXXXX (X PREFIXpixels)
+
+                  With *Image dimensions differ added to second line if any
+                  of the images have different dimensions
+        """
+        if image_stats_summary is None:
+            logger.info('ImageStatsSummary is None, not outputting stats')
+            return ''
+
+        rawcnt = image_stats_summary.get_image_count()
+        strcnt = self._convert_number_to_string(rawcnt)
+
+        rawsize = image_stats_summary.get_total_size_of_images_in_bytes()
+        sizestr = self._convert_float_to_string_with_unitprefix(rawsize)
+
+        dim_dict = image_stats_summary.get_image_dimensions_as_dict()
+        dim_str = self._get_image_dimensions_from_dict(dim_dict)
+        return ('Number input images: ' + strcnt + ' (' + sizestr +
+                'bytes)\nDimensions of images: ' + dim_str + '\n\n')
+
     def get_summary(self):
         """Gets the summary of CHM job in human readable form
         """
@@ -323,7 +405,9 @@ class TaskSummary(object):
                 str(self._chmconfig.get_number_tasks_per_node()) +
                 ' tasks(s) per node\nTrained CHM model: ' +
                 self._chmconfig.get_model() + '\nCHM binary: ' +
-                self._chmconfig.get_chm_binary() + '\n\n' + 'CHM tasks: ' +
+                self._chmconfig.get_chm_binary() + '\n\n' +
+                self._image_summary +
+                'CHM tasks: ' +
                 self._chm_task_summary +
                 self._chm_compute_summary +
                 '\nMerge tasks: ' +
@@ -524,7 +608,7 @@ class TaskSummaryFactory(object):
         """
         if self._output_compute is None or self._output_compute is False:
             logger.debug('Skipping analysis of input image data')
-            return ImageStatsSummary()
+            return None
 
         imgdir = self._chmconfig.get_images()
         if not os.path.isdir(imgdir):
