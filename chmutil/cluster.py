@@ -342,7 +342,7 @@ class TaskSummary(object):
             return 'Image dimension data empty'
 
         if len(image_dim_dict.keys()) is 1:
-            imtuple = image_dim_dict.keys()[0]
+            imtuple = list(image_dim_dict.keys())[0]
             w_str = self._convert_number_to_string(imtuple[0])
             h_str = self._convert_number_to_string(imtuple[1])
             return w_str + ' x ' + h_str
