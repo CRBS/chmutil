@@ -7,6 +7,7 @@ import logging
 import chmutil
 from PIL import Image
 from chmutil.core import Parameters
+from chmutil import image
 from chmutil import core
 from chmutil.image import SimpleImageMerger
 
@@ -49,7 +50,7 @@ def _merge_image_tiles(img_dir, dest_file, suffix):
     """
     logger.info('Merging images in ' + img_dir)
     sim = SimpleImageMerger()
-    im_list = core.get_image_path_list(img_dir, suffix)
+    im_list = image.get_image_path_list(img_dir, suffix)
     merged = sim.merge_images(im_list)
 
     if merged is None:
