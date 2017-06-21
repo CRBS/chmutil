@@ -9,8 +9,7 @@ from configparser import NoOptionError
 import shlex
 import subprocess
 import time
-from PIL import Image
-
+from chmutil.image import ImageStatsFromDirectoryFactory
 import chmutil
 
 logger = logging.getLogger(__name__)
@@ -30,12 +29,6 @@ class LoadConfigError(Exception):
 
 class InvalidJobDirError(Exception):
     """Raised when invalid job directory is passed in or used
-    """
-    pass
-
-
-class InvalidImageDirError(Exception):
-    """Raised when invalid image directory is used
     """
     pass
 
@@ -197,45 +190,6 @@ def wait_for_children_to_exit(process_list):
         del process_list[0]
         running_procs = len(process_list)
     return exit_code
-
-
-def get_image_path_list(image_dir, suffix,
-                        keysortfunc=None):
-    """Gets list of images with suffix from dir
-    :param image_dir: Path to directory with images
-    :param suffix: Only include files ending with suffix.
-                   code uses str().endswidth for checking.
-                   If `suffix` is None then all files match
-    :raises InvalidImageDirError: if `image_dir` is None or not
-                                  a directory
-    :raises OSError: if there is an error invoking os.listdir on `image_dir`
-    :returns: list of file paths
-    """
-    if image_dir is None:
-        raise InvalidImageDirError('image_dir is None')
-
-    if not os.path.isdir(image_dir):
-        raise InvalidImageDirError('image_dir must be a directory')
-
-    if suffix is None:
-        adjusted_suffix = ''
-    else:
-        adjusted_suffix = suffix
-
-    img_list = []
-    for entry in os.listdir(image_dir):
-        fp = os.path.join(image_dir, entry)
-        if not os.path.isfile(fp):
-            logger.debug(entry + ' is not a file. skipping')
-            continue
-        if entry.endswith(adjusted_suffix):
-            img_list.append(fp)
-
-    if keysortfunc is not None:
-        logger.debug('Sort function passed in sorting data')
-        img_list.sort(key=keysortfunc)
-
-    return img_list
 
 
 def get_longest_sequence_of_numbers_in_string(val):
@@ -1100,78 +1054,6 @@ class CHMConfigFromConfigFactory(object):
                          mergeconfig=mergecon,
                          gentifs=gentifs)
         return opts
-
-
-class ImageStats(object):
-    """Contains information about an image to be segmented
-    """
-    def __init__(self, path, width, height, format):
-        """Constructor
-        """
-        self._path = path
-        self._width = width
-        self._height = height
-        self._format = format
-
-    def get_width(self):
-        """Gets width
-        """
-        return self._width
-
-    def get_height(self):
-        """Gets height
-        """
-        return self._height
-
-    def get_file_path(self):
-        """Gets path to image
-        """
-        return self._path
-
-    def get_format(self):
-        """
-        :return:
-        """
-        return self._format
-
-
-class ImageStatsFromDirectoryFactory(object):
-    """Creates ImageStats objects from directory of images
-    """
-
-    def __init__(self, directory, max_image_pixels=768000000):
-        """Constructor
-        """
-        self._directory = directory
-        logger.debug('Setting MAX_IMAGE_PIXELS to ' + str(max_image_pixels))
-        Image.MAX_IMAGE_PIXELS = max_image_pixels
-
-    def get_input_image_stats(self,
-                              keysortfunc=None):
-        """Gets InputImageStats objects as list
-        """
-        image_stats_list = []
-        if os.path.isfile(self._directory):
-            return []
-        file_list = get_image_path_list(self._directory,
-                                        None)
-        for fp in file_list:
-            im = None
-            try:
-                im = Image.open(fp)
-                iis = ImageStats(fp, im.size[0],
-                                 im.size[1], im.format)
-                image_stats_list.append(iis)
-            except Exception:
-                logger.exception('Skipping file unable to open ' + fp)
-            finally:
-                try:
-                    im.close()
-                except Exception:
-                    logger.exception('Caught exception attempting '
-                                     'to close image')
-
-        return image_stats_list
 
 
 class CHMArgGenerator(object):
