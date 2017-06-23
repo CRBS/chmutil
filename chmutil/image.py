@@ -450,4 +450,3 @@ class ImageStatsSummary(object):
         :returns: total number of pixels ie W x H x # images
         """
         return self._total_pixels
-

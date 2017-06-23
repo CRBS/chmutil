@@ -129,7 +129,8 @@ class TestCreateCHMJob(unittest.TestCase):
             chmconfig = fac.get_chmconfig(skip_loading_mergeconfig=False)
             mcon = chmconfig.get_merge_config()
             self.assertEqual(mcon.getboolean(CHMJobCreator.CONFIG_DEFAULT,
-                                             CHMJobCreator.MERGE_GENTIFS), True)
+                                             CHMJobCreator.MERGE_GENTIFS),
+                             True)
         finally:
             shutil.rmtree(temp_dir)
 

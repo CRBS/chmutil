@@ -91,14 +91,14 @@ class TestImageFunctions(unittest.TestCase):
             func = core.get_longest_sequence_of_numbers_in_string
             # no files
             res = image.get_image_path_list(temp_dir, None,
-                                           keysortfunc=func)
+                                            keysortfunc=func)
             self.assertEqual(len(res), 0)
 
             # one file
             onefile = os.path.join(temp_dir, 'foo.2345.txt')
             open(onefile, 'a').close()
             res = image.get_image_path_list(temp_dir, None,
-                                           keysortfunc=func)
+                                            keysortfunc=func)
             self.assertEqual(len(res), 1)
             self.assertTrue(onefile in res)
 
@@ -109,7 +109,7 @@ class TestImageFunctions(unittest.TestCase):
             adir = os.path.join(temp_dir, 'somedir.png')
             os.makedirs(adir, mode=0o775)
             res = image.get_image_path_list(temp_dir, None,
-                                           keysortfunc=func)
+                                            keysortfunc=func)
             self.assertEqual(len(res), 2)
             self.assertTrue(onefile in res)
             self.assertTrue(twofile in res)
@@ -117,7 +117,7 @@ class TestImageFunctions(unittest.TestCase):
 
             # suffix set to .png
             res = image.get_image_path_list(temp_dir, '.png',
-                                           keysortfunc=func)
+                                            keysortfunc=func)
             self.assertEqual(len(res), 1)
             self.assertTrue(twofile in res)
 
@@ -134,7 +134,7 @@ class TestImageFunctions(unittest.TestCase):
                 open(af, 'a').close()
 
             res = image.get_image_path_list(temp_dir, '.png',
-                                           keysortfunc=func)
+                                            keysortfunc=func)
             self.assertEqual(len(res), 1000)
         finally:
             shutil.rmtree(temp_dir)

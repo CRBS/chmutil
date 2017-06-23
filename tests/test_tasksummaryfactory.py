@@ -381,7 +381,7 @@ class TestTaskSummaryFactory(unittest.TestCase):
     def test_get_image_stats_summary_output_compute_true_but_invalid_dir(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            con = CHMConfig(os.path.join(temp_dir,'images'),
+            con = CHMConfig(os.path.join(temp_dir, 'images'),
                             './model', './outdir', '500x500', '20x20')
             cfig = configparser.ConfigParser()
             cfig.add_section('1')
@@ -456,7 +456,8 @@ class TestTaskSummaryFactory(unittest.TestCase):
             self.assertEqual(isum.get_image_count(), 1)
             self.assertEqual(isum.get_total_pixels(), 100)
             self.assertEqual(isum.get_total_size_of_images_in_bytes(), expsize)
-            self.assertEqual(isum.get_image_dimensions_as_dict(), {(10,10): 1})
+            self.assertEqual(isum.get_image_dimensions_as_dict(),
+                             {(10, 10): 1})
 
         finally:
             shutil.rmtree(temp_dir)

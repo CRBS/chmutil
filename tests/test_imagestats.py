@@ -38,6 +38,5 @@ class TestImageStats(unittest.TestCase):
         self.assertEqual(im_stats.get_size_in_bytes(), 123)
 
 
-
 if __name__ == '__main__':
     unittest.main()
