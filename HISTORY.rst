@@ -2,6 +2,19 @@
 History
 =======
 
+0.8.0 (2017-06-23)
+------------------
+
+* Added --gentifs to createchmjob.py to generate tif probability map images
+  `Issue #43 <https://github.com/CRBS/chmutil/issues/43>`_
+
+* Fixed bug in checkchmjob.py --detailed where ram value was incorrect
+  `Issue #44 <https://github.com/CRBS/chmutil/issues/44>`_
+
+* Added information about input images to checkchmjob.py --detailed
+  `Issue #28 <https://github.com/CRBS/chmutil/issues/28>`_
+
+
 0.7.0 (2017-06-09)
 ------------------
 
