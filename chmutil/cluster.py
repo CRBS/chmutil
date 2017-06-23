@@ -293,7 +293,7 @@ class TaskSummary(object):
 
         # get average memory
         total_mem_kb = task_stats.get_total_memory_in_kb()
-        avg_mem_gb = total_mem_kb / num_tasks_with_cputimes / 1000.0
+        avg_mem_gb = total_mem_kb / num_tasks_with_cputimes / 1000000.0
         mem_str = self._convert_number_to_string(avg_mem_gb)
 
         # get total compute consumed so far

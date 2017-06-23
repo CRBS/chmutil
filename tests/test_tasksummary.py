@@ -139,7 +139,7 @@ class TestCore(unittest.TestCase):
         # try stats with 1 task with information
         ts.set_total_cpu_usertime(10800)
         ts.set_total_cpu_walltime(3600)
-        ts.set_total_memory_in_kb(1000)
+        ts.set_total_memory_in_kb(1000000)
         ts.set_total_task_count(3)
         ts.set_completed_task_count(1)
         res = tsum._get_compute_summary_from_task_stats('foo', ts)
@@ -167,7 +167,7 @@ class TestCore(unittest.TestCase):
         ts.set_total_task_count(20000)
         ts.set_total_cpu_usertime(28382400)
         ts.set_total_cpu_walltime(9460800)
-        ts.set_total_memory_in_kb(50000000)
+        ts.set_total_memory_in_kb(50000000000)
         res = tsum._get_compute_summary_from_task_stats('foo', ts)
         self.assertTrue('\nfoo runtime: 0.3 hours per task '
                         '(5.0GB ram)\n' in res)
