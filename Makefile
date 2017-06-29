@@ -84,13 +84,11 @@ dist: clean ## builds source and wheel package
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
 
-testrelease: clean ## Builds and releases code to testpypi
-	python setup.py sdist upload -r pypitest
-	python setup.py bdist_wheel upload -r pypitest
+testrelease: dist ## Builds and releases code to testpypi
+	twine upload dist/* -r testpypi
 
-release: clean ## Builds and releases code to PRODUCTION pypi
-	python setup.py sdist upload -r pypi
-	python setup.py bdist_wheel upload -r pypi
+release: dist ## Builds and releases code to PRODUCTION pypi
+	twine upload dist/*
 
 updateversion: ## updates version value in setup.py & chmutil/__init__.py
 	@cv=`egrep '^\s+version=' setup.py | sed "s/^.*='//" | sed "s/'.*//"`; \
