@@ -14,6 +14,7 @@ from PIL import Image
 
 from chmutil.core import Parameters
 from chmutil import core
+from chmutil import image
 from chmutil.core import Box
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)s (%(process)d) %(name)s %(message)s"
@@ -203,7 +204,7 @@ def _save_tile_tuple_list_as_config_file(tile_tuple_list, config_file):
 def _create_mrc_stack(image_dir, num_tiles, dest_file, theargs):
     """Convert image
     """
-    img_list = core.get_image_path_list(image_dir, theargs.suffix)
+    img_list = image.get_image_path_list(image_dir, theargs.suffix)
     if len(img_list) is 0:
         logger.error('No images found in ' + image_dir)
         return 1
