@@ -149,6 +149,10 @@ class TestRocceCluster(unittest.TestCase):
             gen.generate_submit_script()
             self.assertEqual(os.path.isfile(script), True)
             # TODO Test qsub script file has correct data in it
+            f = open(script, 'r')
+            data = f.read()
+            f.close()
+            self.assertTrue('\n#$ -l h_rt=12:00:00,h_vmem=10G\n' in data)
         finally:
             shutil.rmtree(temp_dir)
 
@@ -163,6 +167,11 @@ class TestRocceCluster(unittest.TestCase):
             gen.generate_merge_submit_script()
             self.assertEqual(os.path.isfile(script), True)
             # TODO Test qsub script file has correct data in it
+            f = open(script, 'r')
+            data = f.read()
+            f.close()
+            self.assertTrue('\n#$ -l h_rt=12:00:00,h_vmem=20G,'
+                            'virtual_free=20G\n' in data)
         finally:
             shutil.rmtree(temp_dir)
 

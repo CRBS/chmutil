@@ -656,7 +656,7 @@ class CHMConfig(object):
                  mergewalltime='12:00:00',
                  max_image_pixels=768000000,
                  max_chm_memory_in_gb=10,
-                 max_merge_memory_in_gb=10,
+                 max_merge_memory_in_gb=20,
                  version='unknown',
                  cluster='rocce',
                  account='',

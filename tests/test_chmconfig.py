@@ -52,7 +52,7 @@ class TestCHMConfig(unittest.TestCase):
         self.assertEqual(opts.get_merge_walltime(), '12:00:00')
         self.assertEqual(opts.get_mergejob_name(), 'mergechmjob')
         self.assertEqual(opts.get_max_chm_memory_in_gb(), 10)
-        self.assertEqual(opts.get_max_merge_memory_in_gb(), 10)
+        self.assertEqual(opts.get_max_merge_memory_in_gb(), 20)
         self.assertEqual(opts.get_account(), '')
 
         opts = CHMConfig('images', 'model', 'out', '500x600', '20x30',

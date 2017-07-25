@@ -970,7 +970,8 @@ class RocceCluster(Cluster):
                                          self._chmconfig.get_mergejob_name(),
                                          self._chmconfig.get_merge_walltime(),
                                          self._get_merge_runner_path(),
-                                         ',h_vmem=' + max_mem + 'G',
+                                         ',h_vmem=' + max_mem + 'G' +
+                                         ',virtual_free=' + max_mem + 'G',
                                          self._chmconfig.get_shared_tmp_dir())
 
     def _write_submit_script(self, script, working_dir, stdout_path, job_name,
