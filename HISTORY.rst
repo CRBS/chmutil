@@ -2,6 +2,18 @@
 History
 =======
 
+0.8.1 (2017-07-27)
+------------------
+
+* Fixed bug in createtrainingmrcstack.py which caused program to fail due
+  to incorrect call to get_image_path_list(). 
+  `Issue #48 <https://github.com/CRBS/chmutil/issues/48`_
+
+* Increased required memory for merge tasks on Rocce cluster from 10 to
+  20 gigabytes of ram and added virtual_free constraint to handle
+  gigapixel images.
+  `Issue #49 <https://github.com/CRBS/chmutil/issues/49`_
+
 0.8.0 (2017-06-23)
 ------------------
 
