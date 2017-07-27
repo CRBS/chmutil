@@ -2,6 +2,11 @@
 History
 =======
 
+0.8.2 (2017-07-27)
+------------------
+
+* Fixed typo in history notes which caused pypi not to render project description properly
+
 0.8.1 (2017-07-27)
 ------------------
 
