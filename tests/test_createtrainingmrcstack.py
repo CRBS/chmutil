@@ -12,11 +12,9 @@ import unittest
 import os
 import tempfile
 import shutil
-from PIL import Image
 
 from chmutil.core import Parameters
 from chmutil import createtrainingmrcstack
-from chmutil.createtrainingmrcstack import NoInputImageFoundError
 
 
 class TestCreateTrainingMRCStack(unittest.TestCase):
