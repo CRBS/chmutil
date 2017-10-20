@@ -52,6 +52,8 @@ def _parse_arguments(desc, args):
                         help='Size of tiles in WxH format '
                              '(default 512x512)')
     parser.add_argument("--scratchdir", default='/tmp')
+    parser.add_argument("--dontdeletescratch", action='store_true',
+                        help='scratchdir will NOT be deleted if set')
     parser.add_argument("--log", dest="loglevel", choices=['DEBUG',
                         'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level (default WARNING)",
@@ -261,7 +263,11 @@ def _create_mrc_stack(image_dir, num_tiles, dest_file, theargs):
         return exit
     finally:
         os.chdir(curdir)
-        shutil.rmtree(temp_dir)
+        if theargs.dontdeletescratch is True:
+            logger.info('Skipping delete of scratchdir cause '
+                        '--dontdeletescratch was set')
+        else:
+            shutil.rmtree(temp_dir)
 
 
 def main(arglist):
