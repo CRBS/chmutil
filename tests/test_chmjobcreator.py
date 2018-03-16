@@ -383,27 +383,31 @@ class TestCHMJobCreator(unittest.TestCase):
             self.assertEqual(len(config.sections()),
                              7)
 
-            self.assertEqual(config.get('1',
-                                        CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(CHMJobCreator.TILES_DIR,
-                                          'foo1.png', '001.foo1.png'))
+            o_img_list = []
+            for x in range(1,8):
+                o_img = config.get(str(x),
+                                   CHMJobCreator.CONFIG_OUTPUT_IMAGE)
+                o_img_list.append(o_img)
+
+            o_img_list.sort()
+            self.assertEqual(o_img_list,
+                             ['tiles/foo1.png/001.foo1.png',
+                              'tiles/foo1.png/002.foo1.png',
+                              'tiles/foo2.png/001.foo2.png',
+                              'tiles/foo3.png/001.foo3.png',
+                              'tiles/foo3.png/002.foo3.png',
+                              'tiles/foo3.png/003.foo3.png',
+                              'tiles/foo3.png/004.foo3.png'])
+
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        CHMJobCreator.TILES_DIR,
                                                        'foo1.png')))
-            self.assertEqual(config.get('3',
-                                        CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(CHMJobCreator.TILES_DIR,
-                                          'foo2.png', '001.foo2.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        CHMJobCreator.TILES_DIR,
                                                        'foo2.png')))
 
-            self.assertEqual(config.get('7',
-                                        CHMJobCreator.CONFIG_OUTPUT_IMAGE),
-                             os.path.join(CHMJobCreator.TILES_DIR,
-                                          'foo3.png', '004.foo3.png'))
             self.assertTrue(os.path.isdir(os.path.join(temp_dir,
                                                        CHMJobCreator.RUN_DIR,
                                                        CHMJobCreator.TILES_DIR,
