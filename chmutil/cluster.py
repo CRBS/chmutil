@@ -1357,7 +1357,7 @@ class SchedulerFactory(object):
 
             return SLURMScheduler(SchedulerFactory.COMET, queue='compute',
                                   load_singularity_cmd='module load '
-                                                       'singularity/2.2\n')
+                                                       'singularity/2.3.2\n')
 
         logger.error('No cluster class supporting ' + lc_cluster + ' found')
         return None
