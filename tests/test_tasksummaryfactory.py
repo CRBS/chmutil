@@ -193,8 +193,10 @@ class TestTaskSummaryFactory(unittest.TestCase):
 
             res = tsf._get_compute_hours_consumed(temp_dir)
             self.assertEqual(len(res), 3)
-            self.assertEqual(res, [(250.1, 150.05, 0), (9823.73, 12195.0, 0),
-                                   (100.0, 1215.0, 5287148)])
+            res.sort()
+            self.assertEqual(res, [(100.0, 1215.0, 5287148),
+                                   (250.1, 150.05, 0),
+                                   (9823.73, 12195.0, 0)])
         finally:
             shutil.rmtree(temp_dir)
 
