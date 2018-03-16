@@ -46,5 +46,6 @@ class TestCore(unittest.TestCase):
         self.assertEqual(ts.get_max_memory_in_kb(), 300)
         self.assertEqual(ts.get_total_memory_in_kb(), 400)
 
+
 if __name__ == '__main__':
     unittest.main()

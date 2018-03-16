@@ -493,5 +493,6 @@ class TestTaskSummaryFactory(unittest.TestCase):
                                            '\nMerge tasks: 0% complete (0 of '
                                            '1 completed)\n')
 
+
 if __name__ == '__main__':
     unittest.main()

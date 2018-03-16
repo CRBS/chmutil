@@ -384,7 +384,7 @@ class TestCHMJobCreator(unittest.TestCase):
                              7)
 
             o_img_list = []
-            for x in range(1,8):
+            for x in range(1, 8):
                 o_img = config.get(str(x),
                                    CHMJobCreator.CONFIG_OUTPUT_IMAGE)
                 o_img_list.append(o_img)

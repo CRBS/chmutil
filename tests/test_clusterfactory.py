@@ -46,5 +46,6 @@ class TestClusterFactory(unittest.TestCase):
         c = cfac.get_cluster_by_name(CometCluster.CLUSTER)
         self.assertEqual(c.get_cluster(), CometCluster.CLUSTER)
 
+
 if __name__ == '__main__':
     unittest.main()
