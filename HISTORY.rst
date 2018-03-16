@@ -2,6 +2,16 @@
 History
 =======
 
+0.8.3 (2018-03-16)
+------------------
+
+* Added --dontdeletescratch option to createtrainingmrcstack.py to skip
+  deletion of scratchdir. 
+  `Issue #78 <https://github.com/CRBS/chmutil/issues/78>`_
+
+* Updated comet configuration to load singularity 2.3.2.
+  `Issue #76 <https://github.com/CRBS/chmutil/issues/76>`_
+
 0.8.2 (2017-07-27)
 ------------------
 
