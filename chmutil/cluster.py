@@ -1262,7 +1262,7 @@ class CometCluster(Cluster):
         f.write('echo "DATE: `date`"\n\n')
         f.write('echo "JOBID: $SLURM_ARRAY_JOB_ID"\n')
         f.write('echo "TASKID: $SLURM_ARRAY_TASK_ID"\n\n')
-        f.write('module load singularity/2.2\n\n')
+        f.write('module load singularity/2.3.2\n\n')
         f.write('/usr/bin/time -v ' + run_script_path +
                 ' $SLURM_ARRAY_TASK_ID ' + working_dir + ' --scratchdir ' +
                 tmp_dir + ' --log DEBUG\n')
