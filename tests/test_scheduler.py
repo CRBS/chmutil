@@ -415,9 +415,13 @@ class TestScheduler(unittest.TestCase):
 
         sched = sf.get_scheduler_by_cluster_name(SchedulerFactory.COMET)
         self.assertEqual(sched.get_clustername(), SchedulerFactory.COMET)
+        self.assertEqual(sched.get_singularity_load_command(),
+                         'module load singularity/2.3.2\n')
 
         sched = sf.get_scheduler_by_cluster_name(SchedulerFactory.ROCCE)
         self.assertEqual(sched.get_clustername(), SchedulerFactory.ROCCE)
+        self.assertEqual(sched.get_singularity_load_command(),
+                         None)
 
         sched = sf.get_scheduler_by_cluster_name(SchedulerFactory.GORDON)
         self.assertEqual(sched.get_clustername(), SchedulerFactory.GORDON)
