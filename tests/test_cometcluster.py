@@ -18,7 +18,7 @@ from chmutil.cluster import CometCluster
 from chmutil.core import CHMJobCreator
 
 
-class TestGordonCluster(unittest.TestCase):
+class TestCometCluster(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -143,6 +143,10 @@ class TestGordonCluster(unittest.TestCase):
             gen.generate_submit_script()
             self.assertEqual(os.path.isfile(script), True)
             # TODO Test qsub script file has correct data in it
+            with open(script, 'r') as f:
+                data = f.read()
+                self.assertTrue('\nmodule load '
+                                'singularity/2.3.2\n' in data)
         finally:
             shutil.rmtree(temp_dir)
 
