@@ -1397,6 +1397,10 @@ class Scheduler(object):
         """Gets name"""
         return self._clustername
 
+    def get_singularity_load_command(self):
+        """Gets singularity load command"""
+        return self._load_singularity_cmd
+
     def set_account(self, account):
         """Sets account to bill hours consumed on cluster
         """
