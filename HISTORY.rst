@@ -6,7 +6,7 @@ History
 ------------------
 
 * Try number two to get comet configuration to load singularity 2.3.2.
-  `Issue #76 <https://github.com/CRBS/chmutil/issues/76>`_
+  See issue 76 below.
 
 0.8.3 (2018-03-16)
 ------------------
